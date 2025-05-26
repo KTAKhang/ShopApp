@@ -1,44 +1,105 @@
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Hàm đăng nhập
 export async function loginApi({ email, password }) {
-    const res = await fetch('https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/user/sign-in', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-    });
+    try {
+        const response = await axios.post(
+            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/user/sign-in',
+            { email, password },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
 
-    const data = await res.json();
+        const data = response.data;
 
-    if (!res.ok || data.status !== 'OK') {
-        throw new Error(data.message || 'Login failed');
+        if (data.status !== 'OK') {
+            throw new Error(data.message || 'Login failed');
+        }
+
+        return {
+            user: data.data,
+            token: data.token.access_token,
+        };
+    } catch (error) {
+        // Bắt lỗi từ axios
+        throw new Error(error.response?.data?.message || error.message || 'Login failed');
     }
-
-    // Trả về user và token
-    return {
-        user: data.data,
-        token: data.token.access_token,
-    };
 }
 
-// Hàm để gọi API với token
-export async function apiCall(url, options = {}) {
-    const token = await AsyncStorage.getItem('token');
+// ✅ Hàm gửi OTP
+export async function sendOtpApi({ user_name, email, password }) {
+    try {
+        const response = await axios.post(
+            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/auth/register/send-otp',
+            { user_name, email, password },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
 
-    const config = {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
-            ...options.headers,
-        },
-    };
+        const data = response.data;
 
-    const response = await fetch(url, config);
-    const data = await response.json();
+        if (data.status !== 'OK') {
+            throw new Error(data.message || 'Send OTP failed');
+        }
 
-    if (!response.ok) {
-        throw new Error(data.message || 'API call failed');
+        return data; // { status: 'OK', message: 'OTP sent to email' }
+    } catch (error) {
+        throw new Error(error.response?.data?.message || error.message || 'Send OTP failed');
     }
+}
 
-    return data;
+export async function confirmOtpApi(otp) {
+    try {
+        const response = await axios.post(
+            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/auth/register/confirm',
+            { otp },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: '*/*',
+                },
+            }
+        );
+
+        const data = response.data;
+
+        if (data.status !== 'OK') {
+            throw new Error(data.message || 'Confirm OTP failed');
+        }
+
+        return data; // { status: 'OK', message: 'Register successfully' }
+    } catch (error) {
+        throw new Error(error.response?.data?.message || error.message || 'Confirm OTP failed');
+    }
+}
+
+// Hàm gọi API với token từ AsyncStorage
+export async function apiCall(url, options = {}) {
+    try {
+        const token = await AsyncStorage.getItem('token');
+
+        const config = {
+            method: options.method || 'GET',
+            url,
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && { Authorization: `Bearer ${token}` }),
+                ...options.headers,
+            },
+            ...(options.data && { data: options.data }),
+            ...(options.params && { params: options.params }),
+        };
+
+        const response = await axios(config);
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || error.message || 'API call failed');
+    }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -7,27 +7,29 @@ import {
     StyleSheet,
     Animated,
     Dimensions,
-    ActivityIndicator,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { Mail, Lock, User } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from '../store/slices/authSlice';
+import { sendOtp } from '../store/slices/authSlice';
 import { useNavigation } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
+
 
 const { height } = Dimensions.get('window');
 
-const LoginScreen = () => {
+const RegisterScreen = () => {
+    const [userName, setUserName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
     const navigation = useNavigation();
-    const { isLoading, error } = useSelector((state) => state.auth);
-    const dispatch = useDispatch();
-
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(50)).current;
+
+    const dispatch = useDispatch();
+    const { isLoading, otpStatus, otpMessage } = useSelector((state) => state.auth);
 
     useEffect(() => {
         Animated.parallel([
@@ -45,17 +47,37 @@ const LoginScreen = () => {
     }, []);
 
     useEffect(() => {
-        if (error) {
-            Alert.alert('Login Error', error);
+        if (otpStatus === 'success') {
+            Toast.show({
+                type: 'success',
+                text1: 'Thành công',
+                text2: otpMessage,
+            });
+            // TODO: điều hướng sang màn hình OTP sau 1s
+            setTimeout(() => {
+                navigation.navigate('VerifyOtp', { email }); // hoặc màn nào bạn muốn
+            }, 1000);
+        } else if (otpStatus === 'error') {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: otpMessage,
+            });
         }
-    }, [error]);
+    }, [otpStatus]);
 
-    const handleLogin = () => {
-        if (!email.trim() || !password.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu');
+
+    const handleRegister = () => {
+        if (!userName.trim() || !email.trim() || !password.trim()) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Vui lòng điền đầy đủ thông tin',
+            });
             return;
         }
-        dispatch(loginUser({ email: email.trim(), password }));
+
+        dispatch(sendOtp({ user_name: userName, email, password }));
     };
 
     return (
@@ -82,9 +104,20 @@ const LoginScreen = () => {
                         },
                     ]}
                 >
-                    <Text style={styles.title}>Đăng Nhập</Text>
+                    <Text style={styles.title}>Đăng Ký</Text>
 
-                    {/* Email Input */}
+                    <View style={styles.inputContainer}>
+                        <User color="#13C2C2" size={20} />
+                        <TextInput
+                            style={styles.inputField}
+                            placeholder="Họ tên"
+                            placeholderTextColor="#aaa"
+                            value={userName}
+                            onChangeText={setUserName}
+                            required
+                        />
+                    </View>
+
                     <View style={styles.inputContainer}>
                         <Mail color="#13C2C2" size={20} />
                         <TextInput
@@ -95,10 +128,10 @@ const LoginScreen = () => {
                             onChangeText={setEmail}
                             keyboardType="email-address"
                             autoCapitalize="none"
+                            required
                         />
                     </View>
 
-                    {/* Password Input */}
                     <View style={styles.inputContainer}>
                         <Lock color="#13C2C2" size={20} />
                         <TextInput
@@ -107,33 +140,27 @@ const LoginScreen = () => {
                             placeholderTextColor="#aaa"
                             value={password}
                             onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
+                            secureTextEntry
+                            required
                         />
-                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                            {showPassword ? (
-                                <EyeOff color="#13C2C2" size={20} />
-                            ) : (
-                                <Eye color="#13C2C2" size={20} />
-                            )}
-                        </TouchableOpacity>
                     </View>
 
                     <TouchableOpacity
                         style={[styles.loginButton, isLoading && styles.disabledButton]}
-                        onPress={handleLogin}
+                        onPress={handleRegister}
                         disabled={isLoading}
                     >
                         {isLoading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.loginButtonText}>Đăng nhập</Text>
+                            <Text style={styles.loginButtonText}>Gửi OTP</Text>
                         )}
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Bạn chưa có tài khoản?</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                            <Text style={styles.footerLink}> Đăng ký</Text>
+                        <Text style={styles.footerText}>Đã có tài khoản?</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                            <Text style={styles.footerLink}> Đăng nhập</Text>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
@@ -251,4 +278,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default LoginScreen;
+export default RegisterScreen;

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { loginApi } from '../../services/authService';
+import { loginApi, sendOtpApi, confirmOtpApi } from '../../services/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Async thunk for login
@@ -19,6 +19,34 @@ export const loginUser = createAsyncThunk(
         }
     }
 );
+
+// Async thunk for sending OTP
+export const sendOtp = createAsyncThunk(
+    'auth/sendOtp',
+    async ({ user_name, email, password }, { rejectWithValue }) => {
+        try {
+            const response = await sendOtpApi({ user_name, email, password });
+            return response.message; // ví dụ: "OTP sent to email"
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+// Async thunk for confirming OTP
+export const confirmOtp = createAsyncThunk(
+    'auth/confirmOtp',
+    async (otp, { rejectWithValue }) => {
+        try {
+            const response = await confirmOtpApi(otp);
+            return response.message; // ví dụ: "Register successfully"
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+
 
 // Async thunk for logout
 export const logoutUser = createAsyncThunk(
@@ -57,6 +85,10 @@ const initialState = {
     isLoading: false,
     error: null,
     isAuthenticated: false,
+    otpStatus: null,
+    otpMessage: null,
+    confirmOtpStatus: null,
+    confirmOtpMessage: null,
 };
 
 const authSlice = createSlice({
@@ -91,6 +123,39 @@ const authSlice = createSlice({
                 state.isLoading = false;
                 state.error = action.payload;
                 state.isAuthenticated = false;
+            })
+            //Register OTP cases
+            .addCase(sendOtp.pending, (state) => {
+                state.isLoading = true;
+                state.otpStatus = null;
+                state.otpMessage = null;
+            })
+            .addCase(sendOtp.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.otpStatus = 'success';
+                state.otpMessage = action.payload;
+            })
+            .addCase(sendOtp.rejected, (state, action) => {
+                state.isLoading = false;
+                state.otpStatus = 'error';
+                state.otpMessage = action.payload;
+            })
+            // Confirm OTP cases
+            .addCase(confirmOtp.pending, (state) => {
+                state.isLoading = true;
+                state.confirmOtpStatus = null;
+                state.confirmOtpMessage = null;
+            })
+            .addCase(confirmOtp.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.confirmOtpStatus = 'success';
+                state.otpStatus = null;
+                state.confirmOtpMessage = action.payload;
+            })
+            .addCase(confirmOtp.rejected, (state, action) => {
+                state.isLoading = false;
+                state.confirmOtpStatus = 'error';
+                state.confirmOtpMessage = action.payload;
             })
             // Logout cases
             .addCase(logoutUser.fulfilled, (state) => {

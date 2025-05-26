@@ -8,13 +8,17 @@ import { checkAuthStatus } from '../store/slices/authSlice';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import SplashScreen from '../screens/SplashScreen';
+import AdminScreen from '../screens/AdminScreen';
+import RegisterScreen from '../screens/RegisterScreen';
+import RegisterConfirmOTPScreen from '../screens/RegisterConfirmOTPScreen';
 
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {
   const dispatch = useDispatch();
-  const { isAuthenticated, isLoading } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isInitializing, setIsInitializing] = React.useState(true);
+
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -39,9 +43,18 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <Stack.Screen name="Home" component={HomeScreen} />
+          user.role_name === 'admin' ? (
+            <Stack.Screen name="Admin" component={AdminScreen} />
+          ) : (
+            <Stack.Screen name="Customer" component={HomeScreen} />
+          )
+
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="VerifyOtp" component={RegisterConfirmOTPScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
