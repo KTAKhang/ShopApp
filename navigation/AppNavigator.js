@@ -11,6 +11,7 @@ import SplashScreen from '../screens/SplashScreen';
 import AdminScreen from '../screens/AdminScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import RegisterConfirmOTPScreen from '../screens/RegisterConfirmOTPScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 const Stack = createStackNavigator();
 
@@ -54,6 +55,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="VerifyOtp" component={RegisterConfirmOTPScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           </>
         )}
       </Stack.Navigator>
