@@ -103,3 +103,32 @@ export async function apiCall(url, options = {}) {
         throw new Error(error.response?.data?.message || error.message || 'API call failed');
     }
 }
+
+
+// Hàm gửi yêu cầu quên mật khẩu
+export async function forgotPasswordApi({ email }) {
+    try {
+        const response = await axios.post(
+            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/auth/forgot-password',
+            { email },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        const data = response.data;
+
+        if (data.status !== 'OK') {
+            throw new Error(data.message || 'Failed to send OTP');
+        }
+
+        return {
+            message: data.message, // Chứa thông báo thành công từ server
+        };
+    } catch (error) {
+        // Bắt lỗi từ axios
+        throw new Error(error.response?.data?.message || error.message || 'Failed to send OTP');
+    }
+}

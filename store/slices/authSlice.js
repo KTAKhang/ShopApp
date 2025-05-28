@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { loginApi, sendOtpApi, confirmOtpApi } from '../../services/authService';
+import { loginApi, sendOtpApi, confirmOtpApi, forgotPasswordApi } from '../../services/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Async thunk for login
@@ -79,6 +79,19 @@ export const checkAuthStatus = createAsyncThunk(
     }
 );
 
+// Async thunk for forgot password
+export const forgotPassword = createAsyncThunk(
+    'auth/forgotPassword',
+    async ({ email }, { rejectWithValue }) => {
+        try {
+            const response = await forgotPasswordApi({ email });
+            return response.message; // ví dụ: "OTP sent to email"
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 const initialState = {
     user: null,
     token: null,
@@ -89,6 +102,8 @@ const initialState = {
     otpMessage: null,
     confirmOtpStatus: null,
     confirmOtpMessage: null,
+    forgotPasswordStatus: null,  // Trạng thái quên mật khẩu
+    forgotPasswordMessage: null, // Thông báo quên mật khẩu
 };
 
 const authSlice = createSlice({
@@ -171,6 +186,22 @@ const authSlice = createSlice({
                     state.token = action.payload.token;
                     state.isAuthenticated = true;
                 }
+            })
+            // Forgot password case
+            .addCase(forgotPassword.pending, (state) => {
+                state.isLoading = true;
+                state.forgotPasswordStatus = null;
+                state.forgotPasswordMessage = null;
+            })
+            .addCase(forgotPassword.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.forgotPasswordStatus = 'success';
+                state.forgotPasswordMessage = action.payload;
+            })
+            .addCase(forgotPassword.rejected, (state, action) => {
+                state.isLoading = false;
+                state.forgotPasswordStatus = 'error';
+                state.forgotPasswordMessage = action.payload;
             });
     },
 });
