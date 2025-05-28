@@ -6,39 +6,39 @@ const featuredProducts = [
     {
         id: 1,
         name: 'Wireless Bluetooth Earbuds',
-        image: 'https://via.placeholder.com/300x300/4F46E5/FFFFFF?text=Earbuds',
+        price: '59.99',
+        rating: 4.5,
+        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
     },
     {
         id: 2,
         name: 'Smart Fitness Watch',
-        image: 'https://via.placeholder.com/300x300/F59E0B/FFFFFF?text=Watch',
+        price: '89.99',
+        rating: 4.0,
+        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
     },
     {
         id: 3,
         name: 'Portable Bluetooth Speaker',
-        image: 'https://via.placeholder.com/300x300/10B981/FFFFFF?text=Speaker',
+        price: '79.99',
+        rating: 5.0,
+        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
     },
     {
         id: 4,
         name: 'Ultra-Thin Laptop',
-        image: 'https://via.placeholder.com/300x300/8B5CF6/FFFFFF?text=Laptop',
+        price: '899.99',
+        rating: 4.7,
+        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
     },
 ];
 
 const FeaturedProducts = () => {
-    const renderProduct = (product) => {
-        return (
-            <View key={product.id} style={styles.productWrapper}>
-                <ProductCard product={product} />
-            </View>
-        );
-    };
-
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Featured Products</Text>
-                <TouchableOpacity onPress={() => console.log('See All pressed')}>
+                <TouchableOpacity>
                     <Text style={styles.seeAll}>See All</Text>
                 </TouchableOpacity>
             </View>
@@ -47,7 +47,11 @@ const FeaturedProducts = () => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {featuredProducts.map((product) => renderProduct(product))}
+                {featuredProducts.map((product) => (
+                    <View key={product.id} style={styles.productWrapper}>
+                        <ProductCard product={product} />
+                    </View>
+                ))}
             </ScrollView>
         </View>
     );

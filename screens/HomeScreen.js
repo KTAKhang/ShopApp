@@ -4,6 +4,7 @@ import TopNavBar from '../components/TopNavBar';
 import SearchBar from '../components/SearchBar';
 import CategorySection from '../components/CategorySection';
 import FeaturedProducts from '../components/FeaturedProducts';
+import BottomNavigation from '../components/BottomNavigation';
 
 
 const HomeScreen = () => {
@@ -18,6 +19,9 @@ const HomeScreen = () => {
                 <SearchBar />
                 <CategorySection />
                 <FeaturedProducts />
+                <FeaturedProducts />
+
+                <BottomNavigation />
             </ScrollView>
         </View>
     );

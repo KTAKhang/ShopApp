@@ -2,14 +2,14 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
 
 const categories = [
-    { id: 1, name: 'Electronics', image: 'https://via.placeholder.com/64x64/4F46E5/FFFFFF?text=E' },
-    { id: 2, name: 'Fashion', image: 'https://via.placeholder.com/64x64/F59E0B/FFFFFF?text=F' },
-    { id: 3, name: 'Home', image: 'https://via.placeholder.com/64x64/10B981/FFFFFF?text=H' },
-    { id: 4, name: 'Beauty', image: 'https://via.placeholder.com/64x64/F43F5E/FFFFFF?text=B' },
-    { id: 5, name: 'Sports', image: 'https://via.placeholder.com/64x64/8B5CF6/FFFFFF?text=S' },
-    { id: 6, name: 'Books', image: 'https://via.placeholder.com/64x64/F97316/FFFFFF?text=BK' },
-    { id: 7, name: 'Toys', image: 'https://via.placeholder.com/64x64/06B6D4/FFFFFF?text=T' },
-    { id: 8, name: 'Grocery', image: 'https://via.placeholder.com/64x64/84CC16/FFFFFF?text=G' },
+    { id: 1, name: 'Electronics', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
+    { id: 2, name: 'Fashion', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
+    { id: 3, name: 'Home', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
+    { id: 4, name: 'Beauty', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
+    { id: 5, name: 'Sports', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
+    { id: 6, name: 'Books', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
+    { id: 7, name: 'Toys', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
+    { id: 8, name: 'Grocery', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
 ];
 
 const CategorySection = () => {

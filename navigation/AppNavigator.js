@@ -11,6 +11,7 @@ import SplashScreen from '../screens/SplashScreen';
 import AdminScreen from '../screens/AdminScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import RegisterConfirmOTPScreen from '../screens/RegisterConfirmOTPScreen';
+import ProductDetailScreen from '../screens/ProductDetailScreen';
 
 const Stack = createStackNavigator();
 
@@ -34,6 +35,7 @@ export default function AppNavigator() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />
+
         </Stack.Navigator>
       </NavigationContainer>
     );
@@ -46,11 +48,15 @@ export default function AppNavigator() {
           user.role_name === 'admin' ? (
             <Stack.Screen name="Admin" component={AdminScreen} />
           ) : (
-            <Stack.Screen name="Customer" component={HomeScreen} />
+            <>
+              <Stack.Screen name="HomePage" component={HomeScreen} />
+              <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+            </>
           )
 
         ) : (
           <>
+
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="VerifyOtp" component={RegisterConfirmOTPScreen} />
