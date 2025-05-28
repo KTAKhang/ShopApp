@@ -117,7 +117,13 @@ const LoginScreen = () => {
                             )}
                         </TouchableOpacity>
                     </View>
-
+                    {/* Forgot Password Button */}
+                    <TouchableOpacity
+                        style={styles.forgotPasswordButton}
+                        onPress={() => navigation.navigate('ForgotPassword')} // Điều hướng đến màn hình quên mật khẩu
+                    >
+                        <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.loginButton, isLoading && styles.disabledButton]}
                         onPress={handleLogin}
@@ -136,6 +142,8 @@ const LoginScreen = () => {
                             <Text style={styles.footerLink}> Đăng ký</Text>
                         </TouchableOpacity>
                     </View>
+
+
                 </Animated.View>
             </View>
         </LinearGradient>
@@ -248,6 +256,15 @@ const styles = StyleSheet.create({
     },
     disabledButton: {
         opacity: 0.7,
+    },
+    forgotPasswordButton: {
+        marginRight: 10,
+        alignItems: 'flex-end',
+    },
+    forgotPasswordText: {
+        color: '#13C2C2',
+        fontWeight: '600',
+        fontSize: 14,
     },
 });
 
