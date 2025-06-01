@@ -12,6 +12,7 @@ export const loginUser = createAsyncThunk(
             // Save token to AsyncStorage
             await AsyncStorage.setItem('token', response.token);
             await AsyncStorage.setItem('user', JSON.stringify(response.user));
+            console.log('Login successful:', response.user);
 
             return response;
         } catch (error) {
