@@ -7,22 +7,22 @@ import {
     SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useNavigation } from '@react-navigation/native';
 
 const BottomNavigation = () => {
     const [activeTab, setActiveTab] = useState('Home');
-
+    const navigation = useNavigation();
     const tabs = [
-        { name: 'Home', icon: 'home', label: 'Home' },
-        { name: 'Categories', icon: 'apps', label: 'Categories' },
+        { name: 'HomePage', icon: 'home', label: 'Home' },
         { name: 'Cart', icon: 'shopping-cart', label: 'Cart' },
-        { name: 'Delivery', icon: 'local-shipping', label: 'Delivery' },
+        { name: 'OrderHistory', icon: 'local-shipping', label: 'Delivery' },
         { name: 'Profile', icon: 'person', label: 'Profile' },
     ];
 
     const handleTabPress = (tabName) => {
         setActiveTab(tabName);
-        // Add navigation logic here
-        console.log(`Navigating to ${tabName}`);
+        navigation.navigate(tabName)
+
     };
 
     return (
