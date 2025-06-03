@@ -1,5 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { loginApi, sendOtpApi, confirmOtpApi, forgotPasswordApi } from '../../services/authService';
+import {
+    loginApi,
+    sendOtpApi,
+    confirmOtpApi,
+    forgotPasswordApi,
+    changePasswordApi
+} from '../../services/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Async thunk for login
@@ -26,7 +32,7 @@ export const sendOtp = createAsyncThunk(
     async ({ user_name, email, password }, { rejectWithValue }) => {
         try {
             const response = await sendOtpApi({ user_name, email, password });
-            return response.message; // ví dụ: "OTP sent to email"
+            return response.message;
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -39,14 +45,12 @@ export const confirmOtp = createAsyncThunk(
     async (otp, { rejectWithValue }) => {
         try {
             const response = await confirmOtpApi(otp);
-            return response.message; // ví dụ: "Register successfully"
+            return response.message;
         } catch (error) {
             return rejectWithValue(error.message);
         }
     }
 );
-
-
 
 // Async thunk for logout
 export const logoutUser = createAsyncThunk(
@@ -85,7 +89,20 @@ export const forgotPassword = createAsyncThunk(
     async ({ email }, { rejectWithValue }) => {
         try {
             const response = await forgotPasswordApi({ email });
-            return response.message; // ví dụ: "OTP sent to email"
+            return response.message;
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+// Async thunk for changing password
+export const changePassword = createAsyncThunk(
+    'auth/changePassword',
+    async ({ old_password, new_password }, { rejectWithValue }) => {
+        try {
+            const response = await changePasswordApi({ old_password, new_password });
+            return response.message;
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -102,8 +119,10 @@ const initialState = {
     otpMessage: null,
     confirmOtpStatus: null,
     confirmOtpMessage: null,
-    forgotPasswordStatus: null,  // Trạng thái quên mật khẩu
-    forgotPasswordMessage: null, // Thông báo quên mật khẩu
+    forgotPasswordStatus: null,
+    forgotPasswordMessage: null,
+    changePasswordStatus: null, // Trạng thái thay đổi mật khẩu
+    changePasswordMessage: null, // Thông báo thay đổi mật khẩu
 };
 
 const authSlice = createSlice({
@@ -139,7 +158,7 @@ const authSlice = createSlice({
                 state.error = action.payload;
                 state.isAuthenticated = false;
             })
-            //Register OTP cases
+            // Register OTP cases
             .addCase(sendOtp.pending, (state) => {
                 state.isLoading = true;
                 state.otpStatus = null;
@@ -202,6 +221,22 @@ const authSlice = createSlice({
                 state.isLoading = false;
                 state.forgotPasswordStatus = 'error';
                 state.forgotPasswordMessage = action.payload;
+            })
+            // Change password case
+            .addCase(changePassword.pending, (state) => {
+                state.isLoading = true;
+                state.changePasswordStatus = null;
+                state.changePasswordMessage = null;
+            })
+            .addCase(changePassword.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.changePasswordStatus = 'success';
+                state.changePasswordMessage = action.payload;
+            })
+            .addCase(changePassword.rejected, (state, action) => {
+                state.isLoading = false;
+                state.changePasswordStatus = 'error';
+                state.changePasswordMessage = action.payload;
             });
     },
 });

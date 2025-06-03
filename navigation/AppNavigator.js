@@ -13,7 +13,10 @@ import RegisterScreen from '../screens/RegisterScreen';
 import RegisterConfirmOTPScreen from '../screens/RegisterConfirmOTPScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
-
+import CartScreen from '../screens/CartScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import OrderHistoryScreen from '../screens/OrderHistoryScreen';
+import PaymentScreen from '../screens/PaymentScreen';
 
 const Stack = createStackNavigator();
 
@@ -53,6 +56,10 @@ export default function AppNavigator() {
             <>
               <Stack.Screen name="HomePage" component={HomeScreen} />
               <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+              <Stack.Screen name="Cart" component={CartScreen} />
+              <Stack.Screen name="Profile" component={ProfileScreen} />
+              <Stack.Screen name="Payment" component={PaymentScreen} />
+              <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
             </>
           )
 
