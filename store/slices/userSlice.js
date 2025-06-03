@@ -1,25 +1,20 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import {
-    getUserProfileApi,
-    updateUserProfileApi,
-    getAllUsers,
-    getUserById
-} from '../../services/userService';
+import { getUserProfileApi, updateUserProfileApi, changePasswordApi } from '../../services/userService';
 
-// Async thunk for fetching user profile
 export const fetchUserProfile = createAsyncThunk(
     'user/fetchUserProfile',
     async (_, { rejectWithValue }) => {
         try {
             const response = await getUserProfileApi();
             return response;
+
         } catch (error) {
             return rejectWithValue(error.message);
         }
     }
 );
 
-// Async thunk for updating user profile
+
 export const updateUserProfile = createAsyncThunk(
     'user/updateUserProfile',
     async ({ user_name, avatar }, { rejectWithValue }) => {
@@ -32,26 +27,13 @@ export const updateUserProfile = createAsyncThunk(
     }
 );
 
-// Async thunk for fetching all users (admin)
-export const fetchAllUsers = createAsyncThunk(
-    'user/fetchAllUsers',
-    async ({ page, limit }, { rejectWithValue }) => {
+export const changePassword = createAsyncThunk(
+    'user/changePassword',
+    async ({ old_password, new_password }, { rejectWithValue }) => {
         try {
-            const response = await getAllUsers({ page, limit });
-            return response;
-        } catch (error) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
-// Async thunk for fetching user by ID (admin)
-export const fetchUserById = createAsyncThunk(
-    'user/fetchUserById',
-    async (id, { rejectWithValue }) => {
-        try {
-            const response = await getUserById(id);
-            return response;
+            const response = await changePasswordApi({ old_password, new_password });
+            console.log('Change password response:', response);
+            return response.message;
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -60,13 +42,10 @@ export const fetchUserById = createAsyncThunk(
 
 const initialState = {
     profile: {},
-    users: [],
-    user: null,
     isLoading: false,
     error: null,
     isUpdateSuccess: false,
-    fetchAllUsersStatus: null, // Thêm trạng thái lấy danh sách người dùng
-    fetchUserByIdStatus: null, // Thêm trạng thái lấy thông tin người dùng theo ID
+    isChangePasswordSuccess: false,
 };
 
 const userSlice = createSlice({
@@ -81,10 +60,15 @@ const userSlice = createSlice({
         resetUpdateSuccess: (state) => {
             state.isUpdateSuccess = false;
         },
+        resetChangePasswordSuccess: (state) => {
+            state.isChangePasswordSuccess = false;
+        },
+        clearError: (state) => {
+            state.error = null;
+        },
     },
     extraReducers: (builder) => {
         builder
-            // Fetch user profile
             .addCase(fetchUserProfile.pending, (state) => {
                 state.isLoading = true;
                 state.error = null;
@@ -98,7 +82,6 @@ const userSlice = createSlice({
                 state.isLoading = false;
                 state.error = action.payload;
             })
-            // Update user profile
             .addCase(updateUserProfile.pending, (state) => {
                 state.isLoading = true;
                 state.error = null;
@@ -112,42 +95,22 @@ const userSlice = createSlice({
                 state.isLoading = false;
                 state.error = action.payload;
             })
-            // Fetch all users (Admin)
-            .addCase(fetchAllUsers.pending, (state) => {
+            .addCase(changePassword.pending, (state) => {
                 state.isLoading = true;
-                state.fetchAllUsersStatus = null;
                 state.error = null;
+                state.isChangePasswordSuccess = false;
             })
-            .addCase(fetchAllUsers.fulfilled, (state, action) => {
+            .addCase(changePassword.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.fetchAllUsersStatus = 'success';
-                state.users = action.payload.data;
-                state.error = null;
+                state.isChangePasswordSuccess = true;
             })
-            .addCase(fetchAllUsers.rejected, (state, action) => {
+            .addCase(changePassword.rejected, (state, action) => {
                 state.isLoading = false;
-                state.fetchAllUsersStatus = 'error';
                 state.error = action.payload;
+                state.isChangePasswordSuccess = false;
             })
-            // Fetch user by ID (Admin)
-            .addCase(fetchUserById.pending, (state) => {
-                state.isLoading = true;
-                state.fetchUserByIdStatus = null;
-                state.error = null;
-            })
-            .addCase(fetchUserById.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.fetchUserByIdStatus = 'success';
-                state.user = action.payload.data;
-                state.error = null;
-            })
-            .addCase(fetchUserById.rejected, (state, action) => {
-                state.isLoading = false;
-                state.fetchUserByIdStatus = 'error';
-                state.error = action.payload;
-            });
     },
 });
 
-export const { clearUserState, resetUpdateSuccess } = userSlice.actions;
+export const { clearUserState, resetUpdateSuccess, resetChangePasswordSuccess, clearError } = userSlice.actions;
 export default userSlice.reducer;

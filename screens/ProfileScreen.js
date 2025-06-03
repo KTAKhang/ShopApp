@@ -20,10 +20,10 @@ import { logoutUser } from '../store/slices/authSlice';
 import ProfileHeader from '../components/ProfileHeader';
 import PersonalInfoSection from '../components/PersonalInfoSection';
 import OrderHistorySection from '../components/OrderHistorySection';
-import { fetchUserProfile, resetUpdateSuccess, updateUserProfile } from '../store/slices/userSlice';
+import { changePassword, fetchUserProfile, resetChangePasswordSuccess, resetUpdateSuccess, updateUserProfile } from '../store/slices/userSlice';
 import { fetchOrderByUser } from '../store/slices/orderSlice';
 import EditProfileModal from '../components/EditProfileModal';
-
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 const ProfileScreen = ({ navigation }) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
@@ -31,8 +31,12 @@ const ProfileScreen = ({ navigation }) => {
     const [darkMode, setDarkMode] = useState(false);
     const [newsletter, setNewsletter] = useState(true);
     const dispatch = useDispatch();
-    const { profile, isLoading, isUpdateSuccess, error } = useSelector((state) => state.user);
+    const { profile, isLoading, isUpdateSuccess, isChangePasswordSuccess, error } = useSelector((state) => state.user);
     const { orders, isLoading: orderLoading, error: orderError } = useSelector((state) => state.order);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+
     useEffect(() => {
         dispatch(fetchUserProfile());
         dispatch(fetchOrderByUser());
@@ -49,19 +53,53 @@ const ProfileScreen = ({ navigation }) => {
                         text: 'OK',
                         onPress: () => {
                             setEditModalVisible(false);
-
                             dispatch(resetUpdateSuccess());
                         },
                     },
                 ]
             );
-
         }
-    }, [isUpdateSuccess]);
+    }, [isUpdateSuccess, dispatch]);
 
+    useEffect(() => {
+        if (isChangePasswordSuccess) {
+            Alert.alert(
+                'Đổi mật khẩu thành công',
+                'Mật khẩu của bạn đã được cập nhật.',
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            setPasswordModalVisible(false);
+                            // Reset form
+                            setCurrentPassword('');
+                            setNewPassword('');
+                            setConfirmPassword('');
+                            dispatch(resetChangePasswordSuccess());
+                        },
+                    },
+                ]
+            );
+        }
+    }, [isChangePasswordSuccess, dispatch]);
 
-
-
+    // Handle error for change password
+    useEffect(() => {
+        if (error && passwordModalVisible) {
+            Alert.alert(
+                'Lỗi đổi mật khẩu',
+                error,
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Keep modal open so user can retry
+                        },
+                    },
+                ]
+            );
+        }
+    }, [error, passwordModalVisible]);
 
     const handleLogout = () => {
         Alert.alert(
@@ -77,14 +115,50 @@ const ProfileScreen = ({ navigation }) => {
             ]
         );
     };
+
     const handleUpdateProfile = (updatedProfile) => {
         dispatch(updateUserProfile(updatedProfile));
         console.log("Dữ liệu mới:", updatedProfile);
-        setEditModalVisible(false);
+    };
+    const handleChangePassword = () => {
+        // Validation
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin.');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp.');
+            return;
+        }
+
+        if (currentPassword === newPassword) {
+            Alert.alert('Lỗi', 'Mật khẩu mới phải khác mật khẩu hiện tại.');
+            return;
+        }
+
+        // API yêu cầu old_password và new_password
+        const passwordData = {
+            old_password: currentPassword,
+            new_password: newPassword,
+        };
+
+        console.log('Change password data:', passwordData);
+        dispatch(changePassword(passwordData));
     };
 
-
-
+    const handleClosePasswordModal = () => {
+        setPasswordModalVisible(false);
+        // Reset form when closing
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -93,7 +167,7 @@ const ProfileScreen = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Profile</Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={handleLogout}>
                     <Ionicons name="settings-outline" size={24} color="#374151" />
                 </TouchableOpacity>
             </View>
@@ -107,7 +181,7 @@ const ProfileScreen = ({ navigation }) => {
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color="#3b82f6" />
                     </View>
-                ) : profile && profile.user_name && Array.isArray(orders) && orders.length > 0 ? (
+                ) : profile && profile.user_name ? (
                     <>
                         <ProfileHeader
                             profile={profile}
@@ -117,11 +191,16 @@ const ProfileScreen = ({ navigation }) => {
                             profile={profile}
                             onChangePasswordPress={() => setPasswordModalVisible(true)}
                         />
+
+
                         <OrderHistorySection
                             orderHistory={orders}
                             onViewAll={() => navigation?.navigate('OrderHistory')}
                             onOrderPress={(order) => console.log(order)}
+
                         />
+
+
                         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                             <Ionicons name="log-out-outline" size={20} color="#ef4444" />
                             <Text style={styles.logoutText}>Logout</Text>
@@ -134,12 +213,27 @@ const ProfileScreen = ({ navigation }) => {
                 )}
 
             </ScrollView>
+
             <BottomNavigation />
+
             <EditProfileModal
                 visible={editModalVisible}
                 onClose={() => setEditModalVisible(false)}
                 profile={profile}
                 onSave={handleUpdateProfile}
+            />
+
+            <ChangePasswordModal
+                visible={passwordModalVisible}
+                onClose={handleClosePasswordModal}
+                currentPassword={currentPassword}
+                newPassword={newPassword}
+                confirmPassword={confirmPassword}
+                setCurrentPassword={setCurrentPassword}
+                setNewPassword={setNewPassword}
+                setConfirmPassword={setConfirmPassword}
+                onSubmit={handleChangePassword}
+                isLoading={isLoading}
             />
         </SafeAreaView>
     );
@@ -172,6 +266,12 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 16,
         paddingBottom: 20,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 50,
     },
     logoutButton: {
         flexDirection: 'row',
