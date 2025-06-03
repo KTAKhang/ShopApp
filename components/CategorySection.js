@@ -1,18 +1,33 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
-
-const categories = [
-    { id: 1, name: 'Electronics', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
-    { id: 2, name: 'Fashion', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
-    { id: 3, name: 'Home', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
-    { id: 4, name: 'Beauty', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
-    { id: 5, name: 'Sports', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
-    { id: 6, name: 'Books', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
-    { id: 7, name: 'Toys', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
-    { id: 8, name: 'Grocery', image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747635969/categories/liw19bvcptp0kersyr9u.png' },
-];
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchCategoriesAsync } from '../store/slices/categorySlice'; // Đảm bảo đường dẫn đúng
 
 const CategorySection = () => {
+    const dispatch = useDispatch();
+    const { categories, isLoading, error } = useSelector((state) => state.category);  // Truy cập categories từ Redux
+
+    useEffect(() => {
+        dispatch(fetchCategoriesAsync({ page: 1, limit: 10 }));
+    }, [dispatch]);
+
+    // // Log categories để kiểm tra
+    // console.log('Categories from Redux state:', categories);
+
+    // Kiểm tra trạng thái đang tải hoặc lỗi
+    if (isLoading) {
+        return <ActivityIndicator size="large" color="#13C2C2" style={styles.loader} />;
+    }
+
+    if (error) {
+        return <Text style={styles.errorText}>Failed to load categories. Please try again.</Text>;
+    }
+
+    // Kiểm tra nếu categories là undefined hoặc mảng trống
+    if (!categories || categories.length === 0) {
+        return <Text style={styles.errorText}>No categories available.</Text>;
+    }
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -23,7 +38,7 @@ const CategorySection = () => {
             </View>
             <View style={styles.categoriesGrid}>
                 {categories.map((category) => (
-                    <TouchableOpacity key={category.id} style={styles.categoryItem}>
+                    <TouchableOpacity key={category._id} style={styles.categoryItem}>
                         <View style={styles.categoryImageContainer}>
                             <Image source={{ uri: category.image }} style={styles.categoryImage} />
                         </View>
@@ -83,6 +98,16 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#374151',
         textAlign: 'center',
+    },
+    loader: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorText: {
+        color: 'red',
+        textAlign: 'center',
+        marginTop: 20,
     },
 });
 

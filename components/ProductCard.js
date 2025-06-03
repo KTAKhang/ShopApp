@@ -15,14 +15,17 @@ const ProductCard = ({ product, showDiscount = false }) => {
         const fullStars = Math.floor(rating);
         const hasHalfStar = rating % 1 !== 0;
 
+        // Vẽ các ngôi sao đầy đủ
         for (let i = 0; i < fullStars; i++) {
             stars.push(<Icon key={i} name="star" size={12} color="#FCD34D" />);
         }
 
+        // Vẽ ngôi sao nửa
         if (hasHalfStar) {
             stars.push(<Icon key="half" name="star-half" size={12} color="#FCD34D" />);
         }
 
+        // Vẽ các ngôi sao trống
         const emptyStars = 5 - Math.ceil(rating);
         for (let i = 0; i < emptyStars; i++) {
             stars.push(<Icon key={`empty-${i}`} name="star-border" size={12} color="#FCD34D" />);

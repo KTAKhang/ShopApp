@@ -21,8 +21,9 @@ const HomeScreen = () => {
                 <FeaturedProducts />
                 <FeaturedProducts />
 
-                <BottomNavigation />
+
             </ScrollView>
+            <BottomNavigation />
         </View>
     );
 };

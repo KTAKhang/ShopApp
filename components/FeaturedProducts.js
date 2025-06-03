@@ -1,39 +1,33 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProductsAsync } from '../store/slices/productSlice';  // Đảm bảo đường dẫn đúng
 import ProductCard from './ProductCard';
 
-const featuredProducts = [
-    {
-        id: 1,
-        name: 'Wireless Bluetooth Earbuds',
-        price: '59.99',
-        rating: 4.5,
-        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
-    },
-    {
-        id: 2,
-        name: 'Smart Fitness Watch',
-        price: '89.99',
-        rating: 4.0,
-        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
-    },
-    {
-        id: 3,
-        name: 'Portable Bluetooth Speaker',
-        price: '79.99',
-        rating: 5.0,
-        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
-    },
-    {
-        id: 4,
-        name: 'Ultra-Thin Laptop',
-        price: '899.99',
-        rating: 4.7,
-        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
-    },
-];
-
 const FeaturedProducts = () => {
+    const dispatch = useDispatch();
+    const { products, isLoading, error } = useSelector((state) => state.product);  // Lấy dữ liệu sản phẩm từ Redux
+
+    useEffect(() => {
+        dispatch(fetchProductsAsync({ page: 1, limit: 10 }));
+    }, [dispatch]);
+
+    // // Log Redux state để kiểm tra categories
+    // console.log('Products from Redux state:', products);
+
+    if (isLoading) {
+        return <ActivityIndicator size="large" color="#13C2C2" style={styles.loader} />;
+    }
+
+    if (error) {
+        return <Text style={styles.errorText}>Failed to load products. Please try again.</Text>;
+    }
+
+    // Nếu không có sản phẩm trong Redux store
+    if (!products || products.length === 0) {
+        return <Text style={styles.errorText}>No products available.</Text>;
+    }
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -47,8 +41,8 @@ const FeaturedProducts = () => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {featuredProducts.map((product) => (
-                    <View key={product.id} style={styles.productWrapper}>
+                {products.map((product) => (
+                    <View key={product._id} style={styles.productWrapper}>
                         <ProductCard product={product} />
                     </View>
                 ))}
@@ -84,6 +78,16 @@ const styles = StyleSheet.create({
     productWrapper: {
         width: 160,
         marginRight: 12,
+    },
+    loader: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorText: {
+        color: 'red',
+        textAlign: 'center',
+        marginTop: 20,
     },
 });
 
