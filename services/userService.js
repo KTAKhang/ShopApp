@@ -66,3 +66,42 @@ export async function updateUserProfileApi({ user_name, avatar }) {
         throw new Error(error.response?.data?.message || error.message || 'Update failed');
     }
 }
+
+export async function changePasswordApi({ old_password, new_password }) {
+    try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) {
+            throw new Error('Token not found');
+        }
+
+        const response = await axios.put(
+            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/user/change-password',
+            {
+                old_password,
+                new_password,
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+            }
+        );
+
+        const data = response.data;
+        console.log('Change password response:', data);
+
+        if (data.status !== 'OK') {
+            throw new Error(data.message || 'Change password failed');
+        }
+
+        return data;
+    } catch (error) {
+        throw new Error(
+            error.response?.data?.message ||
+            error.message ||
+            'Change password failed'
+        );
+    }
+}
