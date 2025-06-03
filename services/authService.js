@@ -132,3 +132,44 @@ export async function forgotPasswordApi({ email }) {
         throw new Error(error.response?.data?.message || error.message || 'Failed to send OTP');
     }
 }
+
+// Hàm thay đổi mật khẩu
+export async function changePasswordApi({ old_password, new_password }) {
+    try {
+        // Lấy token từ AsyncStorage
+        const token = await AsyncStorage.getItem('token');
+
+        if (!token) {
+            throw new Error('Bạn cần phải đăng nhập để thay đổi mật khẩu');
+        }
+
+        // Gửi yêu cầu PUT để thay đổi mật khẩu
+        const response = await axios.put(
+            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/user/change-password',
+            {
+                old_password,
+                new_password,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = response.data;
+
+        if (data.status !== 'OK') {
+            throw new Error(data.message || 'Lỗi thay đổi mật khẩu');
+        }
+
+        return {
+            status: 'OK',
+            message: 'Thay đổi mật khẩu thành công',
+        };
+    } catch (error) {
+        console.error('changePasswordApi error:', error);
+        throw new Error(error.response?.data?.message || error.message || 'Lỗi không xác định khi thay đổi mật khẩu');
+    }
+}
