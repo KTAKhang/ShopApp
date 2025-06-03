@@ -49,7 +49,7 @@ export const fetchProductsAsync = createAsyncThunk(
         try {
             const response = await getProducts({ page, limit });
 
-            console.log('Fetched products:', response.data);  // Log để kiểm tra dữ liệu API
+            // console.log('Fetched products:', response.data);  // Log để kiểm tra dữ liệu API
 
             return {
                 products: response.data.products,

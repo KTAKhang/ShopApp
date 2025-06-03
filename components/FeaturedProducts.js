@@ -12,8 +12,8 @@ const FeaturedProducts = () => {
         dispatch(fetchProductsAsync({ page: 1, limit: 10 }));
     }, [dispatch]);
 
-    // Log Redux state để kiểm tra categories
-    console.log('Products from Redux state:', products);
+    // // Log Redux state để kiểm tra categories
+    // console.log('Products from Redux state:', products);
 
     if (isLoading) {
         return <ActivityIndicator size="large" color="#13C2C2" style={styles.loader} />;
