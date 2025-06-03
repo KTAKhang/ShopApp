@@ -8,7 +8,7 @@ const OrderHistorySection = ({ orderHistory, onViewAll, onOrderPress }) => {
         createdAt: order.createdAt,
         total_price: order.total_price,
         order_status_name: order.order_status.name
-    }));
+    })).slice(0, 3);
 
 
     const formatCurrency = (amount) => {
@@ -24,57 +24,69 @@ const OrderHistorySection = ({ orderHistory, onViewAll, onOrderPress }) => {
     const getStatusStyle = (status) => {
         switch (status) {
             case 'PENDING':
-                return { backgroundColor: '#fff7cd', color: '#facc15' };
+                return { backgroundColor: '#fffbeb', color: '#f59e0b' };
             case 'CONFIRMED':
-                return { backgroundColor: '#e0f2fe', color: '#0284c7' };
+                return { backgroundColor: '#f3e8ff', color: '#8b5cf6' };
             case 'SHIPPED':
-                return { backgroundColor: '#ede9fe', color: '#7c3aed' };
+                return { backgroundColor: '#eff6ff', color: '#3b82f6' };
             case 'DELIVERED':
-                return { backgroundColor: '#dcfce7', color: '#22c55e' };
+                return { backgroundColor: '#ecfdf5', color: '#10b981' };
             case 'CANCELLED':
-                return { backgroundColor: '#fee2e2', color: '#ef4444' };
+                return { backgroundColor: '#f3f4f6', color: '#6b7280' };
             case 'RETURNED':
-                return { backgroundColor: '#fef3c7', color: '#d97706' };
+                return { backgroundColor: '#fef2f2', color: '#ef4444' };
             default:
                 return { backgroundColor: '#e5e7eb', color: '#6b7280' };
         }
     };
 
     return (
-        <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Order History</Text>
-                <TouchableOpacity onPress={onViewAll}>
-                    <Text style={styles.viewAllText}>View All</Text>
-                </TouchableOpacity>
-            </View>
-            {simplifiedOrders.map((order, index) => {
-                const { backgroundColor, color } = getStatusStyle(order.order_status_name);
-                return (
-                    <TouchableOpacity
-                        key={order.order_id}
-                        onPress={() => onOrderPress(order)}
-                        style={[
-                            styles.orderItem,
-                            index === simplifiedOrders.length - 1 && { borderBottomWidth: 0 }
-                        ]}
-                    >
-                        <View style={styles.orderHeader}>
-                            <Text style={styles.orderId}>#{order.order_id}</Text>
-                            <View style={[styles.statusBadge, { backgroundColor }]}>
-                                <Text style={[styles.statusText, { color }]}>
-                                    {order.order_status_name}
-                                </Text>
-                            </View>
-                        </View>
-                        <View style={styles.orderFooter}>
-                            <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
-                            <Text style={styles.orderAmount}>{formatCurrency(order.total_price)}</Text>
-                        </View>
+        <>
+            <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Order History</Text>
+                    <TouchableOpacity onPress={onViewAll}>
+                        <Text style={styles.viewAllText}>View All</Text>
                     </TouchableOpacity>
-                );
-            })}
-        </View>
+                </View>
+                {
+                    Array.isArray(orderHistory) && orderHistory.length > 0 ? (
+                        simplifiedOrders.map((order, index) => {
+                            const { backgroundColor, color } = getStatusStyle(order.order_status_name);
+                            return (
+                                <TouchableOpacity
+                                    key={order.order_id}
+                                    onPress={() => onOrderPress(order)}
+                                    style={[
+                                        styles.orderItem,
+                                        index === simplifiedOrders.length - 1 && { borderBottomWidth: 0 }
+                                    ]}
+                                >
+                                    <View style={styles.orderHeader}>
+                                        <Text style={styles.orderId}>#{order.order_id.slice(-8).toUpperCase()}</Text>
+                                        <View style={[styles.statusBadge, { backgroundColor }]}>
+                                            <Text style={[styles.statusText, { color }]}>
+                                                {order.order_status_name}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.orderFooter}>
+                                        <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
+                                        <Text style={styles.orderAmount}>{formatCurrency(order.total_price)}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })
+                    ) : (
+                        <Text style={{ textAlign: 'center', marginVertical: 20, color: 'gray' }}>
+                            Không có đơn hàng nào.
+                        </Text>
+                    )
+                }
+
+            </View>
+        </>
+
     );
 };
 

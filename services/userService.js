@@ -67,75 +67,41 @@ export async function updateUserProfileApi({ user_name, avatar }) {
     }
 }
 
-// Hàm lấy danh sách người dùng với phân trang (chỉ dành cho admin)
-export async function getAllUsers({ page = 1, limit = 10 }) {
+export async function changePasswordApi({ old_password, new_password }) {
     try {
-        // Đọc token từ AsyncStorage để xác thực quyền admin
         const token = await AsyncStorage.getItem('token');
-
         if (!token) {
-            throw new Error('You need to be logged in to access this resource');
+            throw new Error('Token not found');
         }
 
-        // Gửi yêu cầu GET để lấy danh sách người dùng với phân trang
-        const response = await axios.get(
-            `https://your-api-url/api/user?page=${page}&limit=${limit}`,
+        const response = await axios.put(
+            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/user/change-password',
+            {
+                old_password,
+                new_password,
+            },
             {
                 headers: {
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
+                    'Accept': 'application/json',
                 },
             }
         );
 
         const data = response.data;
+        console.log('Change password response:', data);
 
         if (data.status !== 'OK') {
-            throw new Error(data.message || 'Failed to fetch users');
+            throw new Error(data.message || 'Change password failed');
         }
 
-        return data.data; // Trả về danh sách người dùng và thông tin phân trang
+        return data;
     } catch (error) {
-        console.error('getAllUsers error:', error);
-        throw new Error(error.response?.data?.message || error.message || 'Failed to fetch users');
-    }
-}
-
-// Hàm lấy thông tin cá nhân của người dùng theo ID (dành cho admin)
-export async function getUserById(id) {
-    try {
-        // Kiểm tra xem ID có hợp lệ không
-        if (!id) {
-            throw new Error('User ID is required');
-        }
-
-        // Lấy token từ AsyncStorage để xác thực quyền admin
-        const token = await AsyncStorage.getItem('token');
-
-        if (!token) {
-            throw new Error('You need to be logged in to access this resource');
-        }
-
-        // Gửi yêu cầu GET để lấy thông tin người dùng theo ID
-        const response = await axios.get(
-            `https://your-api-url/api/user/${id}`,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-            }
+        throw new Error(
+            error.response?.data?.message ||
+            error.message ||
+            'Change password failed'
         );
-
-        const data = response.data;
-
-        if (data.status !== 'OK') {
-            throw new Error(data.message || 'Failed to fetch user');
-        }
-
-        return data.data; // Trả về thông tin người dùng hoặc thông báo lỗi
-    } catch (error) {
-        console.error('getUserById error:', error);
-        throw new Error(error.response?.data?.message || error.message || 'Failed to fetch user');
     }
 }
