@@ -6,24 +6,27 @@ import {
     getProductById
 } from '../../services/productService';
 
+// Initial state cho product
 const initialState = {
-    products: [],
+    products: [],  // Đảm bảo mảng ban đầu là rỗng
     product: null,
     isLoading: false,
     error: null,
-    createProductStatus: null, // Trạng thái khi tạo sản phẩm
-    updateProductStatus: null, // Trạng thái khi cập nhật sản phẩm
-    fetchProductsStatus: null, // Trạng thái khi lấy danh sách sản phẩm
+    createProductStatus: null,
+    updateProductStatus: null,
+    fetchProductsStatus: null,
 };
+
+
 
 export const createProductAsync = createAsyncThunk(
     'product/createProduct',
     async (productData, { rejectWithValue }) => {
         try {
             const response = await createProduct(productData);
-            return response;
+            return response; // Trả về response sau khi tạo sản phẩm
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(error.message);  // Xử lý lỗi nếu có
         }
     }
 );
@@ -33,9 +36,9 @@ export const updateProductAsync = createAsyncThunk(
     async (productData, { rejectWithValue }) => {
         try {
             const response = await updateProduct(productData);
-            return response;
+            return response; // Trả về response sau khi cập nhật sản phẩm
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(error.message);  // Xử lý lỗi nếu có
         }
     }
 );
@@ -45,8 +48,15 @@ export const fetchProductsAsync = createAsyncThunk(
     async ({ page, limit }, { rejectWithValue }) => {
         try {
             const response = await getProducts({ page, limit });
-            return response;
+
+            console.log('Fetched products:', response.data);  // Log để kiểm tra dữ liệu API
+
+            return {
+                products: response.data.products,
+                pagination: response.data.total
+            };
         } catch (error) {
+            console.error('API error:', error);
             return rejectWithValue(error.message);
         }
     }
@@ -57,9 +67,9 @@ export const fetchProductByIdAsync = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             const response = await getProductById(id);
-            return response;
+            return response.product;  // Trả về thông tin sản phẩm theo ID
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(error.message);  // Xử lý lỗi nếu có
         }
     }
 );
@@ -104,7 +114,7 @@ const productSlice = createSlice({
                 state.isLoading = false;
                 state.updateProductStatus = 'success';
                 const index = state.products.findIndex(
-                    (product) => product.id === action.payload.id
+                    (product) => product._id === action.payload._id
                 );
                 if (index !== -1) {
                     state.products[index] = action.payload;
@@ -137,7 +147,7 @@ const productSlice = createSlice({
             })
             .addCase(fetchProductByIdAsync.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.product = action.payload.product;
+                state.product = action.payload;
             })
             .addCase(fetchProductByIdAsync.rejected, (state, action) => {
                 state.isLoading = false;
