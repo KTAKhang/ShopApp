@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getUserProfileApi, updateUserProfileApi } from '../../services/userService';
+import { getUserProfileApi, updateUserProfileApi, changePasswordApi } from '../../services/userService';
 
 export const fetchUserProfile = createAsyncThunk(
     'user/fetchUserProfile',
@@ -27,11 +27,25 @@ export const updateUserProfile = createAsyncThunk(
     }
 );
 
+export const changePassword = createAsyncThunk(
+    'user/changePassword',
+    async ({ old_password, new_password }, { rejectWithValue }) => {
+        try {
+            const response = await changePasswordApi({ old_password, new_password });
+            console.log('Change password response:', response);
+            return response.message;
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 const initialState = {
     profile: {},
     isLoading: false,
     error: null,
     isUpdateSuccess: false,
+    isChangePasswordSuccess: false,
 };
 
 const userSlice = createSlice({
@@ -45,6 +59,12 @@ const userSlice = createSlice({
         },
         resetUpdateSuccess: (state) => {
             state.isUpdateSuccess = false;
+        },
+        resetChangePasswordSuccess: (state) => {
+            state.isChangePasswordSuccess = false;
+        },
+        clearError: (state) => {
+            state.error = null;
         },
     },
     extraReducers: (builder) => {
@@ -74,9 +94,23 @@ const userSlice = createSlice({
             .addCase(updateUserProfile.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload;
-            });
+            })
+            .addCase(changePassword.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+                state.isChangePasswordSuccess = false;
+            })
+            .addCase(changePassword.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.isChangePasswordSuccess = true;
+            })
+            .addCase(changePassword.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+                state.isChangePasswordSuccess = false;
+            })
     },
 });
 
-export const { clearUserState, resetUpdateSuccess } = userSlice.actions;
+export const { clearUserState, resetUpdateSuccess, resetChangePasswordSuccess, clearError } = userSlice.actions;
 export default userSlice.reducer;
