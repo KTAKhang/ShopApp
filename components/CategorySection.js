@@ -1,29 +1,7 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchCategoriesAsync } from '../store/slices/categorySlice'; // Đảm bảo đường dẫn đúng
+import React from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 
-const CategorySection = () => {
-    const dispatch = useDispatch();
-    const { categories, isLoading, error } = useSelector((state) => state.category);  // Truy cập categories từ Redux
-
-    useEffect(() => {
-        dispatch(fetchCategoriesAsync({ page: 1, limit: 10 }));
-    }, [dispatch]);
-
-    // // Log categories để kiểm tra
-    // console.log('Categories from Redux state:', categories);
-
-    // Kiểm tra trạng thái đang tải hoặc lỗi
-    if (isLoading) {
-        return <ActivityIndicator size="large" color="#13C2C2" style={styles.loader} />;
-    }
-
-    if (error) {
-        return <Text style={styles.errorText}>Failed to load categories. Please try again.</Text>;
-    }
-
-    // Kiểm tra nếu categories là undefined hoặc mảng trống
+const CategorySection = ({ categories }) => {
     if (!categories || categories.length === 0) {
         return <Text style={styles.errorText}>No categories available.</Text>;
     }
@@ -98,11 +76,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#374151',
         textAlign: 'center',
-    },
-    loader: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     errorText: {
         color: 'red',

@@ -1,24 +1,23 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { createReviewApi } from '../../services/reviewService';
+import { getProductReviewsByProductId } from '../../services/reviewService';
 
-export const createReview = createAsyncThunk(
-    'review/createReview',
-    async ({ product_id, order_detail_id, rating, review_content }, { rejectWithValue }) => {
+// Async thunk for fetching product reviews by product ID
+export const fetchProductReviewsByProductId = createAsyncThunk(
+    'review/fetchProductReviewsByProductId',
+    async (product_id, { rejectWithValue }) => {
         try {
-            const response = await createReviewApi({ product_id, order_detail_id, rating, review_content });
-            return response.review;
+            const response = await getProductReviewsByProductId(product_id);
+            return response;
         } catch (error) {
-            console.log('createReview error:', error);
             return rejectWithValue(error.message);
         }
     }
 );
 
 const initialState = {
-    review: null,
+    reviews: [],
     isLoading: false,
     error: null,
-    successMessage: null,
 };
 
 const reviewSlice = createSlice({
@@ -26,25 +25,24 @@ const reviewSlice = createSlice({
     initialState,
     reducers: {
         clearReviewState: (state) => {
-            state.review = null;
+            state.reviews = [];
             state.isLoading = false;
             state.error = null;
-            state.successMessage = null;
         },
     },
     extraReducers: (builder) => {
         builder
-            .addCase(createReview.pending, (state) => {
+            // Fetch product reviews by product ID
+            .addCase(fetchProductReviewsByProductId.pending, (state) => {
                 state.isLoading = true;
                 state.error = null;
-                state.successMessage = false;
             })
-            .addCase(createReview.fulfilled, (state, action) => {
+            .addCase(fetchProductReviewsByProductId.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.review = action.payload;
-                state.successMessage = true;
+                state.reviews = action.payload;
+                state.error = null;
             })
-            .addCase(createReview.rejected, (state, action) => {
+            .addCase(fetchProductReviewsByProductId.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload;
             });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,31 +9,51 @@ import {
     SafeAreaView,
     StatusBar,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { fetchProductByIdAsync } from '../store/slices/productSlice';
+import { fetchProductReviewsByProductId } from '../store/slices/reviewSlice';
 
 const { width } = Dimensions.get('window');
 
 const ProductDetailScreen = ({ navigation, route }) => {
+    const dispatch = useDispatch();
     const [quantity, setQuantity] = useState(1);
     const [isFavorite, setIsFavorite] = useState(false);
 
-    // Sample product data - in real app, this would come from props or API
-    const product = route?.params?.product || {
-        id: 1,
-        name: 'Premium Wireless Headphones',
-        price: 299.99,
-        rating: 4.5,
-        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
-        description: 'Experience premium sound quality with our latest wireless headphones. Featuring advanced noise cancellation technology, 30-hour battery life, and premium comfort padding for all-day wear.',
-        features: [
-            'Active Noise Cancellation',
-            '30-hour Battery Life',
-            'Premium Sound Quality',
-            'Comfortable Padding',
-            'Wireless Connectivity'
-        ]
-    };
+    // Get product ID from route params
+    const productId = route?.params?.productId;
+
+    // Get product and loading state from Redux
+    const { product, isLoading: productLoading } = useSelector((state) => state.product);
+    const { reviews, isLoading: reviewsLoading } = useSelector((state) => state.review);
+
+    useEffect(() => {
+        if (productId) {
+            dispatch(fetchProductByIdAsync(productId));
+            dispatch(fetchProductReviewsByProductId(productId));
+        }
+    }, [dispatch, productId]);
+
+    const isLoading = productLoading || reviewsLoading;
+
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#007bff" />
+            </View>
+        );
+    }
+
+    if (!product) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Product not found</Text>
+            </View>
+        );
+    }
 
     const renderStars = (rating) => {
         const stars = [];
@@ -72,18 +92,23 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
     const handleAddToCart = () => {
         // Handle add to cart logic
-        console.log('Added to cart:', { product: product.id, quantity });
+        console.log('Added to cart:', { product: product._id, quantity });
     };
 
     const handleBuyNow = () => {
         // Handle buy now logic
-        console.log('Buy now:', { product: product.id, quantity });
+        console.log('Buy now:', { product: product._id, quantity });
     };
 
     const handleShare = () => {
         // Handle share logic
         console.log('Share product');
     };
+
+    // Calculate average rating from reviews
+    const averageRating = reviews.length > 0
+        ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
+        : 0;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -128,10 +153,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     {/* Rating */}
                     <View style={styles.ratingContainer}>
                         <View style={styles.starsContainer}>
-                            {renderStars(product.rating)}
+                            {renderStars(averageRating)}
                         </View>
-                        <Text style={styles.ratingText}>({product.rating})</Text>
-                        <Text style={styles.reviewCount}>• 2.5k+ Reviews</Text>
+                        <Text style={styles.ratingText}>({averageRating.toFixed(1)})</Text>
+                        <Text style={styles.reviewCount}>• {reviews.length} Reviews</Text>
                     </View>
 
                     {/* Price and Quantity */}
@@ -166,13 +191,31 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         <Text style={styles.description}>{product.description}</Text>
                     </View>
 
-                    {/* Features */}
+                    {/* Type and Rating */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Key Features</Text>
-                        {product.features.map((feature, index) => (
-                            <View key={index} style={styles.featureItem}>
-                                <Icon name="check-circle" size={16} color="#4caf50" />
-                                <Text style={styles.featureText}>{feature}</Text>
+                        <Text style={styles.sectionTitle}>Product Details</Text>
+                        <View style={styles.featureItem}>
+                            <Icon name="category" size={16} color="#4caf50" />
+                            <Text style={styles.featureText}>Type: {product.type}</Text>
+                        </View>
+                        <View style={styles.featureItem}>
+                            <Icon name="star" size={16} color="#4caf50" />
+                            <Text style={styles.featureText}>Rating: {averageRating.toFixed(1)}/5</Text>
+                        </View>
+                    </View>
+
+                    {/* Reviews Section */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Reviews ({reviews.length})</Text>
+                        {reviews.map((review, index) => (
+                            <View key={review._id || index} style={styles.reviewItem}>
+                                <View style={styles.reviewHeader}>
+                                    <Text style={styles.reviewerName}>{review.user?.name || 'Anonymous'}</Text>
+                                    <View style={styles.starsContainer}>
+                                        {renderStars(review.rating)}
+                                    </View>
+                                </View>
+                                <Text style={styles.reviewText}>{review.comment}</Text>
                             </View>
                         ))}
                     </View>
@@ -209,6 +252,18 @@ const ProductDetailScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#fff',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: '#fff',
     },
     header: {
@@ -346,6 +401,28 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         marginLeft: 8,
+    },
+    reviewItem: {
+        marginBottom: 16,
+        padding: 12,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 8,
+    },
+    reviewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    reviewerName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+    },
+    reviewText: {
+        fontSize: 14,
+        color: '#666',
+        lineHeight: 20,
     },
     deliveryContainer: {
         flexDirection: 'row',

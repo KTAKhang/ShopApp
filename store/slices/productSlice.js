@@ -90,41 +90,7 @@ const productSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // Create Product
-            .addCase(createProductAsync.pending, (state) => {
-                state.isLoading = true;
-                state.createProductStatus = null;
-            })
-            .addCase(createProductAsync.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.createProductStatus = 'success';
-                state.products.push(action.payload);
-            })
-            .addCase(createProductAsync.rejected, (state, action) => {
-                state.isLoading = false;
-                state.createProductStatus = 'error';
-                state.error = action.payload;
-            })
-            // Update Product
-            .addCase(updateProductAsync.pending, (state) => {
-                state.isLoading = true;
-                state.updateProductStatus = null;
-            })
-            .addCase(updateProductAsync.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.updateProductStatus = 'success';
-                const index = state.products.findIndex(
-                    (product) => product._id === action.payload._id
-                );
-                if (index !== -1) {
-                    state.products[index] = action.payload;
-                }
-            })
-            .addCase(updateProductAsync.rejected, (state, action) => {
-                state.isLoading = false;
-                state.updateProductStatus = 'error';
-                state.error = action.payload;
-            })
+            
             // Fetch Products
             .addCase(fetchProductsAsync.pending, (state) => {
                 state.isLoading = true;
