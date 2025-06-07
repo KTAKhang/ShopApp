@@ -1,8 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import ProductCard from './ProductCard';
+import { COLORS } from '../constants/colors';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const FeaturedProducts = ({ products }) => {
+const FeaturedProducts = ({ products, title }) => {
+    const navigation = useNavigation();
+
     if (!products || products.length === 0) {
         return <Text style={styles.errorText}>No products available.</Text>;
     }
@@ -10,15 +15,25 @@ const FeaturedProducts = ({ products }) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Featured Products</Text>
-                <TouchableOpacity>
-                    <Text style={styles.seeAll}>See All</Text>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>{title}</Text>
+                    <View style={styles.titleUnderline} />
+                </View>
+                <TouchableOpacity 
+                    style={styles.seeAllButton}
+                    onPress={() => navigation.navigate('AllProducts')}
+                >
+                    <Text style={styles.seeAllText}>See All</Text>
+                    <Icon name="arrow-forward" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
             </View>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                decelerationRate="fast"
+                snapToInterval={200}
+                snapToAlignment="center"
             >
                 {products.map((product) => (
                     <View key={product._id} style={styles.productWrapper}>
@@ -32,36 +47,63 @@ const FeaturedProducts = ({ products }) => {
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: 16,
+        marginTop: 24,
         paddingHorizontal: 16,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
+    },
+    titleContainer: {
+        flex: 1,
     },
     title: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#374151',
+        fontSize: 24,
+        fontWeight: '700',
+        color: COLORS.text.primary,
+        letterSpacing: 0.5,
     },
-    seeAll: {
+    titleUnderline: {
+        width: 40,
+        height: 3,
+        backgroundColor: COLORS.primary,
+        marginTop: 8,
+        borderRadius: 2,
+    },
+    seeAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        backgroundColor: COLORS.background,
+        borderRadius: 20,
+        elevation: 2,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+    },
+    seeAllText: {
         fontSize: 14,
-        fontWeight: '500',
-        color: '#4F46E5',
+        fontWeight: '600',
+        color: COLORS.primary,
+        marginRight: 4,
     },
     scrollContent: {
         paddingRight: 16,
+        paddingVertical: 8,
     },
     productWrapper: {
-        width: 160,
-        marginRight: 12,
+        width: 180,
+        marginRight: 16,
     },
     errorText: {
-        color: 'red',
+        color: COLORS.primary,
         textAlign: 'center',
         marginTop: 20,
+        fontSize: 16,
     },
 });
 

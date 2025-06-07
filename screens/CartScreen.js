@@ -9,11 +9,14 @@ import {
     SafeAreaView,
     TextInput,
     Alert,
+    StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCartByUser, updateCartItem, removeCartItem } from '../store/slices/cartSlice';
+import { COLORS } from '../constants/colors';
+import BottomNavigation from '../components/BottomNavigation';
 
 const CartScreen = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -354,13 +357,8 @@ const CartScreen = ({ navigation }) => {
                             <Icon name="delete-outline" size={20} color={itemIsUpdating ? "#d1d5db" : "#ef4444"} />
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.itemSpecs}>
-                        {item.size && `Size: ${item.size} | `}
-                        {item.color && `Color: ${item.color}`}
-                        {item.in_stock && ` | In Stock: ${item.in_stock}`}
-                    </Text>
                     <View style={styles.itemFooter}>
-                        <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                        <Text style={styles.itemPrice}>${(item.price).toFixed(3)}</Text>
                         <View style={styles.quantityContainer}>
                             <TouchableOpacity
                                 style={[styles.quantityButton, itemIsUpdating && styles.disabledButton]}
@@ -414,12 +412,13 @@ const CartScreen = ({ navigation }) => {
     if (isLoading && !cart) {
         return (
             <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
                 <View style={styles.header}>
                     <TouchableOpacity
                         style={styles.headerButton}
                         onPress={() => navigation.goBack()}
                     >
-                        <Icon name="arrow-back" size={24} color="#0d364c" />
+                        <Icon name="arrow-back" size={24} color={COLORS.white} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Shopping Cart</Text>
                     <View style={styles.headerButton} />
@@ -435,12 +434,13 @@ const CartScreen = ({ navigation }) => {
     if (error && !cart) {
         return (
             <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
                 <View style={styles.header}>
                     <TouchableOpacity
                         style={styles.headerButton}
                         onPress={() => navigation.goBack()}
                     >
-                        <Icon name="arrow-back" size={24} color="#0d364c" />
+                        <Icon name="arrow-back" size={24} color={COLORS.white} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Shopping Cart</Text>
                     <View style={styles.headerButton} />
@@ -460,29 +460,33 @@ const CartScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.headerButton}
                     onPress={() => navigation.goBack()}
                 >
-                    <Icon name="arrow-back" size={24} color="#0d364c" />
+                    <Icon name="arrow-back" size={24} color={COLORS.white} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>
                     Shopping Cart ({cart?.item_count || cartItems.length})
                 </Text>
-                {/* Clear Cart Button */}
                 {cartItems.length > 0 && (
                     <TouchableOpacity
                         style={styles.headerButton}
                         onPress={clearCart}
                         disabled={isLoading}
                     >
-                        <Icon name="clear-all" size={24} color={isLoading ? "#d1d5db" : "#ef4444"} />
+                        <Icon name="clear-all" size={24} color={isLoading ? "#d1d5db" : COLORS.white} />
                     </TouchableOpacity>
                 )}
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                style={styles.content} 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 }]}
+            >
                 {/* Cart Items */}
                 {cartItems.length > 0 ? (
                     <View style={styles.cartItemsContainer}>
@@ -547,7 +551,7 @@ const CartScreen = ({ navigation }) => {
 
             {/* Checkout Button */}
             {cartItems.length > 0 && (
-                <View style={styles.checkoutContainer}>
+                <View style={[styles.checkoutContainer, { marginBottom: 64 }]}>
                     <TouchableOpacity
                         style={[styles.checkoutButton, isLoading && styles.disabledButton]}
                         onPress={() => navigation.navigate('Payment')}
@@ -559,6 +563,7 @@ const CartScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
             )}
+            <BottomNavigation />
         </SafeAreaView>
     );
 };
@@ -566,40 +571,36 @@ const CartScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#ffffff',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
+        paddingVertical: 16,
+        paddingTop: StatusBar.currentHeight + 16,
+        backgroundColor: COLORS.primary,
+        elevation: 5,
     },
     headerButton: {
-        width: 32,
-        height: 32,
+        width: 40,
+        height: 40,
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: '600',
-        color: '#0d364c',
+        color: COLORS.white,
     },
     content: {
         flex: 1,
-        paddingTop: 16,
-        paddingBottom: 32,
-        paddingHorizontal: 16,
+    },
+    scrollContent: {
+        padding: 16,
     },
     loadingContainer: {
         flex: 1,

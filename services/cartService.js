@@ -5,6 +5,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export async function getCartByUserApi() {
     try {
         const token = await AsyncStorage.getItem('token');
+        if (!token) {
+            throw new Error('Bạn cần đăng nhập để xem giỏ hàng');
+        }
 
         const response = await axios.get('https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/cart', {
             headers: {
@@ -13,25 +16,24 @@ export async function getCartByUserApi() {
             },
         });
 
-        const data = response.data;
-
-        if (data.status !== 'OK') {
-            throw new Error(data.message || 'Lỗi lấy giỏ hàng');
-        }
-
-        return data.data;
+        return response.data.data;
     } catch (error) {
-        console.error('getCartByUserApi error:', error);
-        throw new Error(error.response?.data?.message || error.message || 'Lỗi không xác định khi lấy giỏ hàng');
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        throw error;
     }
 }
 
-export async function updateCartApi({ product_id, quantity }) {
+export async function addToCartApi({ product_id, quantity }) {
     try {
         const token = await AsyncStorage.getItem('token');
+        if (!token) {
+            throw new Error('Bạn cần đăng nhập để thêm vào giỏ hàng');
+        }
 
-        const response = await axios.put(
-            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/cart/update',
+        const response = await axios.post(
+            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/cart/add',
             { product_id, quantity },
             {
                 headers: {
@@ -41,22 +43,48 @@ export async function updateCartApi({ product_id, quantity }) {
             }
         );
 
-        const data = response.data;
+        return response.data.data;
+    } catch (error) {
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        throw error;
+    }
+}
 
-        if (response.status !== 200) {
-            throw new Error(data.message || 'Lỗi cập nhật giỏ hàng');
+export async function updateCartApi({ product_id, quantity }) {
+    try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) {
+            throw new Error('Bạn cần đăng nhập để cập nhật giỏ hàng');
         }
 
-        return data;
+        const response = await axios.put(
+            `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/cart/update/${product_id}`,
+            { quantity },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        return response.data.data;
     } catch (error) {
-        console.error('updateCartApi error:', error);
-        throw new Error(error.response?.data?.message || error.message || 'Lỗi không xác định khi cập nhật giỏ hàng');
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        throw error;
     }
 }
 
 export async function removeFromCartApi(product_id) {
     try {
         const token = await AsyncStorage.getItem('token');
+        if (!token) {
+            throw new Error('Bạn cần đăng nhập để xóa sản phẩm khỏi giỏ hàng');
+        }
 
         const response = await axios.delete(
             `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/cart/remove/${product_id}`,
@@ -68,15 +96,11 @@ export async function removeFromCartApi(product_id) {
             }
         );
 
-        const data = response.data;
-
-        if (response.status !== 200) {
-            throw new Error(data.message || 'Lỗi xóa sản phẩm khỏi giỏ hàng');
-        }
-
-        return data; // { message, sum, total_items }
+        return response.data.data;
     } catch (error) {
-        console.error('removeFromCartApi error:', error);
-        throw new Error(error.response?.data?.message || error.message || 'Lỗi không xác định khi xóa sản phẩm khỏi giỏ hàng');
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        throw error;
     }
 }
