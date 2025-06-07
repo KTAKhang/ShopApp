@@ -1,26 +1,45 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { COLORS } from '../constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const CategorySection = ({ categories }) => {
+    const navigation = useNavigation();
+
     if (!categories || categories.length === 0) {
         return <Text style={styles.errorText}>No categories available.</Text>;
     }
 
+    const handleCategoryPress = (category) => {
+        console.log('Selected category:', category);
+        navigation.navigate('AllProducts', {
+            categoryId: category._id,
+            categoryName: category.name
+        });
+    };
+
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Categories</Text>
-                <TouchableOpacity>
-                    <Text style={styles.viewAll}>View All</Text>
-                </TouchableOpacity>
-            </View>
+            <Text style={styles.title}>Categories</Text>
             <View style={styles.categoriesGrid}>
                 {categories.map((category) => (
-                    <TouchableOpacity key={category._id} style={styles.categoryItem}>
-                        <View style={styles.categoryImageContainer}>
-                            <Image source={{ uri: category.image }} style={styles.categoryImage} />
-                        </View>
-                        <Text style={styles.categoryName}>{category.name}</Text>
+                    <TouchableOpacity 
+                        key={category._id} 
+                        style={styles.categoryItem}
+                        onPress={() => handleCategoryPress(category)}
+                    >
+                        <LinearGradient
+                            colors={[COLORS.primary, COLORS.secondary]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.categoryGradient}
+                        >
+                            <View style={styles.categoryImageContainer}>
+                                <Image source={{ uri: category.image }} style={styles.categoryImage} />
+                            </View>
+                            <Text style={styles.categoryName}>{category.name}</Text>
+                        </LinearGradient>
                     </TouchableOpacity>
                 ))}
             </View>
@@ -33,54 +52,70 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
     title: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#374151',
-    },
-    viewAll: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#4F46E5',
+        fontSize: 24,
+        fontWeight: '700',
+        color: COLORS.text.primary,
+        marginBottom: 16,
+        letterSpacing: 0.5,
     },
     categoriesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
+        marginHorizontal: -6,
     },
     categoryItem: {
-        width: '22%',
+        width: '23%',
+        aspectRatio: 0.9,
+        marginHorizontal: 6,
+        marginBottom: 12,
+    },
+    categoryGradient: {
+        flex: 1,
+        borderRadius: 16,
+        padding: 8,
         alignItems: 'center',
-        marginBottom: 16,
+        justifyContent: 'center',
+        elevation: 4,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
     },
     categoryImageContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: '#F9FAFB',
-        marginBottom: 4,
-        overflow: 'hidden',
+        width: '70%',
+        aspectRatio: 1,
+        backgroundColor: COLORS.white,
+        borderRadius: 35,
+        padding: 8,
+        marginBottom: 8,
+        elevation: 2,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
     },
     categoryImage: {
         width: '100%',
         height: '100%',
-        resizeMode: 'cover',
+        resizeMode: 'contain',
+        borderRadius: 35,
     },
     categoryName: {
         fontSize: 12,
-        color: '#374151',
+        fontWeight: '600',
+        color: COLORS.white,
         textAlign: 'center',
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
     errorText: {
-        color: 'red',
+        color: COLORS.primary,
         textAlign: 'center',
         marginTop: 20,
+        fontSize: 16,
     },
 });
 

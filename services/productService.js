@@ -1,21 +1,27 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Hàm lấy danh sách sản phẩm với phân trang
-export async function getProducts({ page = 1, limit = 10 }) {
+// Hàm lấy danh sách sản phẩm với phân trang và lọc theo category
+export async function getProducts({ page = 1, limit = 10, categoryId = null }) {
     try {
         const token = await AsyncStorage.getItem('token');
         if (!token) throw new Error('Token not found');
 
-        const response = await axios.get(
-            `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/product?page=${page}&limit=${limit}`,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-            }
-        );
+        let url = `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/product?page=${page}&limit=${limit}`;
+        if (categoryId) {
+            url += `&category_id=${categoryId}`;
+        }
+
+        console.log('Fetching products with URL:', url); // Debug log
+
+        const response = await axios.get(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        console.log('API Response:', response.data); // Debug log
 
         const data = response.data;
 
@@ -26,7 +32,7 @@ export async function getProducts({ page = 1, limit = 10 }) {
         return data; // Trả về toàn bộ response data
 
     } catch (error) {
-        console.error(error);
+        console.error('getProducts error:', error);
         throw new Error(error.response?.data?.message || error.message || 'Failed to fetch products');
     }
 }
@@ -36,6 +42,8 @@ export async function getProductById(id) {
     try {
         const token = await AsyncStorage.getItem('token');
         if (!token) throw new Error('Token not found');
+
+        console.log('Fetching product with ID:', id); // Debug log
 
         const response = await axios.get(
             `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/product/${id}`,
@@ -47,6 +55,8 @@ export async function getProductById(id) {
             }
         );
 
+        console.log('Product API response:', response.data); // Debug log
+
         const data = response.data;
 
         if (data.status !== 'OK') {
@@ -56,7 +66,7 @@ export async function getProductById(id) {
         return data.data; // Trả về thông tin sản phẩm
 
     } catch (error) {
-        console.error(error);
+        console.error('getProductById API error:', error);
         throw new Error(error.response?.data?.message || error.message || 'Failed to fetch product');
     }
 }

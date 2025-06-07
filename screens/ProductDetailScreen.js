@@ -10,11 +10,14 @@ import {
     StatusBar,
     Dimensions,
     ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { fetchProductByIdAsync } from '../store/slices/productSlice';
 import { fetchProductReviewsByProductId } from '../store/slices/reviewSlice';
+import { addToCart } from '../store/slices/cartSlice';
+import { COLORS } from '../constants/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -27,30 +30,89 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const productId = route?.params?.productId;
 
     // Get product and loading state from Redux
-    const { product, isLoading: productLoading } = useSelector((state) => state.product);
+    const { product, isLoading: productLoading, error } = useSelector((state) => state.product);
     const { reviews, isLoading: reviewsLoading } = useSelector((state) => state.review);
 
+    // Debug logs
+    console.log('ProductDetailScreen - productId:', productId);
+    console.log('ProductDetailScreen - product:', product);
+    console.log('ProductDetailScreen - productLoading:', productLoading);
+    console.log('ProductDetailScreen - error:', error);
+    console.log('ProductDetailScreen - reviews:', reviews);
+
     useEffect(() => {
-        if (productId) {
+        console.log('useEffect - productId:', productId);
+        console.log('useEffect - route params:', route?.params);
+        
+        if (productId && productId !== 'undefined') {
+            console.log('Dispatching fetchProductByIdAsync with productId:', productId);
             dispatch(fetchProductByIdAsync(productId));
             dispatch(fetchProductReviewsByProductId(productId));
+        } else {
+            console.log('No valid productId found in route params');
+            console.log('Available params:', JSON.stringify(route?.params));
         }
     }, [dispatch, productId]);
 
     const isLoading = productLoading || reviewsLoading;
 
+    // Debug error state
+    if (error) {
+        console.log('Error occurred:', error);
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Error: {error}</Text>
+                <TouchableOpacity 
+                    style={styles.retryButton} 
+                    onPress={() => dispatch(fetchProductByIdAsync(productId))}
+                >
+                    <Text style={styles.retryText}>Retry</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#007bff" />
+                <Text style={styles.loadingText}>Loading product...</Text>
+            </View>
+        );
+    }
+
+    if (!productId || productId === 'undefined') {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Invalid Product ID</Text>
+                <Text style={styles.debugText}>
+                    Please navigate to this screen with a valid product ID
+                </Text>
+                <Text style={styles.debugText}>
+                    Route params: {JSON.stringify(route?.params)}
+                </Text>
+                <TouchableOpacity 
+                    style={styles.retryButton} 
+                    onPress={() => navigation.goBack()}
+                >
+                    <Text style={styles.retryText}>Go Back</Text>
+                </TouchableOpacity>
             </View>
         );
     }
 
     if (!product) {
+        console.log('Product is null or undefined');
         return (
             <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Product not found</Text>
+                <Text style={styles.debugText}>Product ID: {productId}</Text>
+                <TouchableOpacity 
+                    style={styles.retryButton} 
+                    onPress={() => dispatch(fetchProductByIdAsync(productId))}
+                >
+                    <Text style={styles.retryText}>Retry</Text>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -90,29 +152,47 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
     };
 
-    const handleAddToCart = () => {
-        // Handle add to cart logic
-        console.log('Added to cart:', { product: product._id, quantity });
+    const handleAddToCart = async () => {
+        try {
+            await dispatch(addToCart({
+                product_id: productId,
+                quantity: quantity
+            })).unwrap();
+
+            Alert.alert(
+                'Success',
+                'Product added to cart successfully',
+                [{ text: 'OK' }]
+            );
+        } catch (error) {
+            console.error('Failed to add to cart:', error);
+            Alert.alert(
+                'Error',
+                'Failed to add item to cart. Please try again.',
+                [{ text: 'OK' }]
+            );
+        }
     };
 
     const handleBuyNow = () => {
-        // Handle buy now logic
-        console.log('Buy now:', { product: product._id, quantity });
+        navigation.navigate('BuyNow', {
+            product: product,
+            quantity: quantity
+        });
     };
 
     const handleShare = () => {
-        // Handle share logic
         console.log('Share product');
     };
 
     // Calculate average rating from reviews
-    const averageRating = reviews.length > 0
+    const averageRating = reviews && reviews.length > 0
         ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
         : 0;
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
 
             {/* Header */}
             <View style={styles.header}>
@@ -120,30 +200,24 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     style={styles.headerButton}
                     onPress={() => navigation.goBack()}
                 >
-                    <Icon name="arrow-back" size={24} color="#666" />
+                    <Icon name="arrow-back" size={24} color={COLORS.white} />
                 </TouchableOpacity>
 
                 <Text style={styles.headerTitle}>Product Details</Text>
 
                 <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
-                    <Icon name="share" size={24} color="#666" />
+                    <Icon name="share" size={24} color={COLORS.white} />
                 </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Product Image */}
                 <View style={styles.imageContainer}>
-                    <Image source={{ uri: product.image }} style={styles.productImage} />
-                    <TouchableOpacity
-                        style={styles.favoriteButton}
-                        onPress={() => setIsFavorite(!isFavorite)}
-                    >
-                        <Icon
-                            name={isFavorite ? "favorite" : "favorite-border"}
-                            size={24}
-                            color={isFavorite ? "#ff4757" : "#666"}
-                        />
-                    </TouchableOpacity>
+                    <Image 
+                        source={{ uri: product.image }} 
+                        style={styles.productImage}
+                        onError={(error) => console.log('Image load error:', error)}
+                    />
                 </View>
 
                 {/* Product Info */}
@@ -156,16 +230,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
                             {renderStars(averageRating)}
                         </View>
                         <Text style={styles.ratingText}>({averageRating.toFixed(1)})</Text>
-                        <Text style={styles.reviewCount}>• {reviews.length} Reviews</Text>
+                        <Text style={styles.reviewCount}>• {reviews ? reviews.length : 0} Reviews</Text>
                     </View>
 
                     {/* Price and Quantity */}
                     <View style={styles.priceQuantityContainer}>
-                        <View>
-                            <Text style={styles.price}>${product.price}</Text>
-                            <Text style={styles.taxText}>Tax included</Text>
-                        </View>
-
+                        <Text style={styles.price}>${product.price.toFixed(3)}</Text>
                         <View style={styles.quantityContainer}>
                             <TouchableOpacity
                                 style={styles.quantityButton}
@@ -188,7 +258,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     {/* Description */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Description</Text>
-                        <Text style={styles.description}>{product.description}</Text>
+                        <Text style={styles.description}>{product.detail_desc}</Text>
                     </View>
 
                     {/* Type and Rating */}
@@ -196,7 +266,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         <Text style={styles.sectionTitle}>Product Details</Text>
                         <View style={styles.featureItem}>
                             <Icon name="category" size={16} color="#4caf50" />
-                            <Text style={styles.featureText}>Type: {product.type}</Text>
+                            <Text style={styles.featureText}>Type: {product.target}</Text>
                         </View>
                         <View style={styles.featureItem}>
                             <Icon name="star" size={16} color="#4caf50" />
@@ -206,8 +276,8 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                     {/* Reviews Section */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Reviews ({reviews.length})</Text>
-                        {reviews.map((review, index) => (
+                        <Text style={styles.sectionTitle}>Reviews ({reviews ? reviews.length : 0})</Text>
+                        {reviews && reviews.map((review, index) => (
                             <View key={review._id || index} style={styles.reviewItem}>
                                 <View style={styles.reviewHeader}>
                                     <Text style={styles.reviewerName}>{review.user?.name || 'Anonymous'}</Text>
@@ -219,29 +289,26 @@ const ProductDetailScreen = ({ navigation, route }) => {
                             </View>
                         ))}
                     </View>
-
-                    {/* Delivery Info */}
-                    <View style={styles.deliveryContainer}>
-                        <View style={styles.deliveryIcon}>
-                            <Icon name="local-shipping" size={24} color="#007bff" />
-                        </View>
-                        <View style={styles.deliveryInfo}>
-                            <Text style={styles.deliveryTitle}>Free Delivery</Text>
-                            <Text style={styles.deliverySubtitle}>2-3 business days</Text>
-                        </View>
-                    </View>
                 </View>
             </ScrollView>
 
             {/* Bottom Action Bar */}
             <View style={styles.actionBar}>
-                <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
-                    <Icon name="shopping-cart" size={20} color="#007bff" />
+                <TouchableOpacity 
+                    style={styles.addToCartButton} 
+                    onPress={handleAddToCart}
+                    disabled={isLoading}
+                >
+                    <Icon name="shopping-cart" size={20} color={COLORS.primary} />
                     <Text style={styles.addToCartText}>Add to Cart</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.buyNowButton} onPress={handleBuyNow}>
-                    <Icon name="shopping-bag" size={20} color="#fff" />
+                <TouchableOpacity 
+                    style={styles.buyNowButton} 
+                    onPress={handleBuyNow}
+                    disabled={isLoading}
+                >
+                    <Icon name="shopping-bag" size={20} color={COLORS.white} />
                     <Text style={styles.buyNowText}>Buy Now</Text>
                 </TouchableOpacity>
             </View>
@@ -252,7 +319,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.background,
     },
     loadingContainer: {
         flex: 1,
@@ -260,32 +327,63 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#fff',
     },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: '#666',
+    },
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#fff',
+        padding: 20,
+    },
+    errorText: {
+        fontSize: 18,
+        color: '#ff4757',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    debugText: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    retryButton: {
+        backgroundColor: '#007bff',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    retryText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-        backgroundColor: '#fff',
+        paddingVertical: 16,
+        paddingTop: StatusBar.currentHeight + 16,
+        backgroundColor: COLORS.primary,
+        elevation: 5,
     },
     headerButton: {
         width: 40,
         height: 40,
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: '600',
-        color: '#333',
+        color: COLORS.white,
     },
     content: {
         flex: 1,
@@ -299,22 +397,6 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         resizeMode: 'cover',
-    },
-    favoriteButton: {
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        width: 40,
-        height: 40,
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
     productInfo: {
         padding: 16,
@@ -353,11 +435,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#007bff',
-    },
-    taxText: {
-        fontSize: 12,
-        color: '#666',
-        marginTop: 2,
     },
     quantityContainer: {
         flexDirection: 'row',
@@ -424,35 +501,6 @@ const styles = StyleSheet.create({
         color: '#666',
         lineHeight: 20,
     },
-    deliveryContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 80,
-    },
-    deliveryIcon: {
-        width: 40,
-        height: 40,
-        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    deliveryInfo: {
-        marginLeft: 12,
-    },
-    deliveryTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-    },
-    deliverySubtitle: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 2,
-    },
     actionBar: {
         position: 'absolute',
         bottom: 0,
@@ -461,9 +509,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.white,
         borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
+        borderTopColor: COLORS.border.light,
     },
     addToCartButton: {
         flex: 1,
@@ -472,14 +520,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 12,
         borderWidth: 1,
-        borderColor: '#007bff',
+        borderColor: COLORS.primary,
         borderRadius: 8,
         marginRight: 8,
     },
     addToCartText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#007bff',
+        color: COLORS.primary,
         marginLeft: 8,
     },
     buyNowButton: {
@@ -488,14 +536,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 12,
-        backgroundColor: '#007bff',
+        backgroundColor: COLORS.primary,
         borderRadius: 8,
         marginLeft: 8,
     },
     buyNowText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
+        color: COLORS.white,
         marginLeft: 8,
     },
 });

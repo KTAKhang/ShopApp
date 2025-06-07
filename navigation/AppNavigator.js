@@ -18,6 +18,8 @@ import ProfileScreen from '../screens/ProfileScreen';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 import PaymentScreen from '../screens/PaymentScreen';
 import OrderDetailsScreen from '../screens/OrderDetailsScreen';
+import AllProductsScreen from '../screens/AllProductsScreen';
+import BuyNowScreen from '../screens/BuyNowScreen';
 
 const Stack = createStackNavigator();
 
@@ -25,7 +27,6 @@ export default function AppNavigator() {
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isInitializing, setIsInitializing] = React.useState(true);
-
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -41,7 +42,6 @@ export default function AppNavigator() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />
-
         </Stack.Navigator>
       </NavigationContainer>
     );
@@ -57,17 +57,17 @@ export default function AppNavigator() {
             <>
               <Stack.Screen name="HomePage" component={HomeScreen} />
               <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+              <Stack.Screen name="AllProducts" component={AllProductsScreen} />
               <Stack.Screen name="Cart" component={CartScreen} />
               <Stack.Screen name="Profile" component={ProfileScreen} />
               <Stack.Screen name="Payment" component={PaymentScreen} />
               <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
               <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+              <Stack.Screen name="BuyNow" component={BuyNowScreen} />
             </>
           )
-
         ) : (
           <>
-
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="VerifyOtp" component={RegisterConfirmOTPScreen} />

@@ -1,6 +1,6 @@
 // features/cart/cartSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getCartByUserApi, updateCartApi, removeFromCartApi } from '../../services/cartService';
+import { getCartByUserApi, updateCartApi, removeFromCartApi, addToCartApi } from '../../services/cartService';
 
 export const fetchCartByUser = createAsyncThunk(
     'cart/fetchCartByUser',
@@ -9,7 +9,27 @@ export const fetchCartByUser = createAsyncThunk(
             const response = await getCartByUserApi();
             return response;
         } catch (error) {
-            console.log('fetchCartByUser error:', error);
+            if (error.message === 'Lấy giỏ hàng thành công') {
+                return null;
+            }
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+export const addToCart = createAsyncThunk(
+    'cart/addToCart',
+    async ({ product_id, quantity }, { rejectWithValue, dispatch }) => {
+        try {
+            const response = await addToCartApi({ product_id, quantity });
+            // Sau khi thêm thành công, cập nhật lại giỏ hàng
+            await dispatch(fetchCartByUser());
+            return response;
+        } catch (error) {
+            if (error.message === 'Thêm sản phẩm vào giỏ hàng thành công') {
+                await dispatch(fetchCartByUser());
+                return null;
+            }
             return rejectWithValue(error.message);
         }
     }
@@ -19,36 +39,40 @@ export const updateCartItem = createAsyncThunk(
     'cart/updateCartItem',
     async ({ product_id, quantity }, { rejectWithValue, dispatch }) => {
         try {
-            const result = await updateCartApi({ product_id, quantity });
-
-            // Gọi lại API giỏ hàng để đồng bộ dữ liệu mới nhất
-            const updatedCart = await getCartByUserApi();
-            return updatedCart;
+            const response = await updateCartApi({ product_id, quantity });
+            // Sau khi cập nhật thành công, cập nhật lại giỏ hàng
+            await dispatch(fetchCartByUser());
+            return response;
         } catch (error) {
-            console.log('updateCartItem error:', error);
+            if (error.message === 'Cập nhật giỏ hàng thành công') {
+                await dispatch(fetchCartByUser());
+                return null;
+            }
             return rejectWithValue(error.message);
         }
     }
 );
+
 export const removeCartItem = createAsyncThunk(
     'cart/removeCartItem',
-    async (product_id, { rejectWithValue }) => {
+    async (product_id, { rejectWithValue, dispatch }) => {
         try {
-            await removeFromCartApi(product_id);
-
-            // Gọi lại API giỏ hàng sau khi xóa
-            const updatedCart = await getCartByUserApi();
-            return updatedCart;
+            const response = await removeFromCartApi(product_id);
+            // Sau khi xóa thành công, cập nhật lại giỏ hàng
+            await dispatch(fetchCartByUser());
+            return response;
         } catch (error) {
-            console.log('removeCartItem error:', error);
+            if (error.message === 'Xóa sản phẩm khỏi giỏ hàng thành công') {
+                await dispatch(fetchCartByUser());
+                return null;
+            }
             return rejectWithValue(error.message);
         }
     }
 );
 
-
 const initialState = {
-    cart: {},
+    cart: null,
     isLoading: false,
     error: null,
 };
@@ -65,46 +89,70 @@ const cartSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
+            // Fetch Cart
             .addCase(fetchCartByUser.pending, (state) => {
                 state.isLoading = true;
                 state.error = null;
             })
             .addCase(fetchCartByUser.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.cart = action.payload;
+                if (action.payload) {
+                    state.cart = action.payload;
+                }
                 state.error = null;
             })
             .addCase(fetchCartByUser.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload;
             })
+            // Add to Cart
+            .addCase(addToCart.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(addToCart.fulfilled, (state, action) => {
+                state.isLoading = false;
+                if (action.payload) {
+                    state.cart = action.payload;
+                }
+                state.error = null;
+            })
+            .addCase(addToCart.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+            })
+            // Update Cart
             .addCase(updateCartItem.pending, (state) => {
                 state.isLoading = true;
                 state.error = null;
             })
             .addCase(updateCartItem.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.cart = action.payload;
+                if (action.payload) {
+                    state.cart = action.payload;
+                }
                 state.error = null;
             })
             .addCase(updateCartItem.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload;
             })
+            // Remove from Cart
             .addCase(removeCartItem.pending, (state) => {
                 state.isLoading = true;
                 state.error = null;
             })
             .addCase(removeCartItem.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.cart = action.payload;
+                if (action.payload) {
+                    state.cart = action.payload;
+                }
                 state.error = null;
             })
             .addCase(removeCartItem.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload;
-            })
-
+            });
     },
 });
 
