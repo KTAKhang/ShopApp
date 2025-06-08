@@ -157,9 +157,9 @@ const OrderHistoryScreen = ({ navigation }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.headerGradient}
                 >
-                    <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Order History</Text>
-                    </View>
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Order History</Text>
+                </View>
                 </LinearGradient>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
@@ -181,9 +181,9 @@ const OrderHistoryScreen = ({ navigation }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.headerGradient}
                 >
-                    <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Order History</Text>
-                    </View>
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Order History</Text>
+                </View>
                 </LinearGradient>
                 <View style={styles.errorContainer}>
                     <Icon name="error-outline" size={64} color={COLORS.error} />
@@ -210,9 +210,9 @@ const OrderHistoryScreen = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.headerGradient}
             >
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Order History</Text>
-                </View>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Order History</Text>
+            </View>
             </LinearGradient>
 
             <ScrollView 

@@ -4,8 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../store/slices/cartSlice';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const truncateText = (text, maxLength) => {
     if (text.length <= maxLength) return text;
@@ -42,6 +43,13 @@ const renderStars = (rating) => {
 const ProductCard = ({ product }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
+    const { reviews } = useSelector((state) => state.review);
+
+    // Calculate average rating for this product
+    const productReviews = reviews?.filter(review => review._id && review.rating) || [];
+    const averageRating = productReviews.length > 0
+        ? productReviews.reduce((acc, review) => acc + review.rating, 0) / productReviews.length
+        : 0;
 
     const handlePress = () => {
         navigation.navigate('ProductDetail', { productId: product._id });
@@ -77,18 +85,15 @@ const ProductCard = ({ product }) => {
             >
                 <View style={styles.imageContainer}>
                     <Image source={{ uri: product.image }} style={styles.image} />
-                    {/* <View style={styles.discount}>
-                        <Text style={styles.discountText}>-20%</Text>
-                    </View> */}
                 </View>
                 <View style={styles.infoContainer}>
                     <Text style={styles.name} numberOfLines={2}>{truncateText(product.name, 20)}</Text>
                     <View style={styles.ratingContainer}>
-                        {renderStars(product.rating || 0)}
-                        <Text style={styles.ratingText}>({product.rating ? product.rating.toFixed(1) : '0.0'})</Text>
+                        {renderStars(averageRating)}
+                        <Text style={styles.ratingText}>({averageRating.toFixed(1)})</Text>
                     </View>
                     <View style={styles.priceContainer}>
-                        <Text style={styles.price}>${product.price.toFixed(3)}</Text>
+                        <Text style={styles.price}>{formatCurrency(product.price)}</Text>
                         <TouchableOpacity 
                             style={styles.addButton}
                             onPress={handleAddToCart}
@@ -127,20 +132,6 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         resizeMode: 'cover',
-    },
-    discount: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        backgroundColor: COLORS.primary,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    discountText: {
-        color: COLORS.white,
-        fontSize: 12,
-        fontWeight: '700',
     },
     infoContainer: {
         padding: 12,

@@ -9,16 +9,19 @@ import {
     SafeAreaView,
     TextInput,
     Alert,
+    StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDispatch } from 'react-redux';
 import { createOrderAsync } from '../store/slices/orderSlice';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const BuyNowScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const { product, quantity } = route.params;
+    const [selectedPayment, setSelectedPayment] = useState('cod');
     const [receiverInfo, setReceiverInfo] = useState({
         receiver_name: '',
         receiver_phone: '',
@@ -54,6 +57,7 @@ const BuyNowScreen = ({ navigation, route }) => {
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
             <LinearGradient
                 colors={[COLORS.primary, COLORS.secondary]}
                 start={{ x: 0, y: 0 }}
@@ -78,8 +82,31 @@ const BuyNowScreen = ({ navigation, route }) => {
                         <Image source={{ uri: product.image }} style={styles.productImage} />
                         <View style={styles.productInfo}>
                             <Text style={styles.productName}>{product.name}</Text>
-                            <Text style={styles.productPrice}>${product.price.toFixed(3)}</Text>
+                            <Text style={styles.productPrice}>{formatCurrency(product.price)}</Text>
                             <Text style={styles.quantity}>Quantity: {quantity}</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Order Summary */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Order Summary</Text>
+                    <View style={styles.summaryContainer}>
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.summaryLabel}>Subtotal</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
+                        </View>
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.summaryLabel}>Shipping</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(shipping)}</Text>
+                        </View>
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.summaryLabel}>Tax (10%)</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(tax)}</Text>
+                        </View>
+                        <View style={[styles.summaryRow, styles.totalRow]}>
+                            <Text style={styles.totalLabel}>Total Amount</Text>
+                            <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
                         </View>
                     </View>
                 </View>
@@ -111,26 +138,28 @@ const BuyNowScreen = ({ navigation, route }) => {
                     </View>
                 </View>
 
-                {/* Order Summary */}
+                {/* Payment Method */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Order Summary</Text>
-                    <View style={styles.summaryContainer}>
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Subtotal</Text>
-                            <Text style={styles.summaryValue}>${subtotal.toFixed(3)}</Text>
-                        </View>
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Shipping</Text>
-                            <Text style={styles.summaryValue}>${shipping.toFixed(3)}</Text>
-                        </View>
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Tax (10%)</Text>
-                            <Text style={styles.summaryValue}>${tax.toFixed(3)}</Text>
-                        </View>
-                        <View style={[styles.summaryRow, styles.totalRow]}>
-                            <Text style={styles.totalLabel}>Total</Text>
-                            <Text style={styles.totalValue}>${total.toFixed(3)}</Text>
-                        </View>
+                    <Text style={styles.sectionTitle}>Payment Method</Text>
+                    <View style={styles.sectionContent}>
+                        <TouchableOpacity
+                            style={[
+                                styles.paymentOption,
+                                selectedPayment === 'cod' && styles.selectedPaymentOption
+                            ]}
+                            onPress={() => setSelectedPayment('cod')}
+                        >
+                            <View style={styles.paymentLeft}>
+                                <View style={styles.radioButton}>
+                                    {selectedPayment === 'cod' && <View style={styles.radioSelected} />}
+                                </View>
+                                <View style={styles.paymentInfo}>
+                                    <Text style={styles.paymentTitle}>Cash on Delivery</Text>
+                                    <Text style={styles.paymentSubtitle}>Pay when you receive your order</Text>
+                                </View>
+                            </View>
+                            <Icon name="payments" size={24} color={COLORS.primary} />
+                        </TouchableOpacity>
                     </View>
                 </View>
             </ScrollView>
@@ -153,6 +182,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 16,
+        paddingTop: StatusBar.currentHeight + 16,
+        backgroundColor: COLORS.primary,
         elevation: 5,
     },
     backButton: {
@@ -273,6 +304,56 @@ const styles = StyleSheet.create({
         color: COLORS.white,
         fontSize: 16,
         fontWeight: '600',
+    },
+    paymentOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        borderWidth: 1,
+        borderColor: COLORS.border.light,
+        borderRadius: 8,
+    },
+    selectedPaymentOption: {
+        borderColor: COLORS.primary,
+        backgroundColor: `${COLORS.primary}10`,
+    },
+    paymentLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    radioButton: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: COLORS.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    radioSelected: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: COLORS.primary,
+    },
+    paymentInfo: {
+        flex: 1,
+    },
+    paymentTitle: {
+        fontWeight: '500',
+        color: COLORS.text.primary,
+        fontSize: 16,
+    },
+    paymentSubtitle: {
+        color: COLORS.text.secondary,
+        fontSize: 12,
+        marginTop: 2,
+    },
+    sectionContent: {
+        padding: 16,
     },
 });
 

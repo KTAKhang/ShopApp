@@ -17,6 +17,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchCartByUser, updateCartItem, removeCartItem } from '../store/slices/cartSlice';
 import { COLORS } from '../constants/colors';
 import BottomNavigation from '../components/BottomNavigation';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const CartScreen = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -37,12 +38,12 @@ const CartScreen = ({ navigation }) => {
             const transformedItems = cart.items.map(item => ({
                 id: item.product_id,
                 name: item.name,
-                price: item.price / 1000,
+                price: item.price,
                 image: item.image,
                 quantity: item.quantity,
                 size: null,
                 color: 'Default',
-                subtotal: item.subtotal,
+                subtotal: item.price * item.quantity,
                 in_stock: item.in_stock,
                 is_available: item.is_available
             }));
@@ -335,9 +336,9 @@ const CartScreen = ({ navigation }) => {
     };
 
     // Calculate totals using actual cart data
-    const subtotal = cart?.sum ? cart.sum / 1000 : 0;
+    const subtotal = cartItems.reduce((total, item) => total + item.subtotal, 0);
     const shipping = 0;
-    const tax = 24.00;
+    const tax = subtotal * 0.1; // 10% tax
     const total = subtotal + shipping + tax;
 
     const CartItem = ({ item }) => {
@@ -358,7 +359,7 @@ const CartScreen = ({ navigation }) => {
                         </TouchableOpacity>
                     </View>
                     <View style={styles.itemFooter}>
-                        <Text style={styles.itemPrice}>${(item.price).toFixed(3)}</Text>
+                        <Text style={styles.itemPrice}>{formatCurrency(item.price)}</Text>
                         <View style={styles.quantityContainer}>
                             <TouchableOpacity
                                 style={[styles.quantityButton, itemIsUpdating && styles.disabledButton]}
@@ -529,20 +530,19 @@ const CartScreen = ({ navigation }) => {
                         <View style={styles.summaryContent}>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Subtotal</Text>
-                                <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+                                <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
                             </View>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Shipping</Text>
-                                <Text style={styles.summaryValue}>${shipping.toFixed(2)}</Text>
+                                <Text style={styles.summaryValue}>{formatCurrency(shipping)}</Text>
                             </View>
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Tax</Text>
-                                <Text style={styles.summaryValue}>${tax.toFixed(2)}</Text>
+                                <Text style={styles.summaryLabel}>Tax (10%)</Text>
+                                <Text style={styles.summaryValue}>{formatCurrency(tax)}</Text>
                             </View>
-                            <View style={styles.totalDivider} />
                             <View style={[styles.summaryRow, styles.totalRow]}>
                                 <Text style={styles.totalLabel}>Total</Text>
-                                <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+                                <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
                             </View>
                         </View>
                     </View>
@@ -812,11 +812,6 @@ const styles = StyleSheet.create({
     summaryValue: {
         color: '#0d364c',
         fontSize: 14,
-    },
-    totalDivider: {
-        height: 1,
-        backgroundColor: '#f3f4f6',
-        marginVertical: 8,
     },
     totalRow: {
         marginBottom: 0,
