@@ -122,6 +122,7 @@ const ProfileScreen = ({ navigation }) => {
         dispatch(updateUserProfile(updatedProfile));
         console.log("Dữ liệu mới:", updatedProfile);
     };
+    
     const handleChangePassword = () => {
         // Validation
         if (!currentPassword || !newPassword || !confirmPassword) {
@@ -166,7 +167,12 @@ const ProfileScreen = ({ navigation }) => {
         {
             icon: 'person-outline',
             title: 'Personal Information',
-            onPress: () => navigation.navigate('EditProfile'),
+            onPress: () => setEditModalVisible(true), // Mở modal thay vì navigate
+        },
+        {
+            icon: 'lock-outline',
+            title: 'Change Password',
+            onPress: () => setPasswordModalVisible(true), // Thêm chức năng đổi mật khẩu
         },
         {
             icon: 'local-shipping',
@@ -215,13 +221,21 @@ const ProfileScreen = ({ navigation }) => {
             </View>
 
                 <View style={styles.profileSection}>
-                    <Image
-                        source={{ uri: profile?.avatar || 'https://via.placeholder.com/100' }}
-                        style={styles.profileImage}
-                    />
+                    <TouchableOpacity onPress={() => setEditModalVisible(true)}>
+                        <Image
+                            source={{ uri: profile?.avatar || 'https://via.placeholder.com/100' }}
+                            style={styles.profileImage}
+                        />
+                    </TouchableOpacity>
                     <View style={styles.profileInfo}>
                         <Text style={styles.profileName}>{profile?.user_name || 'Guest User'}</Text>
                         <Text style={styles.profileEmail}>{profile?.email || 'guest@example.com'}</Text>
+                        <TouchableOpacity 
+                            style={styles.editProfileButton}
+                            onPress={() => setEditModalVisible(true)}
+                        >
+                            <Text style={styles.editProfileText}>Edit Profile</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </LinearGradient>
@@ -245,12 +259,12 @@ const ProfileScreen = ({ navigation }) => {
                             <Icon name="chevron-right" size={24} color={COLORS.text.secondary} />
                         </TouchableOpacity>
                     ))}
-                    </View>
+                </View>
 
-                        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Icon name="logout" size={24} color={COLORS.error} />
-                            <Text style={styles.logoutText}>Logout</Text>
-                        </TouchableOpacity>
+                    <Text style={styles.logoutText}>Logout</Text>
+                </TouchableOpacity>
             </ScrollView>
 
             <BottomNavigation />
@@ -321,6 +335,7 @@ const styles = StyleSheet.create({
     },
     profileInfo: {
         marginLeft: 16,
+        flex: 1,
     },
     profileName: {
         fontSize: 20,
@@ -332,6 +347,21 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: COLORS.white,
         opacity: 0.8,
+        marginBottom: 8,
+    },
+    editProfileButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: COLORS.white,
+        alignSelf: 'flex-start',
+    },
+    editProfileText: {
+        color: COLORS.white,
+        fontSize: 12,
+        fontWeight: '600',
     },
     content: {
         flex: 1,

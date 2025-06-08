@@ -13,6 +13,8 @@ import RegisterScreen from '../screens/RegisterScreen';
 import RegisterConfirmOTPScreen from '../screens/RegisterConfirmOTPScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import ForgotPasswordOTPScreen from '../screens/ForgotPasswordOTPScreen';
+  // Thêm dòng này
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
@@ -64,6 +66,7 @@ export default function AppNavigator() {
               <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
               <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
               <Stack.Screen name="BuyNow" component={BuyNowScreen} />
+
             </>
           )
         ) : (
@@ -72,6 +75,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="VerifyOtp" component={RegisterConfirmOTPScreen} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="ForgotPasswordOTP" component={ForgotPasswordOTPScreen} />
           </>
         )}
       </Stack.Navigator>

@@ -11,6 +11,8 @@ import {
     Dimensions,
     ActivityIndicator,
     Alert,
+    Modal,
+    FlatList,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -30,6 +32,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const [quantity, setQuantity] = useState(1);
     const [isFavorite, setIsFavorite] = useState(false);
+    const [showAllReviews, setShowAllReviews] = useState(false);
 
     // Get product ID from route params
     const productId = route?.params?.productId;
@@ -87,6 +90,170 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
 
         return stars;
+    };
+
+    // Render Avatar component
+    const renderUserAvatar = (user) => {
+        const avatarUrl = user?.avatar;
+        const userName = user?.name || user?.user_name || user?.username || 'Anonymous';
+        
+        if (avatarUrl) {
+            return (
+                <Image 
+                    source={{ uri: avatarUrl }} 
+                    style={styles.userAvatar}
+                    onError={() => {
+                        // Fallback nếu không load được avatar
+                    }}
+                />
+            );
+        } else {
+            // Fallback avatar với chữ cái đầu của tên
+            const firstLetter = userName.charAt(0).toUpperCase();
+            return (
+                <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarFallbackText}>{firstLetter}</Text>
+                </View>
+            );
+        }
+    };
+
+    // Render individual review item
+    const renderReviewItem = ({ item: review, index }) => {
+        return (
+            <View key={review._id || index} style={styles.reviewItem}>
+                <View style={styles.reviewHeader}>
+                    <View style={styles.reviewerInfo}>
+                        {renderUserAvatar(review.user)}
+                        <View style={styles.reviewerDetails}>
+                            <Text style={styles.reviewerName}>
+                                {review.user?.name || 
+                                 review.user?.user_name || 
+                                 review.user?.username ||
+                                 review.userName ||
+                                 review.user_name ||
+                                 'Anonymous'}
+                            </Text>
+                            <Text style={styles.reviewDate}>
+                                {new Date(review.createdAt).toLocaleDateString()}
+                            </Text>
+                        </View>
+                    </View>
+                    <View style={styles.starsContainer}>
+                        {renderStars(review.rating)}
+                    </View>
+                </View>
+                <Text style={styles.reviewText}>{review.content}</Text>
+            </View>
+        );
+    };
+
+    // Render preview reviews (first 2 reviews)
+    const renderPreviewReviews = () => {
+        if (!reviews || reviews.length === 0) {
+            return (
+                <Text style={styles.noReviewsText}>No reviews yet for this product.</Text>
+            );
+        }
+
+        const previewReviews = reviews.slice(0, 2);
+        
+        return (
+            <>
+                {previewReviews.map((review, index) => (
+                    <View key={review._id || index} style={styles.reviewItem}>
+                        <View style={styles.reviewHeader}>
+                            <View style={styles.reviewerInfo}>
+                                {renderUserAvatar(review.user)}
+                                <View style={styles.reviewerDetails}>
+                                    <Text style={styles.reviewerName}>
+                                        {review.user?.name || 
+                                         review.user?.user_name || 
+                                         review.user?.username ||
+                                         review.userName ||
+                                         review.user_name ||
+                                         'Anonymous'}
+                                    </Text>
+                                    <Text style={styles.reviewDate}>
+                                        {new Date(review.createdAt).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={styles.starsContainer}>
+                                {renderStars(review.rating)}
+                            </View>
+                        </View>
+                        <Text style={styles.reviewText}>{review.content}</Text>
+                    </View>
+                ))}
+                
+                {reviews.length > 2 && (
+                    <TouchableOpacity 
+                        style={styles.showAllButton}
+                        onPress={() => setShowAllReviews(true)}
+                    >
+                        <Text style={styles.showAllButtonText}>
+                            Show All Reviews ({reviews.length})
+                        </Text>
+                        <Icon name="keyboard-arrow-right" size={20} color={COLORS.primary} />
+                    </TouchableOpacity>
+                )}
+            </>
+        );
+    };
+
+    // Reviews Modal Component
+    const ReviewsModal = () => {
+        return (
+            <Modal
+                visible={showAllReviews}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowAllReviews(false)}
+            >
+                <SafeAreaView style={styles.modalContainer}>
+                    {/* Modal Header */}
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity
+                            onPress={() => setShowAllReviews(false)}
+                            style={styles.modalCloseButton}
+                        >
+                            <Icon name="close" size={24} color={COLORS.text} />
+                        </TouchableOpacity>
+                        
+                        <Text style={styles.modalTitle}>
+                            All Reviews ({reviews ? reviews.length : 0})
+                        </Text>
+                        
+                        <TouchableOpacity 
+                            style={styles.modalRefreshButton}
+                            onPress={handleRefresh}
+                        >
+                            <Icon name="refresh" size={20} color={COLORS.primary} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Reviews List */}
+                    <FlatList
+                        data={reviews}
+                        renderItem={renderReviewItem}
+                        keyExtractor={(item, index) => item._id || index.toString()}
+                        showsVerticalScrollIndicator={true}
+                        contentContainerStyle={styles.modalContent}
+                        ItemSeparatorComponent={() => <View style={styles.reviewSeparator} />}
+                        ListEmptyComponent={() => (
+                            <View style={styles.emptyReviewsContainer}>
+                                <Icon name="rate-review" size={48} color="#ccc" />
+                                <Text style={styles.emptyReviewsText}>No reviews yet</Text>
+                                <Text style={styles.emptyReviewsSubText}>
+                                    Be the first to review this product
+                                </Text>
+                            </View>
+                        )}
+                    />
+                </SafeAreaView>
+            </Modal>
+        );
     };
 
     const handleQuantityChange = (type) => {
@@ -253,7 +420,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         </View>
                     </View>
 
-                    {/* Reviews Section - CHỈ hiển thị reviews của sản phẩm hiện tại */}
+                    {/* Reviews Section - CHỈ hiển thị preview */}
                     <View style={styles.section}>
                         <View style={styles.reviewsHeader}>
                             <Text style={styles.sectionTitle}>
@@ -267,27 +434,17 @@ const ProductDetailScreen = ({ navigation, route }) => {
                                 <Text style={styles.refreshText}>Refresh</Text>
                             </TouchableOpacity>
                         </View>
-                        {reviews && reviews.length > 0 ? (
-                            reviews.map((review, index) => (
-                                <View key={review._id || index} style={styles.reviewItem}>
-                                    <View style={styles.reviewHeader}>
-                                        <Text style={styles.reviewerName}>{review.user?.name || 'Anonymous'}</Text>
-                                        <View style={styles.starsContainer}>
-                                            {renderStars(review.rating)}
-                                        </View>
-                                    </View>
-                                    <Text style={styles.reviewText}>{review.content}</Text>
-                                    <Text style={styles.reviewDate}>
-                                        {new Date(review.createdAt).toLocaleDateString()}
-                                    </Text>
-                                </View>
-                            ))
-                        ) : (
-                            <Text style={styles.noReviewsText}>No reviews yet for this product.</Text>
-                        )}
+                        
+                        {/* Preview Reviews */}
+                        <View style={styles.reviewsPreviewContainer}>
+                            {renderPreviewReviews()}
+                        </View>
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Reviews Modal */}
+            <ReviewsModal />
 
             {/* Bottom Action Bar */}
             <View style={styles.actionBar}>
@@ -488,6 +645,9 @@ const styles = StyleSheet.create({
         marginLeft: 4,
         fontWeight: '500',
     },
+    reviewsPreviewContainer: {
+        paddingBottom: 100,  // Tăng giá trị này nếu cần khoảng cách nhiều hơn
+    },
     reviewItem: {
         marginBottom: 16,
         padding: 12,
@@ -497,8 +657,36 @@ const styles = StyleSheet.create({
     reviewHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         marginBottom: 8,
+    },
+    reviewerInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    userAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        marginRight: 12,
+    },
+    avatarFallback: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: COLORS.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    avatarFallbackText: {
+        color: COLORS.white,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    reviewerDetails: {
+        flex: 1,
     },
     reviewerName: {
         fontSize: 14,
@@ -509,11 +697,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         lineHeight: 20,
+        marginTop: 8,
     },
     reviewDate: {
         fontSize: 12,
-        color: '#666',
-        marginTop: 4,
+        color: '#999',
+        marginTop: 2,
     },
     noReviewsText: {
         fontSize: 14,
@@ -521,6 +710,86 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         textAlign: 'center',
         padding: 20,
+    },
+    showAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        backgroundColor: '#f0f8ff',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        marginTop: 8,
+    },
+    showAllButtonText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: COLORS.primary,
+        marginRight: 8,
+    },
+    // Modal Styles
+    modalContainer: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+        backgroundColor: '#fff',
+    },
+    modalCloseButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 20,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        flex: 1,
+        textAlign: 'center',
+    },
+    modalRefreshButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 20,
+    },
+    modalContent: {
+        padding: 16,
+    },
+    reviewSeparator: {
+        height: 1,
+        backgroundColor: '#e0e0e0',
+        marginVertical: 8,
+    },
+    emptyReviewsContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+    },
+    emptyReviewsText: {
+        fontSize: 18,
+        fontWeight: '500',
+        color: '#666',
+        marginTop: 16,
+    },
+    emptyReviewsSubText: {
+        fontSize: 14,
+        color: '#999',
+        marginTop: 8,
+        textAlign: 'center',
     },
     actionBar: {
         position: 'absolute',
