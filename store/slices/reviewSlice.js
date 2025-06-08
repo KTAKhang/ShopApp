@@ -7,15 +7,15 @@ export const fetchProductReviewsByProductId = createAsyncThunk(
     async (product_id, { rejectWithValue }) => {
         try {
             const response = await getProductReviewsByProductId(product_id);
-            return response;
+            return { product_id, reviews: response };
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue({ product_id, error: error.message });
         }
     }
 );
 
 const initialState = {
-    reviews: [],
+    reviewsByProduct: {}, // Store reviews by product ID: { productId: { reviews: [], isLoading: false, error: null } }
     isLoading: false,
     error: null,
 };
@@ -25,29 +25,88 @@ const reviewSlice = createSlice({
     initialState,
     reducers: {
         clearReviewState: (state) => {
-            state.reviews = [];
+            state.reviewsByProduct = {};
             state.isLoading = false;
             state.error = null;
+        },
+        clearProductReviews: (state, action) => {
+            const productId = action.payload;
+            if (state.reviewsByProduct[productId]) {
+                delete state.reviewsByProduct[productId];
+            }
         },
     },
     extraReducers: (builder) => {
         builder
             // Fetch product reviews by product ID
-            .addCase(fetchProductReviewsByProductId.pending, (state) => {
-                state.isLoading = true;
-                state.error = null;
+            .addCase(fetchProductReviewsByProductId.pending, (state, action) => {
+                const productId = action.meta.arg;
+                // Khởi tạo state cho sản phẩm cụ thể nếu chưa có
+                if (!state.reviewsByProduct[productId]) {
+                    state.reviewsByProduct[productId] = {
+                        reviews: [],
+                        isLoading: false,
+                        error: null,
+                    };
+                }
+                state.reviewsByProduct[productId].isLoading = true;
+                state.reviewsByProduct[productId].error = null;
             })
             .addCase(fetchProductReviewsByProductId.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.reviews = action.payload;
-                state.error = null;
+                const { product_id, reviews } = action.payload;
+                // Khởi tạo state cho sản phẩm cụ thể nếu chưa có
+                if (!state.reviewsByProduct[product_id]) {
+                    state.reviewsByProduct[product_id] = {
+                        reviews: [],
+                        isLoading: false,
+                        error: null,
+                    };
+                }
+                // Chỉ cập nhật reviews cho sản phẩm cụ thể
+                state.reviewsByProduct[product_id].reviews = reviews || [];
+                state.reviewsByProduct[product_id].isLoading = false;
+                state.reviewsByProduct[product_id].error = null;
             })
             .addCase(fetchProductReviewsByProductId.rejected, (state, action) => {
-                state.isLoading = false;
-                state.error = action.payload;
+                const { product_id, error } = action.payload || {};
+                if (product_id) {
+                    // Khởi tạo state cho sản phẩm cụ thể nếu chưa có
+                    if (!state.reviewsByProduct[product_id]) {
+                        state.reviewsByProduct[product_id] = {
+                            reviews: [],
+                            isLoading: false,
+                            error: null,
+                        };
+                    }
+                    state.reviewsByProduct[product_id].isLoading = false;
+                    state.reviewsByProduct[product_id].error = error || 'Failed to fetch reviews';
+                }
             });
     },
 });
 
-export const { clearReviewState } = reviewSlice.actions;
+export const { clearReviewState, clearProductReviews } = reviewSlice.actions;
+
+// Selectors - Đảm bảo chỉ trả về reviews của sản phẩm cụ thể
+export const selectProductReviews = (state, productId) => {
+    if (!productId || !state.review.reviewsByProduct[productId]) {
+        return [];
+    }
+    return state.review.reviewsByProduct[productId].reviews || [];
+};
+
+export const selectProductReviewsLoading = (state, productId) => {
+    if (!productId || !state.review.reviewsByProduct[productId]) {
+        return false;
+    }
+    return state.review.reviewsByProduct[productId].isLoading || false;
+};
+
+export const selectProductReviewsError = (state, productId) => {
+    if (!productId || !state.review.reviewsByProduct[productId]) {
+        return null;
+    }
+    return state.review.reviewsByProduct[productId].error || null;
+};
+
 export default reviewSlice.reducer;

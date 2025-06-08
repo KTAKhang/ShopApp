@@ -15,7 +15,11 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { fetchProductByIdAsync } from '../store/slices/productSlice';
-import { fetchProductReviewsByProductId } from '../store/slices/reviewSlice';
+import { 
+    fetchProductReviewsByProductId, 
+    selectProductReviews,
+    selectProductReviewsLoading 
+} from '../store/slices/reviewSlice';
 import { addToCart } from '../store/slices/cartSlice';
 import { COLORS } from '../constants/colors';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -32,19 +36,28 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
     // Get product and loading state from Redux
     const { product, isLoading: productLoading, error } = useSelector((state) => state.product);
-    const { reviews, isLoading: reviewsLoading } = useSelector((state) => state.review);
+    
+    // Get reviews for this specific product ONLY
+    const reviews = useSelector(state => selectProductReviews(state, productId));
+    const reviewsLoading = useSelector(state => selectProductReviewsLoading(state, productId));
 
-    // Fetch data only once when component mounts
+    // Fetch data chỉ khi cần thiết (không clear data cũ)
     useEffect(() => {
         if (productId && productId !== 'undefined') {
+            // Fetch product details
             dispatch(fetchProductByIdAsync(productId));
-            dispatch(fetchProductReviewsByProductId(productId));
+            
+            // Chỉ fetch reviews nếu chưa có data cho sản phẩm này
+            // Hoặc nếu bạn muốn luôn refresh data, hãy bỏ điều kiện này
+            if (!reviews || reviews.length === 0) {
+                dispatch(fetchProductReviewsByProductId(productId));
+            }
         }
-    }, [dispatch, productId]);
+    }, [dispatch, productId]); // Bỏ reviews khỏi dependency để tránh infinite loop
 
     const isLoading = productLoading || reviewsLoading;
 
-    // Calculate average rating from reviews
+    // Calculate average rating from reviews của sản phẩm hiện tại
     const averageRating = reviews && reviews.length > 0
         ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
         : 0;
@@ -112,13 +125,21 @@ const ProductDetailScreen = ({ navigation, route }) => {
         });
     };
 
+    // Refresh function để fetch lại data khi cần
+    const handleRefresh = useCallback(() => {
+        if (productId) {
+            dispatch(fetchProductByIdAsync(productId));
+            dispatch(fetchProductReviewsByProductId(productId));
+        }
+    }, [dispatch, productId]);
+
     if (error) {
         return (
             <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Error: {error}</Text>
                 <TouchableOpacity 
                     style={styles.retryButton} 
-                    onPress={() => dispatch(fetchProductByIdAsync(productId))}
+                    onPress={handleRefresh}
                 >
                     <Text style={styles.retryText}>Retry</Text>
                 </TouchableOpacity>
@@ -232,23 +253,38 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         </View>
                     </View>
 
-                    {/* Reviews Section */}
+                    {/* Reviews Section - CHỈ hiển thị reviews của sản phẩm hiện tại */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Reviews ({reviews ? reviews.length : 0})</Text>
-                        {reviews && reviews.map((review, index) => (
-                            <View key={review._id || index} style={styles.reviewItem}>
-                                <View style={styles.reviewHeader}>
-                                    <Text style={styles.reviewerName}>{review.user?.name || 'Anonymous'}</Text>
-                                    <View style={styles.starsContainer}>
-                                        {renderStars(review.rating)}
+                        <View style={styles.reviewsHeader}>
+                            <Text style={styles.sectionTitle}>
+                                Reviews ({reviews ? reviews.length : 0})
+                            </Text>
+                            <TouchableOpacity 
+                                style={styles.refreshButton}
+                                onPress={handleRefresh}
+                            >
+                                <Icon name="refresh" size={20} color={COLORS.primary} />
+                                <Text style={styles.refreshText}>Refresh</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {reviews && reviews.length > 0 ? (
+                            reviews.map((review, index) => (
+                                <View key={review._id || index} style={styles.reviewItem}>
+                                    <View style={styles.reviewHeader}>
+                                        <Text style={styles.reviewerName}>{review.user?.name || 'Anonymous'}</Text>
+                                        <View style={styles.starsContainer}>
+                                            {renderStars(review.rating)}
+                                        </View>
                                     </View>
+                                    <Text style={styles.reviewText}>{review.content}</Text>
+                                    <Text style={styles.reviewDate}>
+                                        {new Date(review.createdAt).toLocaleDateString()}
+                                    </Text>
                                 </View>
-                                <Text style={styles.reviewText}>{review.content}</Text>
-                                <Text style={styles.reviewDate}>
-                                    {new Date(review.createdAt).toLocaleDateString()}
-                                </Text>
-                            </View>
-                        ))}
+                            ))
+                        ) : (
+                            <Text style={styles.noReviewsText}>No reviews yet for this product.</Text>
+                        )}
                     </View>
                 </View>
             </ScrollView>
@@ -432,6 +468,26 @@ const styles = StyleSheet.create({
         color: '#666',
         marginLeft: 8,
     },
+    reviewsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    refreshButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: '#f0f0f0',
+        borderRadius: 20,
+    },
+    refreshText: {
+        fontSize: 12,
+        color: COLORS.primary,
+        marginLeft: 4,
+        fontWeight: '500',
+    },
     reviewItem: {
         marginBottom: 16,
         padding: 12,
@@ -458,6 +514,13 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#666',
         marginTop: 4,
+    },
+    noReviewsText: {
+        fontSize: 14,
+        color: '#999',
+        fontStyle: 'italic',
+        textAlign: 'center',
+        padding: 20,
     },
     actionBar: {
         position: 'absolute',

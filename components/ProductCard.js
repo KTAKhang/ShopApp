@@ -6,6 +6,7 @@ import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../store/slices/cartSlice';
+import { selectProductReviews } from '../store/slices/reviewSlice';
 import { formatCurrency } from '../utils/formatCurrency';
 
 const truncateText = (text, maxLength) => {
@@ -43,11 +44,12 @@ const renderStars = (rating) => {
 const ProductCard = ({ product }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
-    const { reviews } = useSelector((state) => state.review);
+    
+    // Get reviews for THIS specific product only
+    const productReviews = useSelector(state => selectProductReviews(state, product._id));
 
-    // Calculate average rating for this product
-    const productReviews = reviews?.filter(review => review._id && review.rating) || [];
-    const averageRating = productReviews.length > 0
+    // Calculate average rating for this specific product
+    const averageRating = productReviews && productReviews.length > 0
         ? productReviews.reduce((acc, review) => acc + review.rating, 0) / productReviews.length
         : 0;
 
