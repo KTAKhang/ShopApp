@@ -31,7 +31,7 @@ const TopNavBar = () => {
                             <Text style={styles.badgeText}>{itemCount}</Text>
                         </View>
                     )}
-                </TouchableOpacity>
+                    </TouchableOpacity>
             </LinearGradient>
         </>
     );

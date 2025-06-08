@@ -210,9 +210,9 @@ const ProfileScreen = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.headerGradient}
             >
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Profile</Text>
-                </View>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Profile</Text>
+            </View>
 
                 <View style={styles.profileSection}>
                     <Image
@@ -226,7 +226,7 @@ const ProfileScreen = ({ navigation }) => {
                 </View>
             </LinearGradient>
 
-            <ScrollView 
+            <ScrollView
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 }]}
@@ -245,12 +245,12 @@ const ProfileScreen = ({ navigation }) => {
                             <Icon name="chevron-right" size={24} color={COLORS.text.secondary} />
                         </TouchableOpacity>
                     ))}
-                </View>
+                    </View>
 
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Icon name="logout" size={24} color={COLORS.error} />
-                    <Text style={styles.logoutText}>Logout</Text>
-                </TouchableOpacity>
+                            <Text style={styles.logoutText}>Logout</Text>
+                        </TouchableOpacity>
             </ScrollView>
 
             <BottomNavigation />

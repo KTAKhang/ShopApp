@@ -1,12 +1,26 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useDispatch } from 'react-redux';
 import ProductCard from './ProductCard';
 import { COLORS } from '../constants/colors';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { fetchProductReviewsByProductId } from '../store/slices/reviewSlice';
 
 const FeaturedProducts = ({ products, title }) => {
     const navigation = useNavigation();
+    const dispatch = useDispatch();
+
+    useEffect(() => {
+        // Fetch reviews for all products
+        if (products && products.length > 0) {
+            products.forEach(product => {
+                if (product._id) {
+                    dispatch(fetchProductReviewsByProductId(product._id));
+                }
+            });
+        }
+    }, [dispatch, products]);
 
     if (!products || products.length === 0) {
         return <Text style={styles.errorText}>No products available.</Text>;

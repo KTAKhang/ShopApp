@@ -97,7 +97,7 @@ const cartSlice = createSlice({
             .addCase(fetchCartByUser.fulfilled, (state, action) => {
                 state.isLoading = false;
                 if (action.payload) {
-                    state.cart = action.payload;
+                state.cart = action.payload;
                 }
                 state.error = null;
             })
@@ -129,7 +129,7 @@ const cartSlice = createSlice({
             .addCase(updateCartItem.fulfilled, (state, action) => {
                 state.isLoading = false;
                 if (action.payload) {
-                    state.cart = action.payload;
+                state.cart = action.payload;
                 }
                 state.error = null;
             })
@@ -145,7 +145,7 @@ const cartSlice = createSlice({
             .addCase(removeCartItem.fulfilled, (state, action) => {
                 state.isLoading = false;
                 if (action.payload) {
-                    state.cart = action.payload;
+                state.cart = action.payload;
                 }
                 state.error = null;
             })

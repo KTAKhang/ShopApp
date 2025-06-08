@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -18,6 +18,7 @@ import { fetchProductByIdAsync } from '../store/slices/productSlice';
 import { fetchProductReviewsByProductId } from '../store/slices/reviewSlice';
 import { addToCart } from '../store/slices/cartSlice';
 import { COLORS } from '../constants/colors';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const { width } = Dimensions.get('window');
 
@@ -33,89 +34,20 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const { product, isLoading: productLoading, error } = useSelector((state) => state.product);
     const { reviews, isLoading: reviewsLoading } = useSelector((state) => state.review);
 
-    // Debug logs
-    console.log('ProductDetailScreen - productId:', productId);
-    console.log('ProductDetailScreen - product:', product);
-    console.log('ProductDetailScreen - productLoading:', productLoading);
-    console.log('ProductDetailScreen - error:', error);
-    console.log('ProductDetailScreen - reviews:', reviews);
-
+    // Fetch data only once when component mounts
     useEffect(() => {
-        console.log('useEffect - productId:', productId);
-        console.log('useEffect - route params:', route?.params);
-        
         if (productId && productId !== 'undefined') {
-            console.log('Dispatching fetchProductByIdAsync with productId:', productId);
             dispatch(fetchProductByIdAsync(productId));
             dispatch(fetchProductReviewsByProductId(productId));
-        } else {
-            console.log('No valid productId found in route params');
-            console.log('Available params:', JSON.stringify(route?.params));
         }
     }, [dispatch, productId]);
 
     const isLoading = productLoading || reviewsLoading;
 
-    // Debug error state
-    if (error) {
-        console.log('Error occurred:', error);
-        return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Error: {error}</Text>
-                <TouchableOpacity 
-                    style={styles.retryButton} 
-                    onPress={() => dispatch(fetchProductByIdAsync(productId))}
-                >
-                    <Text style={styles.retryText}>Retry</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
-    if (isLoading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007bff" />
-                <Text style={styles.loadingText}>Loading product...</Text>
-            </View>
-        );
-    }
-
-    if (!productId || productId === 'undefined') {
-        return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Invalid Product ID</Text>
-                <Text style={styles.debugText}>
-                    Please navigate to this screen with a valid product ID
-                </Text>
-                <Text style={styles.debugText}>
-                    Route params: {JSON.stringify(route?.params)}
-                </Text>
-                <TouchableOpacity 
-                    style={styles.retryButton} 
-                    onPress={() => navigation.goBack()}
-                >
-                    <Text style={styles.retryText}>Go Back</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
-    if (!product) {
-        console.log('Product is null or undefined');
-        return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Product not found</Text>
-                <Text style={styles.debugText}>Product ID: {productId}</Text>
-                <TouchableOpacity 
-                    style={styles.retryButton} 
-                    onPress={() => dispatch(fetchProductByIdAsync(productId))}
-                >
-                    <Text style={styles.retryText}>Retry</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
+    // Calculate average rating from reviews
+    const averageRating = reviews && reviews.length > 0
+        ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
+        : 0;
 
     const renderStars = (rating) => {
         const stars = [];
@@ -165,7 +97,6 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 [{ text: 'OK' }]
             );
         } catch (error) {
-            console.error('Failed to add to cart:', error);
             Alert.alert(
                 'Error',
                 'Failed to add item to cart. Please try again.',
@@ -181,14 +112,42 @@ const ProductDetailScreen = ({ navigation, route }) => {
         });
     };
 
-    const handleShare = () => {
-        console.log('Share product');
-    };
+    if (error) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Error: {error}</Text>
+                <TouchableOpacity 
+                    style={styles.retryButton} 
+                    onPress={() => dispatch(fetchProductByIdAsync(productId))}
+                >
+                    <Text style={styles.retryText}>Retry</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
-    // Calculate average rating from reviews
-    const averageRating = reviews && reviews.length > 0
-        ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
-        : 0;
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.loadingText}>Loading product...</Text>
+            </View>
+        );
+    }
+
+    if (!product) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Product not found</Text>
+                <TouchableOpacity 
+                    style={styles.retryButton} 
+                    onPress={() => navigation.goBack()}
+                >
+                    <Text style={styles.retryText}>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -205,7 +164,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                 <Text style={styles.headerTitle}>Product Details</Text>
 
-                <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
+                <TouchableOpacity style={styles.headerButton}>
                     <Icon name="share" size={24} color={COLORS.white} />
                 </TouchableOpacity>
             </View>
@@ -216,7 +175,6 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     <Image 
                         source={{ uri: product.image }} 
                         style={styles.productImage}
-                        onError={(error) => console.log('Image load error:', error)}
                     />
                 </View>
 
@@ -235,7 +193,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                     {/* Price and Quantity */}
                     <View style={styles.priceQuantityContainer}>
-                        <Text style={styles.price}>${product.price.toFixed(3)}</Text>
+                        <Text style={styles.price}>{formatCurrency(product.price)}</Text>
                         <View style={styles.quantityContainer}>
                             <TouchableOpacity
                                 style={styles.quantityButton}
@@ -285,7 +243,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
                                         {renderStars(review.rating)}
                                     </View>
                                 </View>
-                                <Text style={styles.reviewText}>{review.comment}</Text>
+                                <Text style={styles.reviewText}>{review.content}</Text>
+                                <Text style={styles.reviewDate}>
+                                    {new Date(review.createdAt).toLocaleDateString()}
+                                </Text>
                             </View>
                         ))}
                     </View>
@@ -297,7 +258,6 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 <TouchableOpacity 
                     style={styles.addToCartButton} 
                     onPress={handleAddToCart}
-                    disabled={isLoading}
                 >
                     <Icon name="shopping-cart" size={20} color={COLORS.primary} />
                     <Text style={styles.addToCartText}>Add to Cart</Text>
@@ -306,7 +266,6 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 <TouchableOpacity 
                     style={styles.buyNowButton} 
                     onPress={handleBuyNow}
-                    disabled={isLoading}
                 >
                     <Icon name="shopping-bag" size={20} color={COLORS.white} />
                     <Text style={styles.buyNowText}>Buy Now</Text>
@@ -343,12 +302,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: '#ff4757',
         marginBottom: 10,
-        textAlign: 'center',
-    },
-    debugText: {
-        fontSize: 14,
-        color: '#666',
-        marginBottom: 20,
         textAlign: 'center',
     },
     retryButton: {
@@ -500,6 +453,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         lineHeight: 20,
+    },
+    reviewDate: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 4,
     },
     actionBar: {
         position: 'absolute',

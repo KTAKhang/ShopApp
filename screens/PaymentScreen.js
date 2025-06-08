@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useSelector, useDispatch } from 'react-redux';
 import { createOrderAsync } from '../store/slices/orderSlice';
 import { COLORS } from '../constants/colors';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const PaymentScreen = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -25,12 +26,10 @@ const PaymentScreen = ({ navigation }) => {
         receiver_address: '',
     });
 
-    const orderSummary = {
-        subtotal: cart?.sum ? cart.sum / 1000 : 0,
-        shipping: 0,
-        tax: cart?.sum ? (cart.sum / 1000) * 0.1 : 0, // 10% tax
-        total: cart?.sum ? (cart.sum / 1000) * 1.1 : 0, // subtotal + tax
-    };
+    const subtotal = cart?.items?.reduce((total, item) => total + (item.price * item.quantity), 0) || 0;
+    const shipping = 0;
+    const tax = subtotal * 0.1; // 10% tax
+    const total = subtotal + shipping + tax;
 
     const handlePlaceOrder = async () => {
         if (!receiverInfo.receiver_name || !receiverInfo.receiver_phone || !receiverInfo.receiver_address) {
@@ -79,19 +78,19 @@ const PaymentScreen = ({ navigation }) => {
                     <View style={styles.sectionContent}>
                         <View style={styles.summaryRow}>
                             <Text style={styles.summaryLabel}>Subtotal</Text>
-                            <Text style={styles.summaryValue}>${orderSummary.subtotal.toFixed(3)}</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
                         </View>
                         <View style={styles.summaryRow}>
                             <Text style={styles.summaryLabel}>Shipping</Text>
-                            <Text style={styles.summaryValue}>${orderSummary.shipping.toFixed(3)}</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(shipping)}</Text>
                         </View>
                         <View style={styles.summaryRow}>
                             <Text style={styles.summaryLabel}>Tax (10%)</Text>
-                            <Text style={styles.summaryValue}>${orderSummary.tax.toFixed(3)}</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(tax)}</Text>
                         </View>
                         <View style={[styles.summaryRow, styles.totalRow]}>
                             <Text style={styles.totalLabel}>Total Amount</Text>
-                            <Text style={styles.totalValue}>${orderSummary.total.toFixed(3)}</Text>
+                            <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
                         </View>
                     </View>
                 </View>
