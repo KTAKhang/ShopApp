@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getProductReviewsByProductId } from '../../services/reviewService';
+import { createReviewApi, updateReviewApi, getReviewsByOrderIdApi, getProductReviewsByProductId } from '../../services/reviewService';
+
 
 // Async thunk for fetching product reviews by product ID
 export const fetchProductReviewsByProductId = createAsyncThunk(
@@ -13,11 +14,40 @@ export const fetchProductReviewsByProductId = createAsyncThunk(
         }
     }
 );
+export const updateReview = createAsyncThunk(
+    'review/updateReview',
+    async ({ review_id, rating, review_content }, { rejectWithValue }) => {
+        try {
+            const response = await updateReviewApi({ review_id, rating, review_content });
+            return response.review;
+        } catch (error) {
+            console.log('updateReview error:', error);
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+export const getReviewsByOrderId = createAsyncThunk(
+    'review/getReviewsByOrderId',
+    async (order_id, { rejectWithValue }) => {
+        try {
+            const reviews = await getReviewsByOrderIdApi(order_id);
+            return reviews;
+        } catch (error) {
+            console.log('getReviewsByOrderId error:', error);
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+
 
 const initialState = {
     reviewsByProduct: {}, // Store reviews by product ID: { productId: { reviews: [], isLoading: false, error: null } }
     isLoading: false,
     error: null,
+    successMessage: null,
+    lastAction: null,
 };
 
 const reviewSlice = createSlice({
@@ -82,6 +112,45 @@ const reviewSlice = createSlice({
                     state.reviewsByProduct[product_id].error = error || 'Failed to fetch reviews';
                 }
             });
+            .addCase(createReview.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.review = action.payload;
+                state.successMessage = true;
+                state.lastAction = 'create';
+            })
+            .addCase(createReview.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+            })
+            .addCase(updateReview.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+                state.successMessage = false;
+            })
+            .addCase(updateReview.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.review = action.payload;
+                state.successMessage = true;
+                state.lastAction = 'update';
+            })
+            .addCase(updateReview.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+            })
+            .addCase(getReviewsByOrderId.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(getReviewsByOrderId.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.review = action.payload;
+                state.lastAction = 'fetch';
+            })
+            .addCase(getReviewsByOrderId.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+            })
+
     },
 });
 

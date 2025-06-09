@@ -9,6 +9,7 @@ import {
     SafeAreaView,
     ActivityIndicator,
     StatusBar,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -17,17 +18,36 @@ import { fetchOrderByUser } from '../store/slices/orderSlice';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavigation from '../components/BottomNavigation';
+import { fetchOrderByUser, cancelOrder, clearOrderState } from '../store/slices/orderSlice';
+
 
 const OrderHistoryScreen = ({ navigation }) => {
     const [selectedFilter, setSelectedFilter] = useState('All Orders');
+    const [cancellingOrders, setCancellingOrders] = useState(new Set());
 
     const filters = ['All Orders', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Returned'];
-    const { orders: orderData, isLoading: orderLoading, error: orderError } = useSelector((state) => state.order);
+    const {
+        orders: orderData,
+        isLoading: orderLoading,
+        error: orderError,
+        cancelSuccess,
+        cancelMessage
+    } = useSelector((state) => state.order);
     const dispatch = useDispatch();
 
     useEffect(() => {
         dispatch(fetchOrderByUser());
     }, [dispatch]);
+
+    // Handle cancel success
+    useEffect(() => {
+        if (cancelSuccess && cancelMessage) {
+            Alert.alert('Success', cancelMessage);
+            // Refresh orders after successful cancellation
+            dispatch(clearOrderState());
+            dispatch(fetchOrderByUser());
+        }
+    }, [cancelSuccess, cancelMessage, dispatch]);
 
     // Transform API data to match UI format
     const transformOrderData = (apiOrders) => {
@@ -72,6 +92,7 @@ const OrderHistoryScreen = ({ navigation }) => {
 
             return {
                 id: `#ORD-${order.order_id.slice(-4).toUpperCase()}`,
+                orderId: order.order_id, // Keep the full order ID for API calls
                 date: formatDate(order.createdAt),
                 items: order.items ? order.items.length : 1,
                 total: (order.total_price / 1000).toFixed(2), // Convert from VND to display format
@@ -97,10 +118,75 @@ const OrderHistoryScreen = ({ navigation }) => {
         return order.status === selectedFilter;
     });
 
+    // Handle cancel order
+    const handleCancelOrder = (order) => {
+        Alert.alert(
+            'Cancel Order',
+            `Are you sure you want to cancel order ${order.id}?`,
+            [
+                {
+                    text: 'No',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Yes, Cancel',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setCancellingOrders(prev => new Set([...prev, order.orderId]));
+                            await dispatch(cancelOrder(order.orderId)).unwrap();
+                        } catch (error) {
+                            Alert.alert('Error', error || 'Failed to cancel order');
+                        } finally {
+                            setCancellingOrders(prev => {
+                                const newSet = new Set(prev);
+                                newSet.delete(order.orderId);
+                                return newSet;
+                            });
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    // Handle action button press
+    const handleActionPress = (order) => {
+        switch (order.status) {
+            case 'Pending':
+                handleCancelOrder(order);
+                break;
+            case 'Delivered':
+                // Navigate to rating screen
+                navigation.navigate('OrderDetails', {
+                    orderData: order.originalOrder,
+                    orderDataColor: order.statusColor,
+                    orderDataBg: order.statusBg
+                });
+                break;
+            default:
+                // Navigate to order details
+                navigation.navigate('OrderDetails', {
+                    orderData: order.originalOrder,
+                    orderDataColor: order.statusColor,
+                    orderDataBg: order.statusBg
+                });
+                break;
+        }
+    };
 
     const OrderItem = ({ order }) => {
+        const isCancelling = cancellingOrders.has(order.orderId);
+
         return (
-            <TouchableOpacity style={styles.orderCard} onPress={() => navigation.navigate('OrderDetails', { orderData: order.originalOrder, orderDataColor: order.statusColor, orderDataBg: order.statusBg })}>
+            <TouchableOpacity
+                style={styles.orderCard}
+                onPress={() => navigation.navigate('OrderDetails', {
+                    orderData: order.originalOrder,
+                    orderDataColor: order.statusColor,
+                    orderDataBg: order.statusBg
+                })}
+            >
                 <View style={styles.orderHeader}>
                     <View style={styles.orderInfo}>
                         <Text style={styles.orderId}>{order.id}</Text>
@@ -110,7 +196,6 @@ const OrderHistoryScreen = ({ navigation }) => {
                         <Text style={[styles.statusText, { color: order.statusColor }]}>
                             {order.status}
                         </Text>
-
                     </View>
                 </View>
 
@@ -133,13 +218,33 @@ const OrderHistoryScreen = ({ navigation }) => {
                         <Text style={styles.totalLabel}>Total: </Text>
                         <Text style={styles.totalAmount}>${order.total}</Text>
                     </View>
-                    <TouchableOpacity style={styles.actionButton}>
-                        <Text style={styles.actionButtonText}>
-                            {order.status === 'Delivered' ? 'Rating' :
-                                order.status === 'Pending' ? 'Cancel Order' :
-                                    order.status === 'Returned' ? 'View Details' :
-                                        'View Details'}
-                        </Text>
+                    <TouchableOpacity
+                        style={[
+                            styles.actionButton,
+                            order.status === 'Pending' && styles.cancelButton,
+                            isCancelling && styles.disabledButton
+                        ]}
+                        onPress={() => handleActionPress(order)}
+                        disabled={isCancelling}
+                    >
+                        {isCancelling ? (
+                            <View style={styles.cancellingContainer}>
+                                <ActivityIndicator size="small" color="white" />
+                                <Text style={[styles.actionButtonText, { marginLeft: 8 }]}>
+                                    Cancelling...
+                                </Text>
+                            </View>
+                        ) : (
+                            <Text style={[
+                                styles.actionButtonText,
+                                order.status === 'Pending' && styles.cancelButtonText
+                            ]}>
+                                {order.status === 'Delivered' ? 'Rating' :
+                                    order.status === 'Pending' ? 'Cancel Order' :
+                                        order.status === 'Returned' ? 'View Details' :
+                                            'View Details'}
+                            </Text>
+                        )}
                     </TouchableOpacity>
                 </View>
             </TouchableOpacity>
@@ -147,7 +252,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     };
 
     // Loading state
-    if (orderLoading) {
+    if (orderLoading && !orderData.length) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
@@ -171,7 +276,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     }
 
     // Error state
-    if (orderError) {
+    if (orderError && !orderData.length) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
@@ -482,10 +587,23 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 8,
     },
+    cancelButton: {
+        backgroundColor: '#ef4444',
+    },
+    disabledButton: {
+        opacity: 0.6,
+    },
     actionButtonText: {
         fontSize: 14,
         fontWeight: '600',
         color: 'white',
+    },
+    cancelButtonText: {
+        color: 'white',
+    },
+    cancellingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     emptyState: {
         alignItems: 'center',

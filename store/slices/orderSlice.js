@@ -1,10 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
+    createOrderApi,
     getOrderByUserApi,
-    createOrder,
-    updateOrder,
-    cancelOrder,
-    getOrderDetailsById
+    cancelOrderApi,
 } from '../../services/orderService';
 
 // Async thunk for fetching orders by user
@@ -21,53 +19,28 @@ export const fetchOrderByUser = createAsyncThunk(
     }
 );
 
-// Async thunk for creating order
-export const createOrderAsync = createAsyncThunk(
+
+export const createOrder = createAsyncThunk(
     'order/createOrder',
     async ({ selected_product_ids, receiverInfo }, { rejectWithValue }) => {
         try {
-            const response = await createOrder({ selected_product_ids, receiverInfo });
+            console.log("selectedItems in slice", selected_product_ids);
+            const response = await createOrderApi({ selected_product_ids, receiverInfo });
             return response;
         } catch (error) {
+            console.log('createOrder error:', error);
             return rejectWithValue(error.message);
         }
     }
 );
-
-// Async thunk for updating order
-export const updateOrderAsync = createAsyncThunk(
-    'order/updateOrder',
-    async ({ id, updateData }, { rejectWithValue }) => {
-        try {
-            const response = await updateOrder({ id, updateData });
-            return response;
-        } catch (error) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
-// Async thunk for canceling order
-export const cancelOrderAsync = createAsyncThunk(
+export const cancelOrder = createAsyncThunk(
     'order/cancelOrder',
-    async (id, { rejectWithValue }) => {
+    async (order_id, { rejectWithValue }) => {
         try {
-            const response = await cancelOrder(id);
-            return response;
+            const response = await cancelOrderApi(order_id);
+            return { order_id, message: response.message };
         } catch (error) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
-// Async thunk for getting order details by ID
-export const getOrderDetailsAsync = createAsyncThunk(
-    'order/getOrderDetailsById',
-    async (id, { rejectWithValue }) => {
-        try {
-            const response = await getOrderDetailsById(id);
-            return response;
-        } catch (error) {
+            console.log('cancelOrder error:', error);
             return rejectWithValue(error.message);
         }
     }
@@ -75,14 +48,12 @@ export const getOrderDetailsAsync = createAsyncThunk(
 
 const initialState = {
     orders: [],
-    order: null,
     isLoading: false,
     error: null,
-    createOrderStatus: null,
-    updateOrderStatus: null,
-    cancelOrderStatus: null,
-    orderDetailsStatus: null,
-    message: null,
+    createSuccess: false,
+    newOrderId: null,
+    cancelSuccess: false,
+    cancelMessage: null,
 };
 
 const orderSlice = createSlice({
@@ -91,13 +62,12 @@ const orderSlice = createSlice({
     reducers: {
         clearOrderState: (state) => {
             state.orders = [];
-            state.order = null;
             state.isLoading = false;
             state.error = null;
-            state.createOrderStatus = null;
-            state.updateOrderStatus = null;
-            state.cancelOrderStatus = null;
-            state.orderDetailsStatus = null;
+            state.createSuccess = false;
+            state.newOrderId = null;
+            state.cancelSuccess = false;
+            state.cancelMessage = null;
         },
     },
     extraReducers: (builder) => {
@@ -116,72 +86,47 @@ const orderSlice = createSlice({
                 state.isLoading = false;
                 state.error = action.payload;
             })
-            // Create order
-            .addCase(createOrderAsync.pending, (state) => {
+            .addCase(createOrder.pending, (state) => {
                 state.isLoading = true;
-                state.createOrderStatus = null;
+                state.createSuccess = false;
+                state.newOrderId = null;
+                state.error = null;
             })
-            .addCase(createOrderAsync.fulfilled, (state, action) => {
+            .addCase(createOrder.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.createOrderStatus = 'success';
-                state.message = action.payload.message;
-                state.orders.push(action.payload); // Assuming the created order is returned
+                state.createSuccess = true;
+                state.newOrderId = action.payload.order_id;
+                state.error = null;
             })
-            .addCase(createOrderAsync.rejected, (state, action) => {
+            .addCase(createOrder.rejected, (state, action) => {
                 state.isLoading = false;
-                state.createOrderStatus = 'error';
-                state.error = action.payload;
-            })
-            // Update order
-            .addCase(updateOrderAsync.pending, (state) => {
-                state.isLoading = true;
-                state.updateOrderStatus = null;
-            })
-            .addCase(updateOrderAsync.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.updateOrderStatus = 'success';
-                state.message = action.payload.message;
-                const index = state.orders.findIndex(
-                    (order) => order.id === action.payload.id
-                );
-                if (index !== -1) {
-                    state.orders[index] = action.payload;
-                }
-            })
-            .addCase(updateOrderAsync.rejected, (state, action) => {
-                state.isLoading = false;
-                state.updateOrderStatus = 'error';
+                state.createSuccess = false;
+                state.newOrderId = null;
                 state.error = action.payload;
             })
             // Cancel order
-            .addCase(cancelOrderAsync.pending, (state) => {
+            .addCase(cancelOrder.pending, (state) => {
                 state.isLoading = true;
-                state.cancelOrderStatus = null;
+                state.cancelSuccess = false;
+                state.cancelMessage = null;
+                state.error = null;
             })
-            .addCase(cancelOrderAsync.fulfilled, (state, action) => {
+            .addCase(cancelOrder.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.cancelOrderStatus = 'success';
-                state.message = action.payload.message;
-                state.orders = state.orders.filter((order) => order.id !== action.payload.id);
+                state.cancelSuccess = true;
+                state.cancelMessage = action.payload.message;
+
+                // Cập nhật trạng thái đơn hàng trong danh sách
+                state.orders = state.orders.map(order =>
+                    order._id === action.payload.order_id
+                        ? { ...order, status: 'cancelled' }
+                        : order
+                );
             })
-            .addCase(cancelOrderAsync.rejected, (state, action) => {
+            .addCase(cancelOrder.rejected, (state, action) => {
                 state.isLoading = false;
-                state.cancelOrderStatus = 'error';
-                state.error = action.payload;
-            })
-            // Get order details by ID
-            .addCase(getOrderDetailsAsync.pending, (state) => {
-                state.isLoading = true;
-                state.orderDetailsStatus = null;
-            })
-            .addCase(getOrderDetailsAsync.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.orderDetailsStatus = 'success';
-                state.order = action.payload;
-            })
-            .addCase(getOrderDetailsAsync.rejected, (state, action) => {
-                state.isLoading = false;
-                state.orderDetailsStatus = 'error';
+                state.cancelSuccess = false;
+                state.cancelMessage = null;
                 state.error = action.payload;
             });
     },
