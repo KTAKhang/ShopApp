@@ -138,6 +138,19 @@ const authSlice = createSlice({
             state.isAuthenticated = false;
             state.error = null;
         },
+        // ✅ THÊM CÁC ACTIONS MỚI
+        resetForgotPasswordState: (state) => {
+            state.forgotPasswordStatus = null;
+            state.forgotPasswordMessage = null;
+        },
+        resetOtpState: (state) => {
+            state.otpStatus = null;
+            state.otpMessage = null;
+        },
+        resetConfirmOtpState: (state) => {
+            state.confirmOtpStatus = null;
+            state.confirmOtpMessage = null;
+        },
     },
     extraReducers: (builder) => {
         builder

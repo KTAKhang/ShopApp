@@ -8,12 +8,18 @@ import {
     StyleSheet,
     SafeAreaView,
     ActivityIndicator,
+    StatusBar,
     Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch, useSelector } from 'react-redux';
+import { fetchOrderByUser } from '../store/slices/orderSlice';
+import { COLORS } from '../constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import BottomNavigation from '../components/BottomNavigation';
 import { fetchOrderByUser, cancelOrder, clearOrderState } from '../store/slices/orderSlice';
+
 
 const OrderHistoryScreen = ({ navigation }) => {
     const [selectedFilter, setSelectedFilter] = useState('All Orders');
@@ -249,20 +255,22 @@ const OrderHistoryScreen = ({ navigation }) => {
     if (orderLoading && !orderData.length) {
         return (
             <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
+                <LinearGradient
+                    colors={COLORS.gradient.primary}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.headerGradient}
+                >
                 <View style={styles.header}>
-                    <TouchableOpacity
-                        style={styles.headerButton}
-                        onPress={() => navigation.goBack()}
-                    >
-                        <Icon name="arrow-back" size={24} color="#666" />
-                    </TouchableOpacity>
                     <Text style={styles.headerTitle}>Order History</Text>
-                    <View style={styles.headerButton} />
                 </View>
+                </LinearGradient>
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#13c2c2" />
+                    <ActivityIndicator size="large" color={COLORS.primary} />
                     <Text style={styles.loadingText}>Loading orders...</Text>
                 </View>
+                <BottomNavigation />
             </SafeAreaView>
         );
     }
@@ -271,18 +279,19 @@ const OrderHistoryScreen = ({ navigation }) => {
     if (orderError && !orderData.length) {
         return (
             <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
+                <LinearGradient
+                    colors={COLORS.gradient.primary}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.headerGradient}
+                >
                 <View style={styles.header}>
-                    <TouchableOpacity
-                        style={styles.headerButton}
-                        onPress={() => navigation.goBack()}
-                    >
-                        <Icon name="arrow-back" size={24} color="#666" />
-                    </TouchableOpacity>
                     <Text style={styles.headerTitle}>Order History</Text>
-                    <View style={styles.headerButton} />
                 </View>
+                </LinearGradient>
                 <View style={styles.errorContainer}>
-                    <Icon name="error-outline" size={64} color="#ef4444" />
+                    <Icon name="error-outline" size={64} color={COLORS.error} />
                     <Text style={styles.errorTitle}>Failed to load orders</Text>
                     <Text style={styles.errorSubtitle}>{orderError}</Text>
                     <TouchableOpacity
@@ -292,26 +301,30 @@ const OrderHistoryScreen = ({ navigation }) => {
                         <Text style={styles.retryButtonText}>Retry</Text>
                     </TouchableOpacity>
                 </View>
+                <BottomNavigation />
             </SafeAreaView>
         );
     }
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
+            <LinearGradient
+                colors={COLORS.gradient.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.headerGradient}
+            >
             <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.headerButton}
-                    onPress={() => navigation.goBack()}
-                >
-                    <Icon name="arrow-back" size={24} color="#666" />
-                </TouchableOpacity>
-
                 <Text style={styles.headerTitle}>Order History</Text>
-
-                <View style={styles.headerButton} />
             </View>
+            </LinearGradient>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                style={styles.content} 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 }]}
+            >
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -357,6 +370,7 @@ const OrderHistoryScreen = ({ navigation }) => {
                     )}
                 </View>
             </ScrollView>
+            <BottomNavigation />
         </SafeAreaView>
     );
 };
@@ -364,64 +378,72 @@ const OrderHistoryScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.background,
+    },
+    headerGradient: {
+        paddingTop: StatusBar.currentHeight + 10,
+        paddingBottom: 20,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        elevation: 5,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-        backgroundColor: '#fff',
-    },
-    headerButton: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
         justifyContent: 'center',
+        paddingHorizontal: 16,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#333',
+        fontSize: 24,
+        fontWeight: '700',
+        color: COLORS.white,
+        letterSpacing: 0.5,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 16,
+        marginTop: -20,
+    },
+    scrollContent: {
+        padding: 16,
+        paddingTop: 30,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: COLORS.background,
     },
     loadingText: {
         marginTop: 16,
         fontSize: 16,
-        color: '#6b7280',
+        color: COLORS.text.secondary,
     },
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 32,
+        backgroundColor: COLORS.background,
     },
     errorTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#111827',
+        color: COLORS.text.primary,
         marginTop: 16,
         marginBottom: 8,
     },
     errorSubtitle: {
         fontSize: 14,
-        color: '#6b7280',
+        color: COLORS.text.secondary,
         textAlign: 'center',
         marginBottom: 24,
     },
     retryButton: {
-        backgroundColor: '#13c2c2',
+        backgroundColor: COLORS.primary,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
@@ -429,10 +451,9 @@ const styles = StyleSheet.create({
     retryButtonText: {
         fontSize: 16,
         fontWeight: '600',
-        color: 'white',
+        color: COLORS.white,
     },
     filterContainer: {
-        marginTop: 16,
         marginBottom: 16,
     },
     filterButton: {
@@ -441,37 +462,34 @@ const styles = StyleSheet.create({
         marginRight: 8,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
-        backgroundColor: 'white',
+        borderColor: COLORS.border.light,
+        backgroundColor: COLORS.white,
     },
     selectedFilterButton: {
-        backgroundColor: '#e6fffa',
-        borderColor: '#13c2c2',
+        backgroundColor: `${COLORS.primary}10`,
+        borderColor: COLORS.primary,
     },
     filterButtonText: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#6b7280',
+        color: COLORS.text.secondary,
     },
     selectedFilterButtonText: {
-        color: '#13c2c2',
+        color: COLORS.primary,
     },
     ordersContainer: {
         paddingBottom: 20,
     },
     orderCard: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
         elevation: 2,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     orderHeader: {
         flexDirection: 'row',
