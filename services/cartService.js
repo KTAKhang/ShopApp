@@ -60,8 +60,8 @@ export async function updateCartApi({ product_id, quantity }) {
         }
 
         const response = await axios.put(
-            `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/cart/update/${product_id}`,
-            { quantity },
+            `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/cart/update`,
+            { product_id, quantity },
             {
                 headers: {
                     'Content-Type': 'application/json',
