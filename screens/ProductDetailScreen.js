@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -9,31 +9,61 @@ import {
     SafeAreaView,
     StatusBar,
     Dimensions,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    FlatList,
 } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { fetchProductByIdAsync } from '../store/slices/productSlice';
+import { 
+    fetchProductReviewsByProductId, 
+    selectProductReviews,
+    selectProductReviewsLoading 
+} from '../store/slices/reviewSlice';
+import { addToCart } from '../store/slices/cartSlice';
+import { COLORS } from '../constants/colors';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const { width } = Dimensions.get('window');
 
 const ProductDetailScreen = ({ navigation, route }) => {
+    const dispatch = useDispatch();
     const [quantity, setQuantity] = useState(1);
     const [isFavorite, setIsFavorite] = useState(false);
+    const [showAllReviews, setShowAllReviews] = useState(false);
 
-    // Sample product data - in real app, this would come from props or API
-    const product = route?.params?.product || {
-        id: 1,
-        name: 'Premium Wireless Headphones',
-        price: 299.99,
-        rating: 4.5,
-        image: 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
-        description: 'Experience premium sound quality with our latest wireless headphones. Featuring advanced noise cancellation technology, 30-hour battery life, and premium comfort padding for all-day wear.',
-        features: [
-            'Active Noise Cancellation',
-            '30-hour Battery Life',
-            'Premium Sound Quality',
-            'Comfortable Padding',
-            'Wireless Connectivity'
-        ]
-    };
+    // Get product ID from route params
+    const productId = route?.params?.productId;
+
+    // Get product and loading state from Redux
+    const { product, isLoading: productLoading, error } = useSelector((state) => state.product);
+    
+    // Get reviews for this specific product ONLY
+    const reviews = useSelector(state => selectProductReviews(state, productId));
+    const reviewsLoading = useSelector(state => selectProductReviewsLoading(state, productId));
+
+    // Fetch data chỉ khi cần thiết (không clear data cũ)
+    useEffect(() => {
+        if (productId && productId !== 'undefined') {
+            // Fetch product details
+            dispatch(fetchProductByIdAsync(productId));
+            
+            // Chỉ fetch reviews nếu chưa có data cho sản phẩm này
+            // Hoặc nếu bạn muốn luôn refresh data, hãy bỏ điều kiện này
+            if (!reviews || reviews.length === 0) {
+                dispatch(fetchProductReviewsByProductId(productId));
+            }
+        }
+    }, [dispatch, productId]); // Bỏ reviews khỏi dependency để tránh infinite loop
+
+    const isLoading = productLoading || reviewsLoading;
+
+    // Calculate average rating from reviews của sản phẩm hiện tại
+    const averageRating = reviews && reviews.length > 0
+        ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
+        : 0;
 
     const renderStars = (rating) => {
         const stars = [];
@@ -62,6 +92,170 @@ const ProductDetailScreen = ({ navigation, route }) => {
         return stars;
     };
 
+    // Render Avatar component
+    const renderUserAvatar = (user) => {
+        const avatarUrl = user?.avatar;
+        const userName = user?.name || user?.user_name || user?.username || 'Anonymous';
+        
+        if (avatarUrl) {
+            return (
+                <Image 
+                    source={{ uri: avatarUrl }} 
+                    style={styles.userAvatar}
+                    onError={() => {
+                        // Fallback nếu không load được avatar
+                    }}
+                />
+            );
+        } else {
+            // Fallback avatar với chữ cái đầu của tên
+            const firstLetter = userName.charAt(0).toUpperCase();
+            return (
+                <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarFallbackText}>{firstLetter}</Text>
+                </View>
+            );
+        }
+    };
+
+    // Render individual review item
+    const renderReviewItem = ({ item: review, index }) => {
+        return (
+            <View key={review._id || index} style={styles.reviewItem}>
+                <View style={styles.reviewHeader}>
+                    <View style={styles.reviewerInfo}>
+                        {renderUserAvatar(review.user)}
+                        <View style={styles.reviewerDetails}>
+                            <Text style={styles.reviewerName}>
+                                {review.user?.name || 
+                                 review.user?.user_name || 
+                                 review.user?.username ||
+                                 review.userName ||
+                                 review.user_name ||
+                                 'Anonymous'}
+                            </Text>
+                            <Text style={styles.reviewDate}>
+                                {new Date(review.createdAt).toLocaleDateString()}
+                            </Text>
+                        </View>
+                    </View>
+                    <View style={styles.starsContainer}>
+                        {renderStars(review.rating)}
+                    </View>
+                </View>
+                <Text style={styles.reviewText}>{review.content}</Text>
+            </View>
+        );
+    };
+
+    // Render preview reviews (first 2 reviews)
+    const renderPreviewReviews = () => {
+        if (!reviews || reviews.length === 0) {
+            return (
+                <Text style={styles.noReviewsText}>No reviews yet for this product.</Text>
+            );
+        }
+
+        const previewReviews = reviews.slice(0, 2);
+        
+        return (
+            <>
+                {previewReviews.map((review, index) => (
+                    <View key={review._id || index} style={styles.reviewItem}>
+                        <View style={styles.reviewHeader}>
+                            <View style={styles.reviewerInfo}>
+                                {renderUserAvatar(review.user)}
+                                <View style={styles.reviewerDetails}>
+                                    <Text style={styles.reviewerName}>
+                                        {review.user?.name || 
+                                         review.user?.user_name || 
+                                         review.user?.username ||
+                                         review.userName ||
+                                         review.user_name ||
+                                         'Anonymous'}
+                                    </Text>
+                                    <Text style={styles.reviewDate}>
+                                        {new Date(review.createdAt).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={styles.starsContainer}>
+                                {renderStars(review.rating)}
+                            </View>
+                        </View>
+                        <Text style={styles.reviewText}>{review.content}</Text>
+                    </View>
+                ))}
+                
+                {reviews.length > 2 && (
+                    <TouchableOpacity 
+                        style={styles.showAllButton}
+                        onPress={() => setShowAllReviews(true)}
+                    >
+                        <Text style={styles.showAllButtonText}>
+                            Show All Reviews ({reviews.length})
+                        </Text>
+                        <Icon name="keyboard-arrow-right" size={20} color={COLORS.primary} />
+                    </TouchableOpacity>
+                )}
+            </>
+        );
+    };
+
+    // Reviews Modal Component
+    const ReviewsModal = () => {
+        return (
+            <Modal
+                visible={showAllReviews}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowAllReviews(false)}
+            >
+                <SafeAreaView style={styles.modalContainer}>
+                    {/* Modal Header */}
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity
+                            onPress={() => setShowAllReviews(false)}
+                            style={styles.modalCloseButton}
+                        >
+                            <Icon name="close" size={24} color={COLORS.text} />
+                        </TouchableOpacity>
+                        
+                        <Text style={styles.modalTitle}>
+                            All Reviews ({reviews ? reviews.length : 0})
+                        </Text>
+                        
+                        <TouchableOpacity 
+                            style={styles.modalRefreshButton}
+                            onPress={handleRefresh}
+                        >
+                            <Icon name="refresh" size={20} color={COLORS.primary} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Reviews List */}
+                    <FlatList
+                        data={reviews}
+                        renderItem={renderReviewItem}
+                        keyExtractor={(item, index) => item._id || index.toString()}
+                        showsVerticalScrollIndicator={true}
+                        contentContainerStyle={styles.modalContent}
+                        ItemSeparatorComponent={() => <View style={styles.reviewSeparator} />}
+                        ListEmptyComponent={() => (
+                            <View style={styles.emptyReviewsContainer}>
+                                <Icon name="rate-review" size={48} color="#ccc" />
+                                <Text style={styles.emptyReviewsText}>No reviews yet</Text>
+                                <Text style={styles.emptyReviewsSubText}>
+                                    Be the first to review this product
+                                </Text>
+                            </View>
+                        )}
+                    />
+                </SafeAreaView>
+            </Modal>
+        );
+    };
+
     const handleQuantityChange = (type) => {
         if (type === 'increase') {
             setQuantity(prev => prev + 1);
@@ -70,24 +264,82 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
     };
 
-    const handleAddToCart = () => {
-        // Handle add to cart logic
-        console.log('Added to cart:', { product: product.id, quantity });
+    const handleAddToCart = async () => {
+        try {
+            await dispatch(addToCart({
+                product_id: productId,
+                quantity: quantity
+            })).unwrap();
+
+            Alert.alert(
+                'Success',
+                'Product added to cart successfully',
+                [{ text: 'OK' }]
+            );
+        } catch (error) {
+            Alert.alert(
+                'Error',
+                'Failed to add item to cart. Please try again.',
+                [{ text: 'OK' }]
+            );
+        }
     };
 
     const handleBuyNow = () => {
-        // Handle buy now logic
-        console.log('Buy now:', { product: product.id, quantity });
+        navigation.navigate('BuyNow', {
+            product: product,
+            quantity: quantity
+        });
     };
 
-    const handleShare = () => {
-        // Handle share logic
-        console.log('Share product');
-    };
+    // Refresh function để fetch lại data khi cần
+    const handleRefresh = useCallback(() => {
+        if (productId) {
+            dispatch(fetchProductByIdAsync(productId));
+            dispatch(fetchProductReviewsByProductId(productId));
+        }
+    }, [dispatch, productId]);
+
+    if (error) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Error: {error}</Text>
+                <TouchableOpacity 
+                    style={styles.retryButton} 
+                    onPress={handleRefresh}
+                >
+                    <Text style={styles.retryText}>Retry</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.loadingText}>Loading product...</Text>
+            </View>
+        );
+    }
+
+    if (!product) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Product not found</Text>
+                <TouchableOpacity 
+                    style={styles.retryButton} 
+                    onPress={() => navigation.goBack()}
+                >
+                    <Text style={styles.retryText}>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
 
             {/* Header */}
             <View style={styles.header}>
@@ -95,30 +347,23 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     style={styles.headerButton}
                     onPress={() => navigation.goBack()}
                 >
-                    <Icon name="arrow-back" size={24} color="#666" />
+                    <Icon name="arrow-back" size={24} color={COLORS.white} />
                 </TouchableOpacity>
 
                 <Text style={styles.headerTitle}>Product Details</Text>
 
-                <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
-                    <Icon name="share" size={24} color="#666" />
+                <TouchableOpacity style={styles.headerButton}>
+                    <Icon name="share" size={24} color={COLORS.white} />
                 </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Product Image */}
                 <View style={styles.imageContainer}>
-                    <Image source={{ uri: product.image }} style={styles.productImage} />
-                    <TouchableOpacity
-                        style={styles.favoriteButton}
-                        onPress={() => setIsFavorite(!isFavorite)}
-                    >
-                        <Icon
-                            name={isFavorite ? "favorite" : "favorite-border"}
-                            size={24}
-                            color={isFavorite ? "#ff4757" : "#666"}
-                        />
-                    </TouchableOpacity>
+                    <Image 
+                        source={{ uri: product.image }} 
+                        style={styles.productImage}
+                    />
                 </View>
 
                 {/* Product Info */}
@@ -128,19 +373,15 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     {/* Rating */}
                     <View style={styles.ratingContainer}>
                         <View style={styles.starsContainer}>
-                            {renderStars(product.rating)}
+                            {renderStars(averageRating)}
                         </View>
-                        <Text style={styles.ratingText}>({product.rating})</Text>
-                        <Text style={styles.reviewCount}>• 2.5k+ Reviews</Text>
+                        <Text style={styles.ratingText}>({averageRating.toFixed(1)})</Text>
+                        <Text style={styles.reviewCount}>• {reviews ? reviews.length : 0} Reviews</Text>
                     </View>
 
                     {/* Price and Quantity */}
                     <View style={styles.priceQuantityContainer}>
-                        <View>
-                            <Text style={styles.price}>${product.price}</Text>
-                            <Text style={styles.taxText}>Tax included</Text>
-                        </View>
-
+                        <Text style={styles.price}>{formatCurrency(product.price)}</Text>
                         <View style={styles.quantityContainer}>
                             <TouchableOpacity
                                 style={styles.quantityButton}
@@ -163,42 +404,63 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     {/* Description */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Description</Text>
-                        <Text style={styles.description}>{product.description}</Text>
+                        <Text style={styles.description}>{product.detail_desc}</Text>
                     </View>
 
-                    {/* Features */}
+                    {/* Type and Rating */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Key Features</Text>
-                        {product.features.map((feature, index) => (
-                            <View key={index} style={styles.featureItem}>
-                                <Icon name="check-circle" size={16} color="#4caf50" />
-                                <Text style={styles.featureText}>{feature}</Text>
-                            </View>
-                        ))}
+                        <Text style={styles.sectionTitle}>Product Details</Text>
+                        <View style={styles.featureItem}>
+                            <Icon name="category" size={16} color="#4caf50" />
+                            <Text style={styles.featureText}>Type: {product.target}</Text>
+                        </View>
+                        <View style={styles.featureItem}>
+                            <Icon name="star" size={16} color="#4caf50" />
+                            <Text style={styles.featureText}>Rating: {averageRating.toFixed(1)}/5</Text>
+                        </View>
                     </View>
 
-                    {/* Delivery Info */}
-                    <View style={styles.deliveryContainer}>
-                        <View style={styles.deliveryIcon}>
-                            <Icon name="local-shipping" size={24} color="#007bff" />
+                    {/* Reviews Section - CHỈ hiển thị preview */}
+                    <View style={styles.section}>
+                        <View style={styles.reviewsHeader}>
+                            <Text style={styles.sectionTitle}>
+                                Reviews ({reviews ? reviews.length : 0})
+                            </Text>
+                            <TouchableOpacity 
+                                style={styles.refreshButton}
+                                onPress={handleRefresh}
+                            >
+                                <Icon name="refresh" size={20} color={COLORS.primary} />
+                                <Text style={styles.refreshText}>Refresh</Text>
+                            </TouchableOpacity>
                         </View>
-                        <View style={styles.deliveryInfo}>
-                            <Text style={styles.deliveryTitle}>Free Delivery</Text>
-                            <Text style={styles.deliverySubtitle}>2-3 business days</Text>
+                        
+                        {/* Preview Reviews */}
+                        <View style={styles.reviewsPreviewContainer}>
+                            {renderPreviewReviews()}
                         </View>
                     </View>
                 </View>
             </ScrollView>
 
+            {/* Reviews Modal */}
+            <ReviewsModal />
+
             {/* Bottom Action Bar */}
             <View style={styles.actionBar}>
-                <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
-                    <Icon name="shopping-cart" size={20} color="#007bff" />
+                <TouchableOpacity 
+                    style={styles.addToCartButton} 
+                    onPress={handleAddToCart}
+                >
+                    <Icon name="shopping-cart" size={20} color={COLORS.primary} />
                     <Text style={styles.addToCartText}>Add to Cart</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.buyNowButton} onPress={handleBuyNow}>
-                    <Icon name="shopping-bag" size={20} color="#fff" />
+                <TouchableOpacity 
+                    style={styles.buyNowButton} 
+                    onPress={handleBuyNow}
+                >
+                    <Icon name="shopping-bag" size={20} color={COLORS.white} />
                     <Text style={styles.buyNowText}>Buy Now</Text>
                 </TouchableOpacity>
             </View>
@@ -209,28 +471,65 @@ const ProductDetailScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: COLORS.background,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: '#fff',
+    },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: '#666',
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        padding: 20,
+    },
+    errorText: {
+        fontSize: 18,
+        color: '#ff4757',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    retryButton: {
+        backgroundColor: '#007bff',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    retryText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-        backgroundColor: '#fff',
+        paddingVertical: 16,
+        paddingTop: StatusBar.currentHeight + 16,
+        backgroundColor: COLORS.primary,
+        elevation: 5,
     },
     headerButton: {
         width: 40,
         height: 40,
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: '600',
-        color: '#333',
+        color: COLORS.white,
     },
     content: {
         flex: 1,
@@ -244,22 +543,6 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         resizeMode: 'cover',
-    },
-    favoriteButton: {
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        width: 40,
-        height: 40,
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
     productInfo: {
         padding: 16,
@@ -298,11 +581,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#007bff',
-    },
-    taxText: {
-        fontSize: 12,
-        color: '#666',
-        marginTop: 2,
     },
     quantityContainer: {
         flexDirection: 'row',
@@ -347,34 +625,171 @@ const styles = StyleSheet.create({
         color: '#666',
         marginLeft: 8,
     },
-    deliveryContainer: {
+    reviewsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    refreshButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 80,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: '#f0f0f0',
+        borderRadius: 20,
     },
-    deliveryIcon: {
+    refreshText: {
+        fontSize: 12,
+        color: COLORS.primary,
+        marginLeft: 4,
+        fontWeight: '500',
+    },
+    reviewsPreviewContainer: {
+        paddingBottom: 100,  // Tăng giá trị này nếu cần khoảng cách nhiều hơn
+    },
+    reviewItem: {
+        marginBottom: 16,
+        padding: 12,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 8,
+    },
+    reviewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+    },
+    reviewerInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    userAvatar: {
         width: 40,
         height: 40,
-        backgroundColor: 'rgba(0, 123, 255, 0.1)',
         borderRadius: 20,
+        marginRight: 12,
+    },
+    avatarFallback: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: COLORS.primary,
         alignItems: 'center',
         justifyContent: 'center',
+        marginRight: 12,
     },
-    deliveryInfo: {
-        marginLeft: 12,
-    },
-    deliveryTitle: {
+    avatarFallbackText: {
+        color: COLORS.white,
         fontSize: 16,
+        fontWeight: '600',
+    },
+    reviewerDetails: {
+        flex: 1,
+    },
+    reviewerName: {
+        fontSize: 14,
         fontWeight: '600',
         color: '#333',
     },
-    deliverySubtitle: {
+    reviewText: {
         fontSize: 14,
         color: '#666',
+        lineHeight: 20,
+        marginTop: 8,
+    },
+    reviewDate: {
+        fontSize: 12,
+        color: '#999',
         marginTop: 2,
+    },
+    noReviewsText: {
+        fontSize: 14,
+        color: '#999',
+        fontStyle: 'italic',
+        textAlign: 'center',
+        padding: 20,
+    },
+    showAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        backgroundColor: '#f0f8ff',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        marginTop: 8,
+    },
+    showAllButtonText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: COLORS.primary,
+        marginRight: 8,
+    },
+    // Modal Styles
+    modalContainer: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+        backgroundColor: '#fff',
+    },
+    modalCloseButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 20,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        flex: 1,
+        textAlign: 'center',
+    },
+    modalRefreshButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 20,
+    },
+    modalContent: {
+        padding: 16,
+    },
+    reviewSeparator: {
+        height: 1,
+        backgroundColor: '#e0e0e0',
+        marginVertical: 8,
+    },
+    emptyReviewsContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+    },
+    emptyReviewsText: {
+        fontSize: 18,
+        fontWeight: '500',
+        color: '#666',
+        marginTop: 16,
+    },
+    emptyReviewsSubText: {
+        fontSize: 14,
+        color: '#999',
+        marginTop: 8,
+        textAlign: 'center',
     },
     actionBar: {
         position: 'absolute',
@@ -384,9 +799,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.white,
         borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
+        borderTopColor: COLORS.border.light,
     },
     addToCartButton: {
         flex: 1,
@@ -395,14 +810,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 12,
         borderWidth: 1,
-        borderColor: '#007bff',
+        borderColor: COLORS.primary,
         borderRadius: 8,
         marginRight: 8,
     },
     addToCartText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#007bff',
+        color: COLORS.primary,
         marginLeft: 8,
     },
     buyNowButton: {
@@ -411,14 +826,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 12,
-        backgroundColor: '#007bff',
+        backgroundColor: COLORS.primary,
         borderRadius: 8,
         marginLeft: 8,
     },
     buyNowText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
+        color: COLORS.white,
         marginLeft: 8,
     },
 });

@@ -195,7 +195,7 @@ const OrderDetailsScreen = ({ navigation }) => {
         // Find the item to get order_details_id and existing review info
         const item = orderData?.items?.find(item => item.product_id === productId);
         if (!item) {
-            Alert.alert('Error', 'Product not found');
+            Alert.alert('Error', 'found');
             return;
         }
 

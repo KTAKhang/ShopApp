@@ -24,6 +24,8 @@ import { changePassword, fetchUserProfile, resetChangePasswordSuccess, resetUpda
 import { fetchOrderByUser } from '../store/slices/orderSlice';
 import EditProfileModal from '../components/EditProfileModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 const ProfileScreen = ({ navigation }) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
@@ -120,6 +122,7 @@ const ProfileScreen = ({ navigation }) => {
         dispatch(updateUserProfile(updatedProfile));
         console.log("Dữ liệu mới:", updatedProfile);
     };
+    
     const handleChangePassword = () => {
         // Validation
         if (!currentPassword || !newPassword || !confirmPassword) {
@@ -160,58 +163,108 @@ const ProfileScreen = ({ navigation }) => {
         setConfirmPassword('');
     };
 
+    const menuItems = [
+        {
+            icon: 'person-outline',
+            title: 'Personal Information',
+            onPress: () => setEditModalVisible(true), // Mở modal thay vì navigate
+        },
+        {
+            icon: 'lock-outline',
+            title: 'Change Password',
+            onPress: () => setPasswordModalVisible(true), // Thêm chức năng đổi mật khẩu
+        },
+        {
+            icon: 'local-shipping',
+            title: 'My Orders',
+            onPress: () => navigation.navigate('OrderHistory'),
+        },
+        {
+            icon: 'favorite-border',
+            title: 'Wishlist',
+            onPress: () => navigation.navigate('Wishlist'),
+        },
+        {
+            icon: 'location-on',
+            title: 'Shipping Address',
+            onPress: () => navigation.navigate('ShippingAddress'),
+        },
+        {
+            icon: 'payment',
+            title: 'Payment Methods',
+            onPress: () => navigation.navigate('PaymentMethods'),
+        },
+        {
+            icon: 'settings',
+            title: 'Settings',
+            onPress: () => navigation.navigate('Settings'),
+        },
+        {
+            icon: 'help-outline',
+            title: 'Help & Support',
+            onPress: () => navigation.navigate('Support'),
+        },
+    ];
+
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
-            {/* Header */}
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
+            
+            <LinearGradient
+                colors={COLORS.gradient.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.headerGradient}
+            >
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Profile</Text>
-                <TouchableOpacity onPress={handleLogout}>
-                    <Ionicons name="settings-outline" size={24} color="#374151" />
-                </TouchableOpacity>
             </View>
+
+                <View style={styles.profileSection}>
+                    <TouchableOpacity onPress={() => setEditModalVisible(true)}>
+                        <Image
+                            source={{ uri: profile?.avatar || 'https://via.placeholder.com/100' }}
+                            style={styles.profileImage}
+                        />
+                    </TouchableOpacity>
+                    <View style={styles.profileInfo}>
+                        <Text style={styles.profileName}>{profile?.user_name || 'Guest User'}</Text>
+                        <Text style={styles.profileEmail}>{profile?.email || 'guest@example.com'}</Text>
+                        <TouchableOpacity 
+                            style={styles.editProfileButton}
+                            onPress={() => setEditModalVisible(true)}
+                        >
+                            <Text style={styles.editProfileText}>Edit Profile</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </LinearGradient>
 
             <ScrollView
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 }]}
             >
-                {isLoading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#3b82f6" />
-                    </View>
-                ) : profile && profile.user_name ? (
-                    <>
-                        <ProfileHeader
-                            profile={profile}
-                            onEditPress={() => setEditModalVisible(true)}
-                        />
-                        <PersonalInfoSection
-                            profile={profile}
-                            onChangePasswordPress={() => setPasswordModalVisible(true)}
-                        />
-
-
-                        <OrderHistorySection
-                            orderHistory={orders}
-                            onViewAll={() => navigation?.navigate('OrderHistory')}
-                            onOrderPress={(order) => console.log(order)}
-
-                        />
-
-
-                        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                            <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-                            <Text style={styles.logoutText}>Logout</Text>
+                <View style={styles.menuContainer}>
+                    {menuItems.map((item, index) => (
+                        <TouchableOpacity
+                            key={index}
+                            style={styles.menuItem}
+                            onPress={item.onPress}
+                        >
+                            <View style={styles.menuItemLeft}>
+                                <Icon name={item.icon} size={24} color={COLORS.primary} />
+                                <Text style={styles.menuItemText}>{item.title}</Text>
+                            </View>
+                            <Icon name="chevron-right" size={24} color={COLORS.text.secondary} />
                         </TouchableOpacity>
-                    </>
-                ) : (
-                    <Text style={{ textAlign: 'center', marginTop: 20 }}>
-                        Không thể tải thông tin người dùng.
-                    </Text>
-                )}
+                    ))}
+                </View>
 
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                    <Icon name="logout" size={24} color={COLORS.error} />
+                    <Text style={styles.logoutText}>Logout</Text>
+                </TouchableOpacity>
             </ScrollView>
 
             <BottomNavigation />
@@ -242,52 +295,127 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.background,
+    },
+    headerGradient: {
+        paddingTop: StatusBar.currentHeight + 10,
+        paddingBottom: 20,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        elevation: 5,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        justifyContent: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#ffffff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
-        marginTop: 0,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 24,
+        fontWeight: '700',
+        color: COLORS.white,
+        letterSpacing: 0.5,
+    },
+    profileSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginTop: 20,
+    },
+    profileImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 3,
+        borderColor: COLORS.white,
+    },
+    profileInfo: {
+        marginLeft: 16,
+        flex: 1,
+    },
+    profileName: {
+        fontSize: 20,
         fontWeight: '600',
-        color: '#374151',
+        color: COLORS.white,
+        marginBottom: 4,
+    },
+    profileEmail: {
+        fontSize: 14,
+        color: COLORS.white,
+        opacity: 0.8,
+        marginBottom: 8,
+    },
+    editProfileButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: COLORS.white,
+        alignSelf: 'flex-start',
+    },
+    editProfileText: {
+        color: COLORS.white,
+        fontSize: 12,
+        fontWeight: '600',
     },
     content: {
         flex: 1,
+        marginTop: -20,
     },
     scrollContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 20,
+        padding: 16,
+        paddingTop: 30,
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
+    menuContainer: {
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        padding: 8,
+        elevation: 2,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    menuItem: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 50,
+        justifyContent: 'space-between',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+    },
+    menuItemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    menuItemText: {
+        fontSize: 16,
+        marginLeft: 16,
+        color: COLORS.text.primary,
     },
     logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#ffffff',
+        backgroundColor: COLORS.white,
+        marginTop: 20,
         padding: 16,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#ef4444',
-        marginTop: 24,
-        marginBottom: 50,
+        borderRadius: 16,
+        elevation: 2,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     logoutText: {
-        color: '#ef4444',
-        fontWeight: '500',
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.error,
         marginLeft: 8,
     },
 });

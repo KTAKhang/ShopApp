@@ -8,13 +8,19 @@ import {
 
 // Initial state cho product
 const initialState = {
-    products: [],  // Đảm bảo mảng ban đầu là rỗng
+    products: [],
+    allProducts: [], // Separate state for all products page
     product: null,
     isLoading: false,
     error: null,
     createProductStatus: null,
     updateProductStatus: null,
     fetchProductsStatus: null,
+    pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        hasMore: true
+    }
 };
 
 
@@ -45,15 +51,13 @@ export const updateProductAsync = createAsyncThunk(
 
 export const fetchProductsAsync = createAsyncThunk(
     'product/fetchProducts',
-    async ({ page, limit }, { rejectWithValue }) => {
+    async ({ page, limit, isAllProducts = false, categoryId = null }, { rejectWithValue }) => {
         try {
-            const response = await getProducts({ page, limit });
-
-            // console.log('Fetched products:', response.data);  // Log để kiểm tra dữ liệu API
-
+            const response = await getProducts({ page, limit, categoryId });
             return {
                 products: response.data.products,
-                pagination: response.data.total
+                pagination: response.data.total,
+                isAllProducts
             };
         } catch (error) {
             console.error('API error:', error);
@@ -67,13 +71,14 @@ export const fetchProductByIdAsync = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             const response = await getProductById(id);
-            return response.product;  // Trả về thông tin sản phẩm theo ID
+            console.log('API Response:', response); // Debug log
+            return response;  // Trả về response thay vì response.product
         } catch (error) {
-            return rejectWithValue(error.message);  // Xử lý lỗi nếu có
+            console.error('fetchProductByIdAsync error:', error);
+            return rejectWithValue(error.message);
         }
     }
 );
-
 const productSlice = createSlice({
     name: 'product',
     initialState,
@@ -83,71 +88,56 @@ const productSlice = createSlice({
             state.updateProductStatus = null;
             state.fetchProductsStatus = null;
             state.product = null;
+            state.error = null; // Thêm dòng này
         },
         clearError: (state) => {
             state.error = null;
         },
+        resetAllProducts: (state) => {
+            state.allProducts = [];
+            state.pagination.currentPage = 1;
+            state.pagination.hasMore = true;
+        }
     },
     extraReducers: (builder) => {
         builder
-            // Create Product
-            .addCase(createProductAsync.pending, (state) => {
-                state.isLoading = true;
-                state.createProductStatus = null;
-            })
-            .addCase(createProductAsync.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.createProductStatus = 'success';
-                state.products.push(action.payload);
-            })
-            .addCase(createProductAsync.rejected, (state, action) => {
-                state.isLoading = false;
-                state.createProductStatus = 'error';
-                state.error = action.payload;
-            })
-            // Update Product
-            .addCase(updateProductAsync.pending, (state) => {
-                state.isLoading = true;
-                state.updateProductStatus = null;
-            })
-            .addCase(updateProductAsync.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.updateProductStatus = 'success';
-                const index = state.products.findIndex(
-                    (product) => product._id === action.payload._id
-                );
-                if (index !== -1) {
-                    state.products[index] = action.payload;
-                }
-            })
-            .addCase(updateProductAsync.rejected, (state, action) => {
-                state.isLoading = false;
-                state.updateProductStatus = 'error';
-                state.error = action.payload;
-            })
+            
             // Fetch Products
             .addCase(fetchProductsAsync.pending, (state) => {
                 state.isLoading = true;
-                state.fetchProductsStatus = null;
+                state.error = null;
             })
             .addCase(fetchProductsAsync.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.fetchProductsStatus = 'success';
-                state.products = action.payload.products;
+                state.error = null;
+                
+                if (action.payload.isAllProducts) {
+                    // Handle pagination for all products page
+                    if (action.meta.arg.page === 1) {
+                        state.allProducts = action.payload.products;
+                    } else {
+                        state.allProducts = [...state.allProducts, ...action.payload.products];
+                    }
+                    state.pagination.currentPage = action.meta.arg.page;
+                    state.pagination.hasMore = action.payload.products.length === action.meta.arg.limit;
+                } else {
+                    // Handle featured products
+                    state.products = action.payload.products;
+                }
             })
             .addCase(fetchProductsAsync.rejected, (state, action) => {
                 state.isLoading = false;
-                state.fetchProductsStatus = 'error';
                 state.error = action.payload;
             })
             // Fetch Product By ID
             .addCase(fetchProductByIdAsync.pending, (state) => {
                 state.isLoading = true;
-                state.product = null;
+                state.error = null;
             })
             .addCase(fetchProductByIdAsync.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.product = action.payload;
+                state.error = null;
             })
             .addCase(fetchProductByIdAsync.rejected, (state, action) => {
                 state.isLoading = false;
@@ -157,5 +147,5 @@ const productSlice = createSlice({
     },
 });
 
-export const { resetProductState, clearError } = productSlice.actions;
+export const { resetProductState, clearError, resetAllProducts } = productSlice.actions;
 export default productSlice.reducer;

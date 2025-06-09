@@ -1,29 +1,27 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchProductsAsync } from '../store/slices/productSlice';  // Đảm bảo đường dẫn đúng
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useDispatch } from 'react-redux';
 import ProductCard from './ProductCard';
+import { COLORS } from '../constants/colors';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { fetchProductReviewsByProductId } from '../store/slices/reviewSlice';
 
-const FeaturedProducts = () => {
+const FeaturedProducts = ({ products, title }) => {
+    const navigation = useNavigation();
     const dispatch = useDispatch();
-    const { products, isLoading, error } = useSelector((state) => state.product);  // Lấy dữ liệu sản phẩm từ Redux
 
     useEffect(() => {
-        dispatch(fetchProductsAsync({ page: 1, limit: 10 }));
-    }, [dispatch]);
+        // Fetch reviews for all products
+        if (products && products.length > 0) {
+            products.forEach(product => {
+                if (product._id) {
+                    dispatch(fetchProductReviewsByProductId(product._id));
+                }
+            });
+        }
+    }, [dispatch, products]);
 
-    // // Log Redux state để kiểm tra categories
-    // console.log('Products from Redux state:', products);
-
-    if (isLoading) {
-        return <ActivityIndicator size="large" color="#13C2C2" style={styles.loader} />;
-    }
-
-    if (error) {
-        return <Text style={styles.errorText}>Failed to load products. Please try again.</Text>;
-    }
-
-    // Nếu không có sản phẩm trong Redux store
     if (!products || products.length === 0) {
         return <Text style={styles.errorText}>No products available.</Text>;
     }
@@ -31,15 +29,25 @@ const FeaturedProducts = () => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Featured Products</Text>
-                <TouchableOpacity>
-                    <Text style={styles.seeAll}>See All</Text>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>{title}</Text>
+                    <View style={styles.titleUnderline} />
+                </View>
+                <TouchableOpacity 
+                    style={styles.seeAllButton}
+                    onPress={() => navigation.navigate('AllProducts')}
+                >
+                    <Text style={styles.seeAllText}>See All</Text>
+                    <Icon name="arrow-forward" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
             </View>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                decelerationRate="fast"
+                snapToInterval={200}
+                snapToAlignment="center"
             >
                 {products.map((product) => (
                     <View key={product._id} style={styles.productWrapper}>
@@ -53,41 +61,63 @@ const FeaturedProducts = () => {
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: 16,
+        marginTop: 24,
         paddingHorizontal: 16,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
+    },
+    titleContainer: {
+        flex: 1,
     },
     title: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#374151',
+        fontSize: 24,
+        fontWeight: '700',
+        color: COLORS.text.primary,
+        letterSpacing: 0.5,
     },
-    seeAll: {
+    titleUnderline: {
+        width: 40,
+        height: 3,
+        backgroundColor: COLORS.primary,
+        marginTop: 8,
+        borderRadius: 2,
+    },
+    seeAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        backgroundColor: COLORS.background,
+        borderRadius: 20,
+        elevation: 2,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+    },
+    seeAllText: {
         fontSize: 14,
-        fontWeight: '500',
-        color: '#4F46E5',
+        fontWeight: '600',
+        color: COLORS.primary,
+        marginRight: 4,
     },
     scrollContent: {
         paddingRight: 16,
+        paddingVertical: 8,
     },
     productWrapper: {
-        width: 160,
-        marginRight: 12,
-    },
-    loader: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: 180,
+        marginRight: 16,
     },
     errorText: {
-        color: 'red',
+        color: COLORS.primary,
         textAlign: 'center',
         marginTop: 20,
+        fontSize: 16,
     },
 });
 
