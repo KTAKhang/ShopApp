@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -10,61 +10,171 @@ import {
     SafeAreaView,
     StatusBar,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
-import { createReview, clearReviewState } from '../store/slices/reviewSlice';
+import {
+    createReview,
+    updateReview,
+    clearReviewState,
+    getReviewsByOrderId
+} from '../store/slices/reviewSlice';
 
 const OrderDetailsScreen = ({ navigation }) => {
     const route = useRoute();
     const { orderData, orderDataColor, orderDataBg } = route.params;
 
     const dispatch = useDispatch();
-    const { isLoading, error, successMessage } = useSelector((state) => state.review);
+    const reviewState = useSelector((state) => state.review);
+    const { isLoading, error, successMessage, review } = reviewState;
+
+    const alertShownRef = useRef(false); // Dùng useRef để tránh lặp alert
 
     const [orderStatus, setOrderStatus] = useState(orderData?.order_status?.name || 'PENDING');
+    const [isRefetchingReviews, setIsRefetchingReviews] = useState(false);
 
     const initialRatings = {};
     const initialReviews = {};
     const initialSubmittedReviews = {};
+    const initialExistingReviews = {};
 
-    orderData?.items?.forEach((item, index) => {
+    orderData?.items?.forEach((item) => {
         initialRatings[item.product_id] = 0;
         initialReviews[item.product_id] = '';
+        initialExistingReviews[item.product_id] = null;
         initialSubmittedReviews[item.product_id] = false;
     });
 
     const [ratings, setRatings] = useState(initialRatings);
     const [reviews, setReviews] = useState(initialReviews);
     const [submittedReviews, setSubmittedReviews] = useState(initialSubmittedReviews);
+    const [existingReviews, setExistingReviews] = useState(initialExistingReviews);
+    const [editingReviews, setEditingReviews] = useState({});
 
-    // Handle success/error messages
     useEffect(() => {
-        if (successMessage && !isLoading && !error) {
+        const fetchReviews = async () => {
+            setIsRefetchingReviews(true);
+            try {
+                await dispatch(getReviewsByOrderId(orderData.order_id));
+            } finally {
+                setIsRefetchingReviews(false);
+            }
+        };
+        fetchReviews();
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (Array.isArray(review)) {
+            const newRatings = {};
+            const newReviews = {};
+            const newSubmittedReviews = {};
+            const newExistingReviews = {};
+
+            orderData?.items?.forEach((item) => {
+                const productId = item.product_id;
+                const existingReview = review.find(r => r.product && r.product._id === productId);
+
+                newRatings[productId] = existingReview?.rating || 0;
+                newReviews[productId] = existingReview?.content || '';
+                newSubmittedReviews[productId] = !!existingReview;
+                newExistingReviews[productId] = existingReview || null;
+            });
+
+            setRatings(newRatings);
+            setReviews(newReviews);
+            setSubmittedReviews(newSubmittedReviews);
+            setExistingReviews(newExistingReviews);
+        }
+    }, [review, orderData?.items]);
+
+    useEffect(() => {
+        if (successMessage && !isLoading && !error && !alertShownRef.current) {
+            alertShownRef.current = true;
+
             Alert.alert(
                 'Success',
                 'Review submitted successfully!',
-                [{ text: 'OK', onPress: () => dispatch(clearReviewState()) }]
+                [{
+                    text: 'OK',
+                    onPress: async () => {
+                        dispatch(clearReviewState());
+                        alertShownRef.current = false;
+
+                        setIsRefetchingReviews(true);
+                        try {
+                            await dispatch(getReviewsByOrderId(orderData.order_id));
+                        } finally {
+                            setIsRefetchingReviews(false);
+                        }
+                    }
+                }]
             );
         }
 
-        if (error && !isLoading) {
+        if (error && !isLoading && !alertShownRef.current) {
+            alertShownRef.current = true;
+
             Alert.alert(
                 'Error',
                 error,
-                [{ text: 'OK', onPress: () => dispatch(clearReviewState()) }]
+                [{
+                    text: 'OK',
+                    onPress: () => {
+                        dispatch(clearReviewState());
+                        alertShownRef.current = false;
+                    }
+                }]
             );
         }
-    }, [successMessage, error, isLoading, dispatch]);
+
+        if (!successMessage && !error) {
+            alertShownRef.current = false;
+        }
+    }, [successMessage, error, isLoading, dispatch, orderData.order_id]);
+
 
     const handleStarPress = (productId, starIndex) => {
-        if (orderStatus === 'DELIVERED' && !submittedReviews[productId]) {
+        const hasReviewed = submittedReviews[productId];
+        const isEditing = editingReviews[productId];
+
+        // Allow rating changes if order is delivered and either:
+        // 1. No review exists yet, or
+        // 2. Review exists but is in edit mode
+        if (orderStatus === 'DELIVERED' && (!hasReviewed || isEditing)) {
             setRatings(prev => ({
                 ...prev,
                 [productId]: starIndex + 1,
             }));
         }
+    };
+
+    const handleEditReview = (productId) => {
+        setEditingReviews(prev => ({
+            ...prev,
+            [productId]: true,
+        }));
+    };
+
+    const handleCancelEdit = (productId) => {
+        // Reset to original values
+        const existingReview = existingReviews[productId];
+        if (existingReview) {
+            setRatings(prev => ({
+                ...prev,
+                [productId]: existingReview.rating,
+            }));
+            setReviews(prev => ({
+                ...prev,
+                [productId]: existingReview.content,
+            }));
+        }
+
+        setEditingReviews(prev => ({
+            ...prev,
+            [productId]: false,
+        }));
     };
 
     const handleSubmitReview = async (productId) => {
@@ -82,33 +192,51 @@ const OrderDetailsScreen = ({ navigation }) => {
             return;
         }
 
-        // Find the item to get order_details_id
+        // Find the item to get order_details_id and existing review info
         const item = orderData?.items?.find(item => item.product_id === productId);
         if (!item) {
             Alert.alert('Error', 'Product not found');
             return;
         }
 
-        if (!item.order_details_id) {
-            Alert.alert('Error', 'Order details ID not found');
-            return;
-        }
+        const existingReview = existingReviews[productId];
+        const isEditing = editingReviews[productId];
 
         try {
-            // Dispatch the review creation
-            const result = await dispatch(createReview({
-                product_id: productId,
-                order_detail_id: item.order_details_id,
-                rating: rating,
-                review_content: reviewContent,
-            }));
+            let result;
 
-            // If successful, mark as submitted
-            if (createReview.fulfilled.match(result)) {
-                setSubmittedReviews(prev => ({
-                    ...prev,
-                    [productId]: true,
+            if (existingReview && isEditing) {
+                // Update existing review using the _id from the review object
+                result = await dispatch(updateReview({
+                    review_id: existingReview._id,
+                    rating: rating,
+                    review_content: reviewContent,
                 }));
+            } else {
+                // Create new review
+                if (!item.order_details_id) {
+                    Alert.alert('Error', 'Order details ID not found');
+                    return;
+                }
+
+                result = await dispatch(createReview({
+                    product_id: productId,
+                    order_detail_id: item.order_details_id,
+                    rating: rating,
+                    review_content: reviewContent,
+                }));
+            }
+
+            // If successful, refresh the review data from server
+            if (createReview.fulfilled.match(result) || updateReview.fulfilled.match(result)) {
+                // Exit edit mode immediately
+                setEditingReviews(prev => ({
+                    ...prev,
+                    [productId]: false,
+                }));
+
+                // Note: Success message will be handled by the useEffect above
+                // No need to manually refresh here since it's handled in the alert callback
             }
         } catch (error) {
             console.error('Submit review error:', error);
@@ -117,7 +245,8 @@ const OrderDetailsScreen = ({ navigation }) => {
 
     const renderStars = (productId) => {
         const currentRating = ratings[productId];
-        const isSubmitted = submittedReviews[productId];
+        const hasReviewed = submittedReviews[productId];
+        const isEditing = editingReviews[productId];
 
         return (
             <View style={styles.starsContainer}>
@@ -125,7 +254,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                     <TouchableOpacity
                         key={index}
                         onPress={() => handleStarPress(productId, index)}
-                        disabled={orderStatus !== 'DELIVERED' || isSubmitted}
+                        disabled={orderStatus !== 'DELIVERED' || (hasReviewed && !isEditing) || isRefetchingReviews}
                     >
                         <Icon
                             name={index < currentRating ? 'star' : 'star-border'}
@@ -133,7 +262,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                             color={index < currentRating ? (orderDataColor || '#FFB800') : '#D1D5DB'}
                             style={[
                                 styles.star,
-                                (orderStatus !== 'DELIVERED' || isSubmitted) && styles.disabledStar
+                                (orderStatus !== 'DELIVERED' || (hasReviewed && !isEditing) || isRefetchingReviews) && styles.disabledStar
                             ]}
                         />
                     </TouchableOpacity>
@@ -145,54 +274,110 @@ const OrderDetailsScreen = ({ navigation }) => {
     const renderRatingSection = (productId) => {
         if (orderStatus !== 'DELIVERED') return null;
 
-        const isSubmitted = submittedReviews[productId];
+        const hasReviewed = submittedReviews[productId];
+        const isEditing = editingReviews[productId];
+
+        // Show loading state when refetching reviews
+        if (isRefetchingReviews) {
+            return (
+                <View style={styles.ratingSection}>
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color={orderDataColor || '#1CD4D4'} />
+                        <Text style={styles.loadingText}>Đang tải đánh giá...</Text>
+                    </View>
+                </View>
+            );
+        }
 
         return (
             <View style={styles.ratingSection}>
                 <Text style={styles.ratingTitle}>
-                    {isSubmitted ? 'Review Submitted' : 'Rate this product'}
+                    {hasReviewed && !isEditing ? 'Đánh giá của bạn' :
+                        hasReviewed && isEditing ? 'Chỉnh sửa đánh giá' :
+                            'Rate this product'}
                 </Text>
                 {renderStars(productId)}
-                <TextInput
-                    style={[
-                        styles.reviewInput,
-                        { borderColor: orderDataColor || '#D1D5DB' },
-                        isSubmitted && styles.disabledInput
-                    ]}
-                    placeholder={isSubmitted ? 'Thank you for your review!' : 'Write your review here...'}
-                    multiline
-                    numberOfLines={3}
-                    value={reviews[productId]}
-                    onChangeText={(text) => {
-                        if (!isSubmitted) {
-                            setReviews(prev => ({
-                                ...prev,
-                                [productId]: text,
-                            }));
-                        }
-                    }}
-                    editable={!isSubmitted}
-                />
-                {!isSubmitted && (
-                    <TouchableOpacity
-                        style={[
-                            styles.submitReviewButton,
-                            { backgroundColor: orderDataColor || '#1CD4D4' },
-                            isLoading && styles.disabledButton
-                        ]}
-                        onPress={() => handleSubmitReview(productId)}
-                        disabled={isLoading}
-                    >
-                        <Text style={styles.submitReviewText}>
-                            {isLoading ? 'Submitting...' : 'Submit Review'}
-                        </Text>
-                    </TouchableOpacity>
-                )}
-                {isSubmitted && (
-                    <View style={styles.submittedIndicator}>
-                        <Icon name="check-circle" size={20} color="#22C55E" />
-                        <Text style={styles.submittedText}>Review submitted successfully!</Text>
+
+                {hasReviewed && !isEditing ? (
+                    // Display existing review with edit option
+                    <View style={styles.reviewedContainer}>
+                        <View style={styles.existingReviewContent}>
+                            <Text style={styles.existingReviewText}>
+                                "{reviews[productId]}"
+                            </Text>
+                        </View>
+                        <View style={styles.reviewActions}>
+                            <View style={styles.submittedIndicator}>
+                                <Icon name="check-circle" size={16} color="#22C55E" />
+                                <Text style={styles.submittedText}>Đã đánh giá</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.editButton}
+                                onPress={() => handleEditReview(productId)}
+                                disabled={isRefetchingReviews}
+                            >
+                                <Icon name="edit" size={16} color={orderDataColor || '#1CD4D4'} />
+                                <Text style={[styles.editButtonText, { color: orderDataColor || '#1CD4D4' }]}>
+                                    Chỉnh sửa
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
+                ) : (
+                    // Show form for new review or editing existing review
+                    <>
+                        <TextInput
+                            style={[
+                                styles.reviewInput,
+                                { borderColor: orderDataColor || '#D1D5DB' }
+                            ]}
+                            placeholder="Write your review here..."
+                            multiline
+                            numberOfLines={3}
+                            value={reviews[productId]}
+                            onChangeText={(text) => {
+                                setReviews(prev => ({
+                                    ...prev,
+                                    [productId]: text,
+                                }));
+                            }}
+                            editable={!isRefetchingReviews}
+                        />
+                        <View style={styles.reviewButtonsContainer}>
+                            {isEditing && (
+                                <TouchableOpacity
+                                    style={[styles.cancelButton]}
+                                    onPress={() => handleCancelEdit(productId)}
+                                    disabled={isLoading || isRefetchingReviews}
+                                >
+                                    <Text style={styles.cancelButtonText}>Hủy</Text>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                style={[
+                                    styles.submitReviewButton,
+                                    { backgroundColor: orderDataColor || '#1CD4D4' },
+                                    (isLoading || isRefetchingReviews) && styles.disabledButton,
+                                    isEditing && styles.submitButtonSmall
+                                ]}
+                                onPress={() => handleSubmitReview(productId)}
+                                disabled={isLoading || isRefetchingReviews}
+                            >
+                                {(isLoading || isRefetchingReviews) ? (
+                                    <View style={styles.loadingButtonContent}>
+                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                        <Text style={styles.submitReviewText}>
+                                            {isLoading ? 'Submitting...' : 'Đang tải...'}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <Text style={styles.submitReviewText}>
+                                        {isEditing ? 'Cập nhật' : 'Submit Review'}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </>
                 )}
             </View>
         );
@@ -236,6 +421,16 @@ const OrderDetailsScreen = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Order Details</Text>
                 <View style={styles.headerSpacer} />
             </View>
+
+            {/* Global Loading Overlay */}
+            {isRefetchingReviews && (
+                <View style={styles.globalLoadingOverlay}>
+                    <View style={styles.globalLoadingContainer}>
+                        <ActivityIndicator size="large" color={orderDataColor || '#1CD4D4'} />
+                        <Text style={styles.globalLoadingText}>Đang cập nhật đánh giá...</Text>
+                    </View>
+                </View>
+            )}
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Order Info */}
@@ -332,6 +527,7 @@ const OrderDetailsScreen = ({ navigation }) => {
         </SafeAreaView>
     );
 };
+
 
 const styles = StyleSheet.create({
     container: {
@@ -510,16 +706,32 @@ const styles = StyleSheet.create({
         minHeight: 80,
         marginBottom: 12,
     },
-    disabledInput: {
+    reviewButtonsContainer: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    cancelButton: {
+        flex: 1,
         backgroundColor: '#F3F4F6',
-        color: '#6B7280',
+        borderRadius: 8,
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        color: '#374151',
+        fontSize: 14,
+        fontWeight: '500',
     },
     submitReviewButton: {
+        flex: 2,
         backgroundColor: '#1CD4D4',
         borderRadius: 8,
         paddingVertical: 12,
         alignItems: 'center',
         marginBottom: 8,
+    },
+    submitButtonSmall: {
+        marginBottom: 0,
     },
     disabledButton: {
         opacity: 0.7,
@@ -529,17 +741,94 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
     },
+    loadingButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    reviewedContainer: {
+        backgroundColor: '#F0FDF4',
+        borderRadius: 8,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#BBF7D0',
+    },
+    existingReviewContent: {
+        marginBottom: 12,
+    },
+    existingReviewText: {
+        fontSize: 14,
+        color: '#374151',
+        fontStyle: 'italic',
+        lineHeight: 20,
+    },
+    reviewActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
     submittedIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 8,
     },
     submittedText: {
         color: '#22C55E',
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '500',
-        marginLeft: 8,
+        marginLeft: 4,
+    },
+    editButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+    },
+    editButtonText: {
+        fontSize: 12,
+        fontWeight: '500',
+        marginLeft: 4,
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
+        gap: 8,
+    },
+    loadingText: {
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    globalLoadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        zIndex: 999,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    globalLoadingContainer: {
+        backgroundColor: '#FFFFFF',
+        padding: 20,
+        borderRadius: 12,
+        alignItems: 'center',
+        gap: 12,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    globalLoadingText: {
+        fontSize: 16,
+        color: '#374151',
+        fontWeight: '500',
     },
     summaryContainer: {
         backgroundColor: '#F9FAFB',
