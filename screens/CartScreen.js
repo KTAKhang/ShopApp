@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
     View,
     Text,
@@ -19,16 +19,19 @@ const CartScreen = ({ navigation }) => {
     const dispatch = useDispatch();
     const { cart, isLoading, error } = useSelector((state) => state.cart);
 
+
     // Transform cart data to match UI expectations
     const [cartItems, setCartItems] = useState([]);
     const [editingQuantity, setEditingQuantity] = useState({}); // Track which items are being edited
     const [isUpdating, setIsUpdating] = useState({}); // Track updating state for individual items
+    const [selectedItems, setSelectedItems] = useState([]); // Track selected items for checkout
+    const [selectAll, setSelectAll] = useState(false); // Track select all state
 
     useEffect(() => {
         dispatch(fetchCartByUser());
     }, [dispatch]);
 
-    // Update cartItems when cart data changes
+
     useEffect(() => {
         if (cart && cart.items) {
             const transformedItems = cart.items.map(item => ({
@@ -37,17 +40,66 @@ const CartScreen = ({ navigation }) => {
                 price: item.price / 1000,
                 image: item.image,
                 quantity: item.quantity,
-                size: null,
                 color: 'Default',
                 subtotal: item.subtotal,
                 in_stock: item.in_stock,
-                is_available: item.is_available
+                is_available: item.is_available,
+                status: item.status
             }));
             setCartItems(transformedItems);
+
+            // Chỉ auto select những items có thể mua được
+            const availableItems = transformedItems.filter(item =>
+                item.in_stock > 0 && item.status !== false
+            );
+            const availableItemIds = availableItems.map(item => item.id);
+            setSelectedItems(availableItemIds);
+            setSelectAll(availableItemIds.length === transformedItems.length);
         }
     }, [cart]);
 
-    // Updated updateQuantity function to use Redux action (for +/- buttons)
+    const toggleItemSelection = (itemId) => {
+        const item = cartItems.find(item => item.id === itemId);
+        if (!item || item.in_stock === 0 || item.status === false) {
+            return; // Không cho phép select items không khả dụng
+        }
+
+        setSelectedItems(prev => {
+            const isSelected = prev.includes(itemId);
+            let newSelected;
+
+            if (isSelected) {
+                newSelected = prev.filter(id => id !== itemId);
+            } else {
+                newSelected = [...prev, itemId];
+            }
+
+            // Update select all state - chỉ tính những items có thể mua
+            const availableItems = cartItems.filter(item =>
+                item.in_stock > 0 && item.status !== false
+            );
+            setSelectAll(newSelected.length === availableItems.length);
+
+            return newSelected;
+        });
+    };
+
+
+    const toggleSelectAll = () => {
+        const availableItems = cartItems.filter(item =>
+            item.in_stock > 0 && item.status !== false
+        );
+
+        if (selectAll) {
+            setSelectedItems([]);
+            setSelectAll(false);
+        } else {
+            const availableItemIds = availableItems.map(item => item.id);
+            setSelectedItems(availableItemIds);
+            setSelectAll(true);
+        }
+    };
+
     const updateQuantity = async (product_id, newQuantity) => {
         const quantity = parseInt(newQuantity);
 
@@ -60,7 +112,10 @@ const CartScreen = ({ navigation }) => {
                     product_id,
                     quantity
                 })).unwrap();
+
+                console.log('Cart updated successfully');
             } catch (error) {
+                console.error('Update failed:', error);
                 Alert.alert(
                     'Update Failed',
                     error || 'Failed to update cart item',
@@ -79,19 +134,18 @@ const CartScreen = ({ navigation }) => {
             showRemoveConfirmation(product_id);
         }
     };
-
-    // Handle quantity input change - chỉ update local state
     const handleQuantityChange = (product_id, text) => {
-        // Chỉ cho phép nhập số và không để trống
+        // Chỉ cho phép nhập số và không giới hạn độ dài ở đây
         const numericText = text.replace(/[^0-9]/g, '');
 
+        // Cập nhật state ngay lập tức mà không có điều kiện length
+        // Điều này đảm bảo keyboard không bị đóng
         setEditingQuantity(prev => ({
             ...prev,
             [product_id]: numericText
         }));
     };
 
-    // Handle quantity input submit - gọi API khi user hoàn thành nhập
     const handleQuantitySubmit = async (product_id) => {
         const newQuantityText = editingQuantity[product_id];
 
@@ -111,60 +165,9 @@ const CartScreen = ({ navigation }) => {
         }
 
         const newQuantity = parseInt(newQuantityText);
-        const currentItem = cartItems.find(item => item.id === product_id);
 
-        // Nếu quantity không thay đổi, chỉ clear editing state
-        if (currentItem && newQuantity === currentItem.quantity) {
-            setEditingQuantity(prev => {
-                const newState = { ...prev };
-                delete newState[product_id];
-                return newState;
-            });
-            return;
-        }
-
-        if (newQuantity > 0) {
-            // Set updating state
-            setIsUpdating(prev => ({ ...prev, [product_id]: true }));
-
-            try {
-                await dispatch(updateCartItem({
-                    product_id,
-                    quantity: newQuantity
-                })).unwrap();
-
-                console.log('Cart updated successfully from input');
-
-                // Clear editing state sau khi update thành công
-                setEditingQuantity(prev => {
-                    const newState = { ...prev };
-                    delete newState[product_id];
-                    return newState;
-                });
-            } catch (error) {
-                console.error('Update failed:', error);
-                Alert.alert(
-                    'Update Failed',
-                    error || 'Failed to update cart item',
-                    [{ text: 'OK' }]
-                );
-
-                // Reset về giá trị cũ khi có lỗi
-                setEditingQuantity(prev => {
-                    const newState = { ...prev };
-                    delete newState[product_id];
-                    return newState;
-                });
-            } finally {
-                // Clear updating state
-                setIsUpdating(prev => {
-                    const newState = { ...prev };
-                    delete newState[product_id];
-                    return newState;
-                });
-            }
-        } else {
-            // Nếu nhập 0 hoặc số âm, hỏi có muốn xóa không
+        // Kiểm tra quantity hợp lệ (1-99)
+        if (isNaN(newQuantity) || newQuantity < 1) {
             Alert.alert(
                 'Remove Item',
                 'Quantity cannot be 0. Do you want to remove this item from cart?',
@@ -195,10 +198,83 @@ const CartScreen = ({ navigation }) => {
                     }
                 ]
             );
+            return;
+        }
+
+        if (newQuantity > 99) {
+            Alert.alert(
+                'Invalid Quantity',
+                'Maximum quantity allowed is 99.',
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Reset về giá trị hợp lệ (99)
+                            setEditingQuantity(prev => ({
+                                ...prev,
+                                [product_id]: '99'
+                            }));
+                        }
+                    }
+                ]
+            );
+            return;
+        }
+
+        const currentItem = cartItems.find(item => item.id === product_id);
+
+        // Nếu quantity không thay đổi, chỉ clear editing state
+        if (currentItem && newQuantity === currentItem.quantity) {
+            setEditingQuantity(prev => {
+                const newState = { ...prev };
+                delete newState[product_id];
+                return newState;
+            });
+            return;
+        }
+
+        // Set updating state
+        setIsUpdating(prev => ({ ...prev, [product_id]: true }));
+
+        try {
+            await dispatch(updateCartItem({
+                product_id,
+                quantity: newQuantity
+            })).unwrap();
+
+            console.log('Cart updated successfully from input');
+
+            // Clear editing state sau khi update thành công
+            setEditingQuantity(prev => {
+                const newState = { ...prev };
+                delete newState[product_id];
+                return newState;
+            });
+        } catch (error) {
+            console.error('Update failed:', error);
+            Alert.alert(
+                'Update Failed',
+                error || 'Failed to update cart item',
+                [{ text: 'OK' }]
+            );
+
+            // Reset về giá trị cũ khi có lỗi
+            setEditingQuantity(prev => {
+                const newState = { ...prev };
+                delete newState[product_id];
+                return newState;
+            });
+        } finally {
+            // Clear updating state
+            setIsUpdating(prev => {
+                const newState = { ...prev };
+                delete newState[product_id];
+                return newState;
+            });
         }
     };
 
-    // Handle when input loses focus without submitting
+
     const handleQuantityBlur = (product_id) => {
         // Delay một chút để tránh conflict với onSubmitEditing
         setTimeout(() => {
@@ -233,6 +309,9 @@ const CartScreen = ({ navigation }) => {
         try {
             await dispatch(removeCartItem(product_id)).unwrap();
             console.log('Item removed successfully');
+
+            // Remove from selected items if it was selected
+            setSelectedItems(prev => prev.filter(id => id !== product_id));
 
             // Show success message
             Alert.alert(
@@ -283,6 +362,10 @@ const CartScreen = ({ navigation }) => {
                                 await dispatch(removeCartItem(productId)).unwrap();
                             }
 
+                            // Clear selected items
+                            setSelectedItems([]);
+                            setSelectAll(false);
+
                             Alert.alert(
                                 'Success',
                                 'Items removed from cart successfully',
@@ -331,21 +414,116 @@ const CartScreen = ({ navigation }) => {
         );
     };
 
-    // Calculate totals using actual cart data
-    const subtotal = cart?.sum ? cart.sum / 1000 : 0;
-    const shipping = 0;
-    const tax = 24.00;
+    // Calculate totals for selected items only
+    const selectedCartItems = cartItems.filter(item => selectedItems.includes(item.id));
+    const subtotal = selectedCartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const shipping = selectedCartItems.length > 0 ? 0 : 0; // Free shipping or calculate based on selection
+    const tax = selectedCartItems.length > 0 ? 24.00 : 0;
     const total = subtotal + shipping + tax;
 
-    const CartItem = ({ item }) => {
+    const handleCheckout = () => {
+        if (selectedItems.length === 0) {
+            Alert.alert(
+                'No Items Selected',
+                'Please select at least one available item to proceed to checkout.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+
+        // Kiểm tra xem có items unavailable trong selected không
+        const selectedProducts = cartItems.filter(item => selectedItems.includes(item.id));
+        const unavailableSelectedItems = selectedProducts.filter(item =>
+            item.in_stock === 0 || item.status === false
+        );
+
+        if (unavailableSelectedItems.length > 0) {
+            Alert.alert(
+                'Unavailable Items',
+                'Some selected items are out of stock or discontinued. Please remove them from selection.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+
+        const selected_product_ids = selectedProducts.map(item => item.id);
+        console.log("selected_product_ids", selected_product_ids);
+
+        navigation.navigate('Payment', {
+            selectedItems: selectedProducts,
+            orderSummary: {
+                subtotal,
+                shipping,
+                tax,
+                total
+            },
+            selected_product_ids: selected_product_ids
+        });
+    };
+
+    const CartItem = React.memo(({ item }) => {
         const itemIsUpdating = isUpdating[item.id];
+        const isSelected = selectedItems.includes(item.id);
+        const isOutOfStock = item.in_stock === 0;
+        const isDiscontinued = item.status === false;
+        const isUnavailable = isOutOfStock || isDiscontinued;
 
         return (
-            <View style={styles.cartItem}>
-                <Image source={{ uri: item.image }} style={styles.itemImage} />
+            <View style={[styles.cartItem, isUnavailable && styles.unavailableItem]}>
+                {/* Selection Checkbox - disabled nếu hết hàng hoặc ngừng bán */}
+                <TouchableOpacity
+                    style={styles.checkboxContainer}
+                    onPress={() => toggleItemSelection(item.id)}
+                    disabled={itemIsUpdating || isUnavailable}
+                >
+                    <View style={[
+                        styles.checkbox,
+                        isSelected && !isUnavailable && styles.checkboxSelected,
+                        (itemIsUpdating || isUnavailable) && styles.checkboxDisabled
+                    ]}>
+                        {isSelected && !isUnavailable && (
+                            <Icon name="check" size={16} color="#ffffff" />
+                        )}
+                    </View>
+                </TouchableOpacity>
+
+                <View style={styles.imageContainer}>
+                    <Image source={{ uri: item.image }} style={[
+                        styles.itemImage,
+                        isUnavailable && styles.unavailableImage
+                    ]} />
+                    {/* Overlay cho hình ảnh khi hết hàng */}
+                    {isUnavailable && (
+                        <View style={styles.imageOverlay}>
+                            <Text style={styles.overlayText}>
+                                {isOutOfStock ? 'OUT OF STOCK' : 'DISCONTINUED'}
+                            </Text>
+                        </View>
+                    )}
+                </View>
+
                 <View style={styles.itemDetails}>
                     <View style={styles.itemHeader}>
-                        <Text style={styles.itemName}>{item.name}</Text>
+                        <View style={styles.itemNameContainer}>
+                            <Text style={[
+                                styles.itemName,
+                                !isSelected && styles.itemNameUnselected,
+                                isUnavailable && styles.unavailableText
+                            ]}>
+                                {item.name}
+                            </Text>
+                            {/* Status badges */}
+                            {isOutOfStock && (
+                                <View style={styles.statusBadge}>
+                                    <Text style={styles.statusBadgeText}>Out of Stock</Text>
+                                </View>
+                            )}
+                            {isDiscontinued && (
+                                <View style={[styles.statusBadge, styles.discontinuedBadge]}>
+                                    <Text style={styles.statusBadgeText}>Discontinued</Text>
+                                </View>
+                            )}
+                        </View>
                         <TouchableOpacity
                             onPress={() => showRemoveConfirmation(item.id)}
                             disabled={itemIsUpdating}
@@ -354,62 +532,93 @@ const CartScreen = ({ navigation }) => {
                             <Icon name="delete-outline" size={20} color={itemIsUpdating ? "#d1d5db" : "#ef4444"} />
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.itemSpecs}>
+
+                    <Text style={[styles.itemSpecs, isUnavailable && styles.unavailableText]}>
                         {item.size && `Size: ${item.size} | `}
                         {item.color && `Color: ${item.color}`}
-                        {item.in_stock && ` | In Stock: ${item.in_stock}`}
+                        {item.in_stock !== undefined && ` | Stock: ${item.in_stock}`}
                     </Text>
+
                     <View style={styles.itemFooter}>
-                        <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
-                        <View style={styles.quantityContainer}>
+                        <Text style={[
+                            styles.itemPrice,
+                            !isSelected && styles.itemPriceUnselected,
+                            isUnavailable && styles.unavailableText
+                        ]}>
+                            ${item.price.toFixed(2)}
+                        </Text>
+
+                        {/* Quantity controls - disabled nếu hết hàng hoặc ngừng bán */}
+                        <View style={[
+                            styles.quantityContainer,
+                            isUnavailable && styles.disabledQuantityContainer
+                        ]}>
                             <TouchableOpacity
-                                style={[styles.quantityButton, itemIsUpdating && styles.disabledButton]}
+                                style={[
+                                    styles.quantityButton,
+                                    (itemIsUpdating || isUnavailable) && styles.disabledButton
+                                ]}
                                 onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                                disabled={itemIsUpdating}
+                                disabled={itemIsUpdating || isUnavailable}
                             >
-                                <Icon name="remove" size={16} color={itemIsUpdating ? "#d1d5db" : "#6b7280"} />
+                                <Icon name="remove" size={16} color={(itemIsUpdating || isUnavailable) ? "#d1d5db" : "#6b7280"} />
                             </TouchableOpacity>
 
                             <TextInput
                                 style={[
                                     styles.quantityInput,
-                                    itemIsUpdating && styles.disabledInput
+                                    (itemIsUpdating || isUnavailable) && styles.disabledInput
                                 ]}
                                 value={
-                                    editingQuantity[item.id] !== undefined
+                                    typeof editingQuantity[item.id] === 'string'
                                         ? editingQuantity[item.id]
                                         : item.quantity.toString()
                                 }
+
                                 onChangeText={(text) => handleQuantityChange(item.id, text)}
                                 onSubmitEditing={() => handleQuantitySubmit(item.id)}
                                 onBlur={() => handleQuantityBlur(item.id)}
+                                autoFocus={editingQuantity[item.id] !== undefined}
                                 keyboardType="numeric"
                                 textAlign="center"
                                 maxLength={3}
                                 selectTextOnFocus={true}
-                                editable={!itemIsUpdating}
+                                editable={!itemIsUpdating && !isUnavailable}
                                 returnKeyType="done"
                             />
 
                             <TouchableOpacity
-                                style={[styles.quantityButton, itemIsUpdating && styles.disabledButton]}
+                                style={[
+                                    styles.quantityButton,
+                                    (itemIsUpdating || isUnavailable) && styles.disabledButton
+                                ]}
                                 onPress={() => updateQuantity(item.id, item.quantity + 1)}
-                                disabled={itemIsUpdating}
+                                disabled={itemIsUpdating || isUnavailable}
                             >
-                                <Icon name="add" size={16} color={itemIsUpdating ? "#d1d5db" : "#6b7280"} />
+                                <Icon name="add" size={16} color={(itemIsUpdating || isUnavailable) ? "#d1d5db" : "#6b7280"} />
                             </TouchableOpacity>
                         </View>
                     </View>
+
                     {itemIsUpdating && (
                         <Text style={styles.updatingText}>
                             {Object.keys(isUpdating).some(key => key === item.id.toString()) ? 'Removing...' : 'Updating...'}
                         </Text>
                     )}
+
+                    {/* Warning message cho sản phẩm không khả dụng */}
+                    {isUnavailable && (
+                        <Text style={styles.unavailableWarning}>
+                            {isOutOfStock
+                                ? 'This item is currently out of stock and cannot be purchased.'
+                                : 'This item has been discontinued and is no longer available.'
+                            }
+                        </Text>
+                    )}
                 </View>
             </View>
         );
-    };
-
+    });
     // Show loading state
     if (isLoading && !cart) {
         return (
@@ -483,6 +692,28 @@ const CartScreen = ({ navigation }) => {
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                {/* Select All Section */}
+                {cartItems.length > 0 && (
+                    <View style={styles.selectAllContainer}>
+                        <TouchableOpacity
+                            style={styles.selectAllButton}
+                            onPress={toggleSelectAll}
+                        >
+                            <View style={[
+                                styles.checkbox,
+                                selectAll && styles.checkboxSelected
+                            ]}>
+                                {selectAll && (
+                                    <Icon name="check" size={16} color="#ffffff" />
+                                )}
+                            </View>
+                            <Text style={styles.selectAllText}>
+                                Select All ({selectedItems.length}/{cartItems.length})
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 {/* Cart Items */}
                 {cartItems.length > 0 ? (
                     <View style={styles.cartItemsContainer}>
@@ -507,11 +738,13 @@ const CartScreen = ({ navigation }) => {
                     </View>
                 )}
 
-                {/* Order Summary */}
-                {cartItems.length > 0 && (
+                {/* Order Summary - Only show for selected items */}
+                {selectedItems.length > 0 && (
                     <View style={styles.summaryContainer}>
                         <View style={styles.summaryHeader}>
-                            <Text style={styles.summaryTitle}>Order Summary</Text>
+                            <Text style={styles.summaryTitle}>
+                                Order Summary ({selectedItems.length} item{selectedItems.length > 1 ? 's' : ''})
+                            </Text>
                             {cartItems.length > 1 && (
                                 <TouchableOpacity
                                     onPress={clearCart}
@@ -549,12 +782,20 @@ const CartScreen = ({ navigation }) => {
             {cartItems.length > 0 && (
                 <View style={styles.checkoutContainer}>
                     <TouchableOpacity
-                        style={[styles.checkoutButton, isLoading && styles.disabledButton]}
-                        onPress={() => navigation.navigate('Payment')}
-                        disabled={isLoading}
+                        style={[
+                            styles.checkoutButton,
+                            (isLoading || selectedItems.length === 0) && styles.disabledButton
+                        ]}
+                        onPress={handleCheckout}
+                        disabled={isLoading || selectedItems.length === 0}
                     >
                         <Text style={styles.checkoutButtonText}>
-                            {isLoading ? 'Updating...' : 'Proceed to Checkout'}
+                            {isLoading
+                                ? 'Updating...'
+                                : selectedItems.length === 0
+                                    ? 'Select Items to Checkout'
+                                    : `Proceed to Checkout (${selectedItems.length} item${selectedItems.length > 1 ? 's' : ''})`
+                            }
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -846,6 +1087,148 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontWeight: '500',
         fontSize: 16,
+    },
+    // Select All Section Styles
+    selectAllContainer: {
+        backgroundColor: '#ffffff',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginBottom: 16,
+        borderRadius: 8,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    selectAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    selectAllText: {
+        fontSize: 16,
+        color: '#0d364c',
+        marginLeft: 12,
+        fontWeight: '500',
+    },
+
+    // Checkbox Styles
+    checkboxContainer: {
+        marginRight: 12,
+        paddingVertical: 4,
+    },
+    checkbox: {
+        width: 20,
+        height: 20,
+        borderWidth: 2,
+        borderColor: '#d1d5db',
+        borderRadius: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ffffff',
+    },
+    checkboxSelected: {
+        backgroundColor: '#0d364c',
+        borderColor: '#0d364c',
+    },
+    checkboxDisabled: {
+        opacity: 0.5,
+        backgroundColor: '#f3f4f6',
+    },
+
+    // Unselected Item Styles
+    itemNameUnselected: {
+        opacity: 0.6,
+        color: '#9ca3af',
+    },
+    itemPriceUnselected: {
+        opacity: 0.6,
+        color: '#9ca3af',
+    },
+    unavailableItem: {
+        opacity: 0.7,
+        backgroundColor: '#fafafa',
+    },
+
+    unavailableText: {
+        color: '#9ca3af',
+        textDecorationLine: 'line-through',
+    },
+
+    unavailableImage: {
+        opacity: 0.5,
+    },
+
+    imageContainer: {
+        position: 'relative',
+    },
+
+    imageOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 8,
+    },
+
+    overlayText: {
+        color: '#ffffff',
+        fontSize: 10,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+
+    itemNameContainer: {
+        flex: 1,
+        marginRight: 8,
+    },
+
+    statusBadge: {
+        backgroundColor: '#fef2f2',
+        borderWidth: 1,
+        borderColor: '#fecaca',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginTop: 4,
+        alignSelf: 'flex-start',
+    },
+
+    discontinuedBadge: {
+        backgroundColor: '#f3f4f6',
+        borderColor: '#d1d5db',
+    },
+
+    statusBadgeText: {
+        fontSize: 10,
+        fontWeight: '500',
+        color: '#ef4444',
+        textTransform: 'uppercase',
+    },
+
+    disabledQuantityContainer: {
+        opacity: 0.4,
+        backgroundColor: '#f9fafb',
+    },
+
+    unavailableWarning: {
+        fontSize: 12,
+        color: '#ef4444',
+        fontStyle: 'italic',
+        marginTop: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        backgroundColor: '#fef2f2',
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: '#fecaca',
     },
 });
 
