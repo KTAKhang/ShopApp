@@ -14,7 +14,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchOrderByUser } from '../store/slices/orderSlice';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavigation from '../components/BottomNavigation';
@@ -262,9 +261,9 @@ const OrderHistoryScreen = ({ navigation }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.headerGradient}
                 >
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Order History</Text>
-                </View>
+                    <View style={styles.header}>
+                        <Text style={styles.headerTitle}>Order History</Text>
+                    </View>
                 </LinearGradient>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
@@ -286,9 +285,9 @@ const OrderHistoryScreen = ({ navigation }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.headerGradient}
                 >
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Order History</Text>
-                </View>
+                    <View style={styles.header}>
+                        <Text style={styles.headerTitle}>Order History</Text>
+                    </View>
                 </LinearGradient>
                 <View style={styles.errorContainer}>
                     <Icon name="error-outline" size={64} color={COLORS.error} />
@@ -315,13 +314,13 @@ const OrderHistoryScreen = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.headerGradient}
             >
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Order History</Text>
-            </View>
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Order History</Text>
+                </View>
             </LinearGradient>
 
-            <ScrollView 
-                style={styles.content} 
+            <ScrollView
+                style={styles.content}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 }]}
             >
