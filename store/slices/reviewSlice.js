@@ -14,6 +14,19 @@ export const fetchProductReviewsByProductId = createAsyncThunk(
         }
     }
 );
+
+export const createReview = createAsyncThunk(
+    'review/createReview',
+    async ({ product_id, order_detail_id, rating, review_content }, { rejectWithValue }) => {
+        try {
+            const response = await createReviewApi({ product_id, order_detail_id, rating, review_content });
+            return response.review;
+        } catch (error) {
+            console.log('createReview error:', error);
+            return rejectWithValue(error.message);
+        }
+    }
+);
 export const updateReview = createAsyncThunk(
     'review/updateReview',
     async ({ review_id, rating, review_content }, { rejectWithValue }) => {
@@ -58,6 +71,7 @@ const reviewSlice = createSlice({
             state.reviewsByProduct = {};
             state.isLoading = false;
             state.error = null;
+            state.successMessage = null
         },
         clearProductReviews: (state, action) => {
             const productId = action.payload;
@@ -111,7 +125,12 @@ const reviewSlice = createSlice({
                     state.reviewsByProduct[product_id].isLoading = false;
                     state.reviewsByProduct[product_id].error = error || 'Failed to fetch reviews';
                 }
-            });
+            })
+            .addCase(createReview.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+                state.successMessage = false;
+            })
             .addCase(createReview.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.review = action.payload;
