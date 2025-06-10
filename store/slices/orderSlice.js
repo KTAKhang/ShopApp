@@ -8,16 +8,18 @@ import {
 // Async thunk for fetching orders by user
 export const fetchOrderByUser = createAsyncThunk(
     'order/fetchOrderByUser',
-    async (_, { rejectWithValue }) => {
+    async ({ page = 1, limit = 5 }, { rejectWithValue }) => {
         try {
-            const response = await getOrderByUserApi();
+            console.log("hihi")
+            const response = await getOrderByUserApi(page, limit);
             return response;
         } catch (error) {
-            console.log('fetchOrderByUser error:', error);
-            return rejectWithValue(error.message);
+            console.error('fetchOrderByUser error:', error);
+            return rejectWithValue(error.message || 'Failed to fetch orders');
         }
     }
 );
+
 
 
 export const createOrder = createAsyncThunk(
@@ -78,6 +80,7 @@ const orderSlice = createSlice({
                 state.error = null;
             })
             .addCase(fetchOrderByUser.fulfilled, (state, action) => {
+                console("orders slice", action.payload);
                 state.isLoading = false;
                 state.orders = action.payload;
                 state.error = null;

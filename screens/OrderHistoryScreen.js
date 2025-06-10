@@ -33,6 +33,7 @@ const OrderHistoryScreen = ({ navigation }) => {
         cancelMessage
     } = useSelector((state) => state.order);
     const dispatch = useDispatch();
+    console.log("orderData", orderData);
 
     useEffect(() => {
         dispatch(fetchOrderByUser());
