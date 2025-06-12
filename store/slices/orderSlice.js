@@ -5,20 +5,18 @@ import {
     cancelOrderApi,
 } from '../../services/orderService';
 
-// Async thunk for fetching orders by user
 export const fetchOrderByUser = createAsyncThunk(
     'order/fetchOrderByUser',
-    async (_, { rejectWithValue }) => {
+    async ({ page = 1, limit = 5, isLoadMore = false } = {}, { rejectWithValue, getState }) => {
         try {
-            const response = await getOrderByUserApi();
-            return response;
+            const response = await getOrderByUserApi(page, limit);
+            return { ...response, isLoadMore, page };
         } catch (error) {
-            console.log('fetchOrderByUser error:', error);
-            return rejectWithValue(error.message);
+            console.error('fetchOrderByUser error:', error);
+            return rejectWithValue(error.message || 'Failed to fetch orders');
         }
     }
 );
-
 
 export const createOrder = createAsyncThunk(
     'order/createOrder',
@@ -49,11 +47,17 @@ export const cancelOrder = createAsyncThunk(
 const initialState = {
     orders: [],
     isLoading: false,
+    isLoadingMore: false,
     error: null,
     createSuccess: false,
     newOrderId: null,
     cancelSuccess: false,
     cancelMessage: null,
+    // Pagination states
+    currentPage: 1,
+    totalPages: 1,
+    hasMore: true,
+    total: 0,
 };
 
 const orderSlice = createSlice({
@@ -63,27 +67,101 @@ const orderSlice = createSlice({
         clearOrderState: (state) => {
             state.orders = [];
             state.isLoading = false;
+            state.isLoadingMore = false;
             state.error = null;
             state.createSuccess = false;
             state.newOrderId = null;
             state.cancelSuccess = false;
             state.cancelMessage = null;
+            state.currentPage = 1;
+            state.totalPages = 1;
+            state.hasMore = true;
+            state.total = 0;
+        },
+        resetPagination: (state) => {
+            state.currentPage = 1;
+            state.totalPages = 1;
+            state.hasMore = true;
+            state.total = 0;
         },
     },
     extraReducers: (builder) => {
         builder
             // Fetch orders by user
-            .addCase(fetchOrderByUser.pending, (state) => {
-                state.isLoading = true;
+            .addCase(fetchOrderByUser.pending, (state, action) => {
+                const { isLoadMore } = action.meta.arg || {};
+                if (isLoadMore) {
+                    state.isLoadingMore = true;
+                } else {
+                    state.isLoading = true;
+                }
                 state.error = null;
             })
             .addCase(fetchOrderByUser.fulfilled, (state, action) => {
-                state.isLoading = false;
-                state.orders = action.payload;
+
+
+                const { isLoadMore, page } = action.payload;
+
+                if (isLoadMore) {
+                    state.isLoadingMore = false;
+                } else {
+                    state.isLoading = false;
+                }
+
+                // Extract orders and pagination info
+                let orders = [];
+                let paginationInfo = {};
+
+                if (action.payload && action.payload.orders) {
+                    orders = action.payload.orders;
+                    paginationInfo = {
+                        total: parseInt(action.payload.total) || 0,
+                        currentPage: parseInt(action.payload.page) || 1,
+                        totalPages: parseInt(action.payload.totalPages) || 1,
+                    };
+                } else if (Array.isArray(action.payload)) {
+                    orders = action.payload;
+                    paginationInfo = {
+                        total: action.payload.length,
+                        currentPage: 1,
+                        totalPages: 1,
+                    };
+                } else {
+
+                    orders = [];
+                    paginationInfo = {
+                        total: 0,
+                        currentPage: 1,
+                        totalPages: 1,
+                    };
+                }
+
+                // Update orders list
+                if (isLoadMore && page > 1) {
+                    // Append new orders to existing ones
+                    state.orders = [...state.orders, ...orders];
+                } else {
+                    // Replace orders (first load or refresh)
+                    state.orders = orders;
+                }
+
+                // Update pagination info
+                state.total = paginationInfo.total;
+                state.currentPage = paginationInfo.currentPage;
+                state.totalPages = paginationInfo.totalPages;
+                state.hasMore = paginationInfo.currentPage < paginationInfo.totalPages;
+
                 state.error = null;
             })
             .addCase(fetchOrderByUser.rejected, (state, action) => {
-                state.isLoading = false;
+                console.log("❌ fetchOrderByUser rejected:", action.payload);
+                const { isLoadMore } = action.meta.arg || {};
+
+                if (isLoadMore) {
+                    state.isLoadingMore = false;
+                } else {
+                    state.isLoading = false;
+                }
                 state.error = action.payload;
             })
             .addCase(createOrder.pending, (state) => {

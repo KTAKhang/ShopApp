@@ -44,7 +44,7 @@ const renderStars = (rating) => {
 const ProductCard = ({ product }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
-    
+
     // Get reviews for THIS specific product only
     const productReviews = useSelector(state => selectProductReviews(state, product._id));
 
@@ -96,7 +96,7 @@ const ProductCard = ({ product }) => {
                     </View>
                     <View style={styles.priceContainer}>
                         <Text style={styles.price}>{formatCurrency(product.price)}</Text>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.addButton}
                             onPress={handleAddToCart}
                         >
