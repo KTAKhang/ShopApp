@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
     StatusBar,
     Alert,
+    RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -17,37 +18,72 @@ import { useDispatch, useSelector } from 'react-redux';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavigation from '../components/BottomNavigation';
-import { fetchOrderByUser, cancelOrder, clearOrderState } from '../store/slices/orderSlice';
-
+import { fetchOrderByUser, cancelOrder, clearOrderState, resetPagination } from '../store/slices/orderSlice';
 
 const OrderHistoryScreen = ({ navigation }) => {
     const [selectedFilter, setSelectedFilter] = useState('All Orders');
     const [cancellingOrders, setCancellingOrders] = useState(new Set());
+    const [refreshing, setRefreshing] = useState(false);
 
     const filters = ['All Orders', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Returned'];
+
     const {
         orders: orderData,
         isLoading: orderLoading,
+        isLoadingMore,
         error: orderError,
         cancelSuccess,
-        cancelMessage
+        cancelMessage,
+        currentPage,
+        hasMore,
+        total
     } = useSelector((state) => state.order);
+
     const dispatch = useDispatch();
-    console.log("orderData", orderData);
+
+
 
     useEffect(() => {
-        dispatch(fetchOrderByUser());
+
+        dispatch(fetchOrderByUser({ page: 1, limit: 5 }));
     }, [dispatch]);
 
     // Handle cancel success
     useEffect(() => {
         if (cancelSuccess && cancelMessage) {
             Alert.alert('Success', cancelMessage);
-            // Refresh orders after successful cancellation
-            dispatch(clearOrderState());
-            dispatch(fetchOrderByUser());
         }
-    }, [cancelSuccess, cancelMessage, dispatch]);
+    }, [cancelSuccess, cancelMessage]);
+
+    // Refresh handler
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        dispatch(resetPagination());
+        await dispatch(fetchOrderByUser({ page: 1, limit: 5 }));
+        setRefreshing(false);
+    }, [dispatch]);
+
+    // Load more handler
+    const loadMoreOrders = useCallback(() => {
+        if (!isLoadingMore && hasMore && !orderLoading) {
+            console.log(`Loading more orders - page ${currentPage + 1}`);
+            dispatch(fetchOrderByUser({
+                page: currentPage + 1,
+                limit: 5,
+                isLoadMore: true
+            }));
+        }
+    }, [dispatch, currentPage, hasMore, isLoadingMore, orderLoading]);
+
+    // Handle scroll
+    const handleScroll = useCallback((event) => {
+        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+        const paddingToBottom = 20;
+
+        if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
+            loadMoreOrders();
+        }
+    }, [loadMoreOrders]);
 
     // Transform API data to match UI format
     const transformOrderData = (apiOrders) => {
@@ -87,15 +123,15 @@ const OrderHistoryScreen = ({ navigation }) => {
                 });
             };
 
-            // Get first item for display (assuming items is an array)
+            // Get first item for display
             const firstItem = order.items && order.items.length > 0 ? order.items[0] : null;
 
             return {
                 id: `#ORD-${order.order_id.slice(-4).toUpperCase()}`,
-                orderId: order.order_id, // Keep the full order ID for API calls
+                orderId: order.order_id,
                 date: formatDate(order.createdAt),
                 items: order.items ? order.items.length : 1,
-                total: (order.total_price / 1000).toFixed(2), // Convert from VND to display format
+                total: (order.total_price / 1000).toFixed(2),
                 status: status,
                 statusColor: statusColor.color,
                 statusBg: statusColor.bg,
@@ -150,14 +186,13 @@ const OrderHistoryScreen = ({ navigation }) => {
         );
     };
 
-    // Handle action button press
+
     const handleActionPress = (order) => {
         switch (order.status) {
             case 'Pending':
                 handleCancelOrder(order);
                 break;
             case 'Delivered':
-                // Navigate to rating screen
                 navigation.navigate('OrderDetails', {
                     orderData: order.originalOrder,
                     orderDataColor: order.statusColor,
@@ -165,7 +200,6 @@ const OrderHistoryScreen = ({ navigation }) => {
                 });
                 break;
             default:
-                // Navigate to order details
                 navigation.navigate('OrderDetails', {
                     orderData: order.originalOrder,
                     orderDataColor: order.statusColor,
@@ -251,7 +285,31 @@ const OrderHistoryScreen = ({ navigation }) => {
         );
     };
 
-    // Loading state
+    // Loading footer component
+    const LoadingFooter = () => {
+        if (!isLoadingMore) return null;
+
+        return (
+            <View style={styles.loadingFooter}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={styles.loadingFooterText}>Loading more orders...</Text>
+            </View>
+        );
+    };
+
+    // No more items footer
+    const NoMoreFooter = () => {
+        if (hasMore || orders.length === 0) return null;
+
+        return (
+            <View style={styles.noMoreFooter}>
+                <Text style={styles.noMoreText}>No more orders to load</Text>
+                <Text style={styles.totalOrdersText}>Total: {total} orders</Text>
+            </View>
+        );
+    };
+
+    // Initial loading state
     if (orderLoading && !orderData.length) {
         return (
             <SafeAreaView style={styles.container}>
@@ -296,7 +354,7 @@ const OrderHistoryScreen = ({ navigation }) => {
                     <Text style={styles.errorSubtitle}>{orderError}</Text>
                     <TouchableOpacity
                         style={styles.retryButton}
-                        onPress={() => dispatch(fetchOrderByUser())}
+                        onPress={() => dispatch(fetchOrderByUser({ page: 1, limit: 5 }))}
                     >
                         <Text style={styles.retryButtonText}>Retry</Text>
                     </TouchableOpacity>
@@ -324,6 +382,16 @@ const OrderHistoryScreen = ({ navigation }) => {
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 }]}
+                onScroll={handleScroll}
+                scrollEventThrottle={400}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[COLORS.primary]}
+                        tintColor={COLORS.primary}
+                    />
+                }
             >
                 <ScrollView
                     horizontal
@@ -353,9 +421,13 @@ const OrderHistoryScreen = ({ navigation }) => {
 
                 <View style={styles.ordersContainer}>
                     {filteredOrders.length > 0 ? (
-                        filteredOrders.map((order) => (
-                            <OrderItem key={order.id} order={order} />
-                        ))
+                        <>
+                            {filteredOrders.map((order) => (
+                                <OrderItem key={order.id} order={order} />
+                            ))}
+                            <LoadingFooter />
+                            <NoMoreFooter />
+                        </>
                     ) : (
                         <View style={styles.emptyState}>
                             <Icon name="shopping-bag" size={64} color="#d1d5db" />
@@ -621,6 +693,33 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6b7280',
         textAlign: 'center',
+    },
+    loadingFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
+        marginTop: 10,
+    },
+    loadingFooterText: {
+        fontSize: 14,
+        color: COLORS.text.secondary,
+        marginLeft: 8,
+    },
+    noMoreFooter: {
+        alignItems: 'center',
+        paddingVertical: 20,
+        marginTop: 10,
+    },
+    noMoreText: {
+        fontSize: 14,
+        color: COLORS.text.secondary,
+        marginBottom: 4,
+    },
+    totalOrdersText: {
+        fontSize: 12,
+        color: COLORS.text.secondary,
+        fontStyle: 'italic',
     },
 });
 

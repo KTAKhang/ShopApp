@@ -4,31 +4,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export async function getOrderByUserApi(page = 1, limit = 5) {
     try {
         const token = await AsyncStorage.getItem('token');
-
         if (!token) {
             throw new Error('Không tìm thấy token, vui lòng đăng nhập lại.');
         }
 
-        const response = await axios.get(
-            `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/order?page=${page}&limit=${limit}`,
-            {
-                headers: {
-                    Accept: 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-            }
-        );
+        const url = `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/order?page=${page}&limit=${limit}`;
 
+        const response = await axios.get(url, {
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        });
         const data = response.data;
-        console.log("getOrderByUserApi", data);
 
         if (!data.success) {
             throw new Error(data.message || 'Lỗi lấy danh sách đơn hàng');
         }
 
-        return data.data; // Trả về { total, page, limit, totalPages, orders }
+
+        return data.data;
     } catch (error) {
-        console.error('getOrderByUserApi error:', error);
+
+
         throw new Error(
             error.response?.data?.message ||
             error.message ||
@@ -36,7 +34,6 @@ export async function getOrderByUserApi(page = 1, limit = 5) {
         );
     }
 }
-
 export async function createOrderApi({ selected_product_ids, receiverInfo }) {
     try {
         const token = await AsyncStorage.getItem('token');
@@ -62,7 +59,7 @@ export async function createOrderApi({ selected_product_ids, receiverInfo }) {
             throw new Error(data.message || 'Tạo đơn hàng thất bại');
         }
 
-        return data; // data = { success: true, message: "...", order_id: "..." }
+        return data;
     } catch (error) {
         console.error('createOrderApi error:', error);
         throw new Error(error.response?.data?.message || error.message || 'Lỗi không xác định khi tạo đơn hàng');
