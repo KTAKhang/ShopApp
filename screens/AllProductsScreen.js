@@ -70,12 +70,12 @@ const AllProductsScreen = ({ navigation, route }) => {
     const loadProducts = (refresh = false) => {
         const pageToLoad = refresh ? 1 : pagination.currentPage;
         console.log('Loading page:', pageToLoad, 'with categoryId:', categoryId); // Debug log
-        
-        dispatch(fetchProductsAsync({ 
-            page: pageToLoad, 
+
+        dispatch(fetchProductsAsync({
+            page: pageToLoad,
             limit: ITEMS_PER_PAGE,
             isAllProducts: true,
-            categoryId 
+            categoryId
         }));
     };
 
@@ -89,8 +89,8 @@ const AllProductsScreen = ({ navigation, route }) => {
     const handleLoadMore = () => {
         if (!isLoading && pagination.hasMore && !isSearching) {
             console.log('Loading more products with categoryId:', categoryId); // Debug log
-            dispatch(fetchProductsAsync({ 
-                page: pagination.currentPage + 1, 
+            dispatch(fetchProductsAsync({
+                page: pagination.currentPage + 1,
                 limit: ITEMS_PER_PAGE,
                 isAllProducts: true,
                 categoryId
@@ -141,7 +141,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                         </TouchableOpacity>
                         <Text style={styles.searchTitle}>Search Products</Text>
                     </View>
-                    
+
                     <View style={styles.searchInputContainer}>
                         <Icon name="search" size={20} color="#13C2C2" style={styles.searchIcon} />
                         <TextInput
@@ -172,7 +172,7 @@ const AllProductsScreen = ({ navigation, route }) => {
     );
 
     const renderHeader = () => (
-        <Animated.View 
+        <Animated.View
             style={[
                 styles.headerContainer,
                 {
@@ -197,7 +197,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                             <Icon name="arrow-back" size={22} color="#FFFFFF" />
                         </View>
                     </TouchableOpacity>
-                    
+
                     <View style={styles.headerTitleContainer}>
                         <Text style={styles.headerTitle}>
                             {categoryName || 'All Products'}
@@ -207,7 +207,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                             {isSearching && ` (filtered)`}
                         </Text>
                     </View>
-                    
+
                     <TouchableOpacity
                         style={styles.searchButton}
                         activeOpacity={0.8}
@@ -218,7 +218,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                         </View>
                     </TouchableOpacity>
                 </View>
-                
+
                 {/* Decorative elements */}
                 <View style={styles.decorativeCircle1} />
                 <View style={styles.decorativeCircle2} />
@@ -230,7 +230,7 @@ const AllProductsScreen = ({ navigation, route }) => {
     const renderCategorySection = () => {
         // Chỉ hiển thị CategorySection khi không có categoryId cụ thể (tức là đang xem tất cả sản phẩm)
         if (categoryId || isSearching) return null;
-        
+
         return (
             <View style={styles.categorySectionContainer}>
                 <CategorySection categories={categories} />
@@ -255,6 +255,7 @@ const AllProductsScreen = ({ navigation, route }) => {
         };
 
         return (
+
             <Animated.View style={[styles.productContainer, animatedStyle]}>
                 <View style={styles.productCardWrapper}>
                     <ProductCard product={item} />
@@ -333,9 +334,9 @@ const AllProductsScreen = ({ navigation, route }) => {
                                     {isSearching ? 'No Search Results' : 'No Products Found'}
                                 </Text>
                                 <Text style={styles.emptyText}>
-                                    {isSearching 
+                                    {isSearching
                                         ? `No products found matching "${searchText}"`
-                                        : categoryId 
+                                        : categoryId
                                             ? `No products available in ${categoryName}`
                                             : 'No products available at the moment'
                                     }
