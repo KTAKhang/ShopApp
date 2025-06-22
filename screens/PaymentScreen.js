@@ -7,7 +7,6 @@ import {
     StyleSheet,
     SafeAreaView,
     Alert,
-    ActivityIndicator,
     Modal,
     TextInput,
 } from 'react-native';
@@ -15,6 +14,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { createOrder, clearOrderState } from '../store/slices/orderSlice'; // Adjust path as needed
+import { OverlayLoading, MinimalLoading } from '../components/Loading';
 
 const PaymentScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
@@ -278,14 +278,7 @@ const PaymentScreen = ({ navigation, route }) => {
     return (
         <SafeAreaView style={styles.container}>
             {/* Loading Overlay */}
-            {isLoading && (
-                <View style={styles.loadingOverlay}>
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#0d364c" />
-                        <Text style={styles.loadingText}>Creating your order...</Text>
-                    </View>
-                </View>
-            )}
+            <OverlayLoading text="Creating your order..." visible={isLoading} />
 
             {/* Header */}
             <View style={styles.header}>
@@ -493,7 +486,7 @@ const PaymentScreen = ({ navigation, route }) => {
                 >
                     <View style={styles.placeOrderContent}>
                         {isLoading ? (
-                            <ActivityIndicator size={20} color="#ffffff" />
+                            <MinimalLoading size="small" color="#ffffff" />
                         ) : (
                             <Icon name="shopping-bag" size={20} color="#ffffff" />
                         )}

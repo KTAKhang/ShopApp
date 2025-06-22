@@ -9,7 +9,6 @@ import {
     SafeAreaView,
     StatusBar,
     Dimensions,
-    ActivityIndicator,
     Modal,
     FlatList,
 } from 'react-native';
@@ -22,6 +21,7 @@ import {
     selectProductReviewsLoading
 } from '../store/slices/reviewSlice';
 import { addToCart } from '../store/slices/cartSlice';
+import { InlineLoading, OverlayLoading } from '../components/Loading';
 import { COLORS } from '../constants/colors';
 import { formatCurrency } from '../utils/formatCurrency';
 
@@ -317,10 +317,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
     if (isLoading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-                <Text style={styles.loadingText}>Loading product...</Text>
-            </View>
+            <InlineLoading text="Loading product..." style={styles.loadingContainer} />
         );
     }
 
@@ -489,18 +486,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
             <ReviewsModal />
 
             {/* Loading Modal */}
-            <Modal
-                transparent={true}
-                animationType="fade"
-                visible={showLoadingModal}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <ActivityIndicator size="large" color={COLORS.primary} />
-                        <Text style={styles.modalText}>Đang thêm vào giỏ hàng...</Text>
-                    </View>
-                </View>
-            </Modal>
+            <OverlayLoading text="Đang thêm vào giỏ hàng..." visible={showLoadingModal} />
 
             {/* Success Modal */}
             <Modal

@@ -18,6 +18,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavigation from '../components/BottomNavigation';
+import { InlineLoading, FooterLoading } from '../components/Loading';
 import { fetchOrderByUser, cancelOrder, clearOrderState, resetPagination } from '../store/slices/orderSlice';
 
 const OrderHistoryScreen = ({ navigation }) => {
@@ -289,12 +290,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     const LoadingFooter = () => {
         if (!isLoadingMore) return null;
 
-        return (
-            <View style={styles.loadingFooter}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-                <Text style={styles.loadingFooterText}>Loading more orders...</Text>
-            </View>
-        );
+        return <FooterLoading text="Loading more orders..." />;
     };
 
     // No more items footer
@@ -324,10 +320,7 @@ const OrderHistoryScreen = ({ navigation }) => {
                         <Text style={styles.headerTitle}>Order History</Text>
                     </View>
                 </LinearGradient>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={styles.loadingText}>Loading orders...</Text>
-                </View>
+                <InlineLoading text="Loading orders..." style={styles.loadingContainer} />
                 <BottomNavigation />
             </SafeAreaView>
         );

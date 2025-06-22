@@ -16,6 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCartByUser, updateCartItem, removeCartItem } from '../store/slices/cartSlice';
+import { InlineLoading } from '../components/Loading';
 import { formatCurrency } from '../utils/formatCurrency';
 import { COLORS } from '../constants/colors';
 import BottomNavigation from '../components/BottomNavigation';
@@ -652,9 +653,7 @@ const CartScreen = ({ navigation }) => {
                         </View>
                     </SafeAreaView>
                 </LinearGradient>
-                <View style={styles.loadingContainer}>
-                    <Text style={styles.loadingText}>Loading cart...</Text>
-                </View>
+                <InlineLoading text="Loading cart..." style={styles.loadingContainer} />
                 <BottomNavigation />
             </View>
         );
