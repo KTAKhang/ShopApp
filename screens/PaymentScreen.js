@@ -158,7 +158,7 @@ const PaymentScreen = ({ navigation, route }) => {
                     text: 'Place Order',
                     style: 'default',
                     onPress: () => {
-                        console.log("selectedItems", selected_product_ids);
+
                         // Dispatch create order action
                         dispatch(createOrder({
                             selected_product_ids,

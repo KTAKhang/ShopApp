@@ -47,6 +47,11 @@ const ProductCard = ({ product }) => {
     const [showLoadingModal, setShowLoadingModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+    // Safety check: Don't render inactive products
+    if (!product || product.status === false) {
+        return null;
+    }
+
     // Get reviews for THIS specific product only
     const productReviews = useSelector(state => selectProductReviews(state, product._id));
 

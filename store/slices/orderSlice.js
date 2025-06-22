@@ -22,11 +22,11 @@ export const createOrder = createAsyncThunk(
     'order/createOrder',
     async ({ selected_product_ids, receiverInfo }, { rejectWithValue }) => {
         try {
-            console.log("selectedItems in slice", selected_product_ids);
+
             const response = await createOrderApi({ selected_product_ids, receiverInfo });
             return response;
         } catch (error) {
-            console.log('createOrder error:', error);
+
             return rejectWithValue(error.message);
         }
     }
@@ -38,7 +38,7 @@ export const cancelOrder = createAsyncThunk(
             const response = await cancelOrderApi(order_id);
             return { order_id, message: response.message };
         } catch (error) {
-            console.log('cancelOrder error:', error);
+
             return rejectWithValue(error.message);
         }
     }
@@ -154,7 +154,7 @@ const orderSlice = createSlice({
                 state.error = null;
             })
             .addCase(fetchOrderByUser.rejected, (state, action) => {
-                console.log("❌ fetchOrderByUser rejected:", action.payload);
+
                 const { isLoadMore } = action.meta.arg || {};
 
                 if (isLoadMore) {

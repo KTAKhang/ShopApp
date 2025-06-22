@@ -118,7 +118,7 @@ const ProfileScreen = ({ navigation }) => {
 
     const handleUpdateProfile = (updatedProfile) => {
         dispatch(updateUserProfile(updatedProfile));
-        console.log("Dữ liệu mới:", updatedProfile);
+
     };
     const handleChangePassword = () => {
         // Validation
@@ -148,7 +148,7 @@ const ProfileScreen = ({ navigation }) => {
             new_password: newPassword,
         };
 
-        console.log('Change password data:', passwordData);
+
         dispatch(changePassword(passwordData));
     };
 
@@ -193,7 +193,7 @@ const ProfileScreen = ({ navigation }) => {
                         <OrderHistorySection
                             orderHistory={orders}
                             onViewAll={() => navigation?.navigate('OrderHistory')}
-                            onOrderPress={(order) => console.log(order)}
+                            onOrderPress={(order) => navigation.navigate('OrderDetails', { orderId: order._id })}
 
                         />
 

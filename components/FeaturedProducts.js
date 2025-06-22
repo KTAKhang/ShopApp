@@ -11,18 +11,21 @@ const FeaturedProducts = ({ products, title }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
 
+    // Filter chỉ lấy sản phẩm có status = true (active products)
+    const activeProducts = products ? products.filter(product => product.status === true) : [];
+
     useEffect(() => {
-        // Fetch reviews for all products
-        if (products && products.length > 0) {
-            products.forEach(product => {
+        // Fetch reviews for all active products
+        if (activeProducts && activeProducts.length > 0) {
+            activeProducts.forEach(product => {
                 if (product._id) {
                     dispatch(fetchProductReviewsByProductId(product._id));
                 }
             });
         }
-    }, [dispatch, products]);
+    }, [dispatch, activeProducts]);
 
-    if (!products || products.length === 0) {
+    if (!activeProducts || activeProducts.length === 0) {
         return <Text style={styles.errorText}>No products available.</Text>;
     }
 
@@ -33,7 +36,7 @@ const FeaturedProducts = ({ products, title }) => {
                     <Text style={styles.title}>{title}</Text>
                     <View style={styles.titleUnderline} />
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.seeAllButton}
                     onPress={() => navigation.navigate('AllProducts')}
                 >
@@ -49,7 +52,7 @@ const FeaturedProducts = ({ products, title }) => {
                 snapToInterval={200}
                 snapToAlignment="center"
             >
-                {products.map((product) => (
+                {activeProducts.map((product) => (
                     <View key={product._id} style={styles.productWrapper}>
                         <ProductCard product={product} />
                     </View>

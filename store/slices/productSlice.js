@@ -41,7 +41,7 @@ export const fetchProductByIdAsync = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             const response = await getProductById(id);
-            console.log('API Response:', response); // Debug log
+
             return response;  // Trả về response thay vì response.product
         } catch (error) {
             console.error('fetchProductByIdAsync error:', error);
@@ -77,14 +77,17 @@ const productSlice = createSlice({
                 state.isLoading = false;
                 state.error = null;
 
+                // Filter chỉ lấy sản phẩm có status = true (active products)
+                const activeProducts = action.payload.products.filter(product => product.status === true);
+
                 if (action.payload.isAllProducts) {
                     // Handle pagination for all products page
                     if (action.payload.page === 1) {
                         // Reset products for new search or refresh
-                        state.allProducts = action.payload.products;
+                        state.allProducts = activeProducts;
                     } else {
                         // Append products for load more
-                        state.allProducts = [...state.allProducts, ...action.payload.products];
+                        state.allProducts = [...state.allProducts, ...activeProducts];
                     }
 
                     // Update pagination based on API response
@@ -93,8 +96,8 @@ const productSlice = createSlice({
                     state.pagination.totalPages = totalPage;
                     state.pagination.hasMore = currentPage < totalPage;
                 } else {
-                    // Handle featured products
-                    state.products = action.payload.products;
+                    // Handle featured products - chỉ lấy sản phẩm active
+                    state.products = activeProducts;
                 }
             })
             .addCase(fetchProductsAsync.rejected, (state, action) => {

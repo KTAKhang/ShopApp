@@ -35,11 +35,11 @@ const AllProductsScreen = ({ navigation, route }) => {
     // Get category info from route params (for display only)
     const categoryName = route.params?.categoryName;
 
-    console.log('Route params:', route.params); // Debug log
-    console.log('Category Name:', categoryName); // Debug log
+
+
 
     useEffect(() => {
-        console.log('Loading products on mount'); // Debug log
+
         dispatch(fetchProductsAsync({
             page: 1,
             limit: ITEMS_PER_PAGE,
@@ -69,7 +69,7 @@ const AllProductsScreen = ({ navigation, route }) => {
 
     const handleLoadMore = useCallback(() => {
         if (!isLoading && pagination.hasMore) {
-            console.log('Loading more products with search:', currentSearch); // Debug log
+
             const pageToLoad = pagination.currentPage + 1;
             dispatch(fetchProductsAsync({
                 page: pageToLoad,
@@ -314,7 +314,7 @@ const AllProductsScreen = ({ navigation, route }) => {
         );
     }
 
-    console.log('Rendering products:', allProducts.length); // Debug log
+
 
     return (
         <SafeAreaView style={styles.container}>
