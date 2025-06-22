@@ -17,7 +17,7 @@ const HomeScreen = () => {
     const { isLoading: isProductLoading, products } = useSelector((state) => state.product);
 
     useEffect(() => {
-        dispatch(fetchCategoriesAsync({ page: 1, limit: 10 }));
+        dispatch(fetchCategoriesAsync({ page: 1, limit: 20 }));
         dispatch(fetchProductsAsync({ page: 1, limit: 10 }));
     }, [dispatch]);
 
