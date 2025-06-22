@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { ScrollView, StyleSheet, View, ActivityIndicator, StatusBar } from 'react-native';
+import { ScrollView, StyleSheet, View, StatusBar } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import TopNavBar from '../components/TopNavBar';
 import SearchBar from '../components/SearchBar';
 import CategorySection from '../components/CategorySection';
 import FeaturedProducts from '../components/FeaturedProducts';
 import BottomNavigation from '../components/BottomNavigation';
+import { MinimalLoading } from '../components/Loading';
 import { fetchCategoriesAsync } from '../store/slices/categorySlice';
 import { fetchProductsAsync } from '../store/slices/productSlice';
 import { COLORS } from '../constants/colors';
@@ -23,14 +24,6 @@ const HomeScreen = () => {
 
     const isLoading = isCategoryLoading || isProductLoading;
 
-    if (isLoading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-            </View>
-        );
-    }
-
     return (
         <View style={styles.container}>
             <StatusBar
@@ -47,17 +40,25 @@ const HomeScreen = () => {
                 <TopNavBar />
                 <SearchBar />
             </LinearGradient>
-            <ScrollView
-                style={styles.scrollView}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-            >
-                <View style={styles.content}>
-                    <CategorySection categories={categories} />
-                    <FeaturedProducts products={products} title="New Arrivals" />
-                    <FeaturedProducts products={products} title="Popular Products" />
+
+            {isLoading ? (
+                <View style={styles.loadingContainer}>
+                    <MinimalLoading color={COLORS.primary} />
                 </View>
-            </ScrollView>
+            ) : (
+                <ScrollView
+                    style={styles.scrollView}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                >
+                    <View style={styles.content}>
+                        <CategorySection categories={categories} />
+                        <FeaturedProducts products={products} title="New Arrivals" />
+                        <FeaturedProducts products={products} title="Popular Products" />
+                    </View>
+                </ScrollView>
+            )}
+
             <BottomNavigation />
         </View>
     );

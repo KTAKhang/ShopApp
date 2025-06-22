@@ -4,7 +4,6 @@ import {
     Text,
     FlatList,
     StyleSheet,
-    ActivityIndicator,
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
@@ -17,6 +16,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductsAsync, fetchProductsByCategoryAsync, resetAllProducts } from '../store/slices/productSlice';
 import ProductCard from '../components/ProductCard';
 import CategorySection from '../components/CategorySection';
+import { InlineLoading, FooterLoading } from '../components/Loading';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -321,12 +321,7 @@ const AllProductsScreen = ({ navigation, route }) => {
     const LoadingFooter = () => {
         if (!isLoading || !pagination.hasMore) return null;
 
-        return (
-            <View style={styles.loadingFooter}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-                <Text style={styles.loadingFooterText}>Loading more products...</Text>
-            </View>
-        );
+        return <FooterLoading text="Loading more products..." />;
     };
 
     // No more items footer
@@ -341,96 +336,87 @@ const AllProductsScreen = ({ navigation, route }) => {
         );
     };
 
-    if (isLoading && pagination.currentPage === 1 && allProducts.length === 0) {
-        return (
-            <SafeAreaView style={styles.container}>
-                <StatusBar barStyle="light-content" backgroundColor="#0D364C" />
-                {renderHeader()}
-                <View style={styles.loadingContainer}>
-                    <View style={styles.loadingWrapper}>
-                        <ActivityIndicator size="large" color="#13C2C2" />
-                        <Text style={styles.loadingMainText}>Loading Products</Text>
-                        <Text style={styles.loadingSubText}>Please wait a moment...</Text>
-                    </View>
-                </View>
-                {renderSearchModal()}
-            </SafeAreaView>
-        );
-    }
+    const isInitialLoading = isLoading && pagination.currentPage === 1 && allProducts.length === 0;
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#0D364C" />
             {renderHeader()}
+
             <View style={styles.content}>
-                <FlatList
-                    data={allProducts}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item._id}
-                    numColumns={2}
-                    contentContainerStyle={[styles.listContent, { paddingBottom: 100 }]}
-                    onRefresh={handleRefresh}
-                    refreshing={refreshing}
-                    onEndReached={handleLoadMore}
-                    onEndReachedThreshold={0.1}
-                    ListHeaderComponent={renderCategorySection}
-                    ListFooterComponent={() => (
-                        <>
-                            <LoadingFooter />
-                            <NoMoreFooter />
-                        </>
-                    )}
-                    showsVerticalScrollIndicator={false}
-                    scrollEventThrottle={400}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <LinearGradient
-                                colors={['#f8f9ff', '#e8ecff']}
-                                style={styles.emptyGradient}
-                            >
-                                <View style={styles.emptyIconContainer}>
-                                    <Icon name={currentSearch ? "search-off" : "inventory-2"} size={80} color="#c7d2fe" />
-                                </View>
-                                <Text style={styles.emptyTitle}>
-                                    {currentSearch ? 'No Search Results' : 'No Products Found'}
-                                </Text>
-                                <Text style={styles.emptyText}>
-                                    {currentSearch
-                                        ? `No products found matching "${currentSearch}"`
-                                        : categoryName
-                                            ? `No products available in ${categoryName}`
-                                            : 'No products available at the moment'
-                                    }
-                                </Text>
-                                <TouchableOpacity
-                                    style={styles.retryButton}
-                                    onPress={() => {
-                                        dispatch(resetAllProducts());
-                                        if (categoryName && !currentSearch) {
-                                            // Retry category products
-                                            dispatch(fetchProductsByCategoryAsync({
-                                                category_name: categoryName,
-                                                page: 1,
-                                                limit: ITEMS_PER_PAGE
-                                            }));
-                                        } else {
-                                            // Retry all products or search
-                                            dispatch(fetchProductsAsync({
-                                                page: 1,
-                                                limit: ITEMS_PER_PAGE,
-                                                isAllProducts: true,
-                                                search: currentSearch
-                                            }));
-                                        }
-                                    }}
+                {isInitialLoading ? (
+                    <InlineLoading text="Loading Products..." style={styles.loadingContainer} />
+                ) : (
+                    <FlatList
+                        data={allProducts}
+                        renderItem={renderItem}
+                        keyExtractor={(item) => item._id}
+                        numColumns={2}
+                        contentContainerStyle={[styles.listContent, { paddingBottom: 100 }]}
+                        onRefresh={handleRefresh}
+                        refreshing={refreshing}
+                        onEndReached={handleLoadMore}
+                        onEndReachedThreshold={0.1}
+                        ListHeaderComponent={renderCategorySection}
+                        ListFooterComponent={() => (
+                            <>
+                                <LoadingFooter />
+                                <NoMoreFooter />
+                            </>
+                        )}
+                        showsVerticalScrollIndicator={false}
+                        scrollEventThrottle={400}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <LinearGradient
+                                    colors={['#f8f9ff', '#e8ecff']}
+                                    style={styles.emptyGradient}
                                 >
-                                    <Text style={styles.retryButtonText}>Try Again</Text>
-                                </TouchableOpacity>
-                            </LinearGradient>
-                        </View>
-                    }
-                />
+                                    <View style={styles.emptyIconContainer}>
+                                        <Icon name={currentSearch ? "search-off" : "inventory-2"} size={80} color="#c7d2fe" />
+                                    </View>
+                                    <Text style={styles.emptyTitle}>
+                                        {currentSearch ? 'No Search Results' : 'No Products Found'}
+                                    </Text>
+                                    <Text style={styles.emptyText}>
+                                        {currentSearch
+                                            ? `No products found matching "${currentSearch}"`
+                                            : categoryName
+                                                ? `No products available in ${categoryName}`
+                                                : 'No products available at the moment'
+                                        }
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.retryButton}
+                                        onPress={() => {
+                                            dispatch(resetAllProducts());
+                                            if (categoryName && !currentSearch) {
+                                                // Retry category products
+                                                dispatch(fetchProductsByCategoryAsync({
+                                                    category_name: categoryName,
+                                                    page: 1,
+                                                    limit: ITEMS_PER_PAGE
+                                                }));
+                                            } else {
+                                                // Retry all products or search
+                                                dispatch(fetchProductsAsync({
+                                                    page: 1,
+                                                    limit: ITEMS_PER_PAGE,
+                                                    isAllProducts: true,
+                                                    search: currentSearch
+                                                }));
+                                            }
+                                        }}
+                                    >
+                                        <Text style={styles.retryButtonText}>Try Again</Text>
+                                    </TouchableOpacity>
+                                </LinearGradient>
+                            </View>
+                        }
+                    />
+                )}
             </View>
+
             {renderSearchModal()}
         </SafeAreaView>
     );
@@ -569,56 +555,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#f0feff',
     },
-    loadingWrapper: {
-        alignItems: 'center',
-        padding: 40,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        shadowColor: '#13C2C2',
-        shadowOffset: {
-            width: 0,
-            height: 8,
-        },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-        elevation: 8,
-        marginHorizontal: 40,
-    },
-    loadingMainText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#0D364C',
-        marginTop: 16,
-    },
-    loadingSubText: {
-        fontSize: 14,
-        color: '#13C2C2',
-        marginTop: 4,
-    },
-    // Loading footer styles
-    loadingFooter: {
-        paddingVertical: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: 20,
-        marginTop: 10,
-        borderRadius: 16,
-        shadowColor: COLORS.shadow.medium,
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    loadingFooterText: {
-        marginTop: 8,
-        fontSize: 14,
-        color: COLORS.primary,
-        fontWeight: '500',
-    },
+    // Cleaned up - using unified loading component
     noMoreFooter: {
         paddingVertical: 20,
         alignItems: 'center',
