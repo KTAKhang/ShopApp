@@ -168,3 +168,46 @@ export async function getProductsByCategory({ category_name, page = 1, limit = 1
         throw error;
     }
 }
+
+// Hàm lấy danh sách sản phẩm bán chạy nhất
+export async function getTopSoldProducts({ page = 1, limit = 10, search = null }) {
+    try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) throw new Error('Token not found');
+
+        let url = `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/product/top-sold?page=${page}&limit=${limit}`;
+
+        if (search && search.trim() !== '') {
+            url += `&search=${encodeURIComponent(search.trim())}`;
+        }
+
+        const response = await axios.get(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        const data = response.data;
+
+        if (data.status !== 'OK') {
+            throw new Error(data.message || 'Failed to fetch top sold products');
+        }
+
+        // Filter chỉ lấy sản phẩm có status = true (active products)
+        const allProducts = data.data.products;
+        const activeProducts = allProducts.filter(product => product.status === true);
+
+        return {
+            ...data,
+            data: {
+                ...data.data,
+                products: activeProducts
+            }
+        };
+
+    } catch (error) {
+        console.error('getTopSoldProducts error:', error);
+        throw new Error(error.response?.data?.message || error.message || 'Failed to fetch top sold products');
+    }
+}
