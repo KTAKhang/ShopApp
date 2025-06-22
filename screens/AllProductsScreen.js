@@ -11,6 +11,7 @@ import {
     Dimensions,
     TextInput,
     Modal,
+    Alert,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductsAsync, fetchProductsByCategoryAsync, resetAllProducts } from '../store/slices/productSlice';
@@ -36,6 +37,8 @@ const AllProductsScreen = ({ navigation, route }) => {
     const categoryName = route.params?.categoryName;
 
     useEffect(() => {
+
+
         if (categoryName) {
             // If navigated with categoryName, fetch products by category
             dispatch(fetchProductsByCategoryAsync({
@@ -56,6 +59,8 @@ const AllProductsScreen = ({ navigation, route }) => {
             dispatch(resetAllProducts());
         };
     }, [dispatch, categoryName]);
+
+
 
     // No auto search - only search when user clicks search button
 
@@ -83,8 +88,11 @@ const AllProductsScreen = ({ navigation, route }) => {
     }, [dispatch, currentSearch, categoryName]);
 
     const handleLoadMore = useCallback(() => {
-        if (!isLoading && pagination.hasMore) {
+        // Additional conditions to prevent unnecessary loading
+        if (!isLoading && pagination.hasMore && allProducts.length >= ITEMS_PER_PAGE) {
             const pageToLoad = pagination.currentPage + 1;
+
+
 
             if (categoryName && !currentSearch) {
                 // Load more category products
@@ -103,7 +111,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                 }));
             }
         }
-    }, [isLoading, pagination.hasMore, pagination.currentPage, currentSearch, categoryName, dispatch]);
+    }, [isLoading, pagination.hasMore, pagination.currentPage, currentSearch, categoryName, dispatch, allProducts.length]);
 
     const handleSearchPress = () => {
         setSearchText(currentSearch || ''); // Set current search when opening modal
@@ -364,7 +372,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                     onRefresh={handleRefresh}
                     refreshing={refreshing}
                     onEndReached={handleLoadMore}
-                    onEndReachedThreshold={0.3}
+                    onEndReachedThreshold={0.1}
                     ListHeaderComponent={renderCategorySection}
                     ListFooterComponent={() => (
                         <>

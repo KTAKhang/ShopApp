@@ -14,7 +14,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavigation from '../components/BottomNavigation';
+import { COLORS } from '../constants/colors';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../store/slices/authSlice';
 import ProfileHeader from '../components/ProfileHeader';
@@ -161,13 +163,24 @@ const ProfileScreen = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Profile</Text>
-            </View>
+        <View style={styles.container}>
+            <StatusBar
+                barStyle="light-content"
+                backgroundColor={COLORS.secondary}
+                translucent
+            />
+            <LinearGradient
+                colors={COLORS.gradient.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.headerGradient}
+            >
+                <SafeAreaView>
+                    <View style={styles.header}>
+                        <Text style={styles.headerTitle}>Profile</Text>
+                    </View>
+                </SafeAreaView>
+            </LinearGradient>
 
             <ScrollView
                 style={styles.content}
@@ -232,43 +245,59 @@ const ProfileScreen = ({ navigation }) => {
                 onSubmit={handleChangePassword}
                 isLoading={isLoading}
             />
-        </SafeAreaView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.background,
+    },
+    headerGradient: {
+        paddingTop: StatusBar.currentHeight + 10,
+        paddingBottom: 20,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        elevation: 5,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingVertical: 12,
-        backgroundColor: '#ffffff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
-        marginTop: 0,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#374151',
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        textAlign: 'center',
+        letterSpacing: 0.5,
     },
     content: {
         flex: 1,
+        marginTop: -25,
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        backgroundColor: COLORS.background,
+        overflow: 'hidden',
     },
     scrollContent: {
         paddingHorizontal: 16,
-        paddingBottom: 20,
+        paddingTop: 30,
+        paddingBottom: 100,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 50,
+        backgroundColor: COLORS.background,
     },
     logoutButton: {
         flexDirection: 'row',
@@ -276,15 +305,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         backgroundColor: '#ffffff',
         padding: 16,
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: '#ef4444',
         marginTop: 24,
         marginBottom: 50,
+        shadowColor: '#ef4444',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     logoutText: {
         color: '#ef4444',
-        fontWeight: '500',
+        fontWeight: '600',
         marginLeft: 8,
     },
 });

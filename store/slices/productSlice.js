@@ -9,6 +9,7 @@ import {
 const initialState = {
     products: [],
     allProducts: [], // Separate state for all products page
+    allActiveProducts: [], // Cache all active products for client-side pagination
     product: null,
     isLoading: false,
     error: null,
@@ -41,9 +42,7 @@ export const fetchProductsByCategoryAsync = createAsyncThunk(
     'product/fetchProductsByCategory',
     async ({ category_name, page, limit }, { rejectWithValue }) => {
         try {
-            console.log('fetchProductsByCategoryAsync called with:', { category_name, page, limit });
             const response = await getProductsByCategory({ category_name, page, limit });
-            console.log('fetchProductsByCategoryAsync response:', response);
             return {
                 products: response.data.products,
                 pagination: response.data.total,
@@ -83,6 +82,7 @@ const productSlice = createSlice({
         },
         resetAllProducts: (state) => {
             state.allProducts = [];
+            state.allActiveProducts = [];
             state.pagination.currentPage = 1;
             state.pagination.hasMore = true;
         }
@@ -98,21 +98,32 @@ const productSlice = createSlice({
                 state.isLoading = false;
                 state.error = null;
 
-                // Filter chỉ lấy sản phẩm có status = true (active products)
-                const activeProducts = action.payload.products.filter(product => product.status === true);
+                // Products are already filtered for status = true in productService
+                const activeProducts = action.payload.products;
+
+
 
                 if (action.payload.isAllProducts) {
-                    // Handle pagination for all products page
+                    const { currentPage, totalPage } = action.payload.pagination;
+                    const limit = 6; // ITEMS_PER_PAGE from AllProductsScreen
+
                     if (action.payload.page === 1) {
-                        // Reset products for new search or refresh
-                        state.allProducts = activeProducts;
+                        // Reset and cache all active products for client-side pagination
+                        state.allActiveProducts = activeProducts;
+                        // Show first page (6 products)
+                        state.allProducts = activeProducts.slice(0, limit);
                     } else {
-                        // Append products for load more
-                        state.allProducts = [...state.allProducts, ...activeProducts];
+                        // Client-side pagination: get next page from cached active products
+                        const startIndex = (action.payload.page - 1) * limit;
+                        const endIndex = startIndex + limit;
+                        const nextPageProducts = state.allActiveProducts.slice(startIndex, endIndex);
+
+                        // Append to displayed products
+                        const previousCount = state.allProducts.length;
+                        state.allProducts = [...state.allProducts, ...nextPageProducts];
                     }
 
-                    // Update pagination based on API response
-                    const { currentPage, totalPage } = action.payload.pagination;
+                    // Update pagination based on active products count
                     state.pagination.currentPage = currentPage;
                     state.pagination.totalPages = totalPage;
                     state.pagination.hasMore = currentPage < totalPage;
@@ -134,20 +145,30 @@ const productSlice = createSlice({
                 state.isLoading = false;
                 state.error = null;
 
-                // Filter chỉ lấy sản phẩm có status = true (active products)
-                const activeProducts = action.payload.products.filter(product => product.status === true);
+                // Products are already filtered for status = true in productService
+                const activeProducts = action.payload.products;
 
-                // Handle pagination for category products
+                // Handle pagination for category products (client-side pagination)
+                const { currentPage, totalPage } = action.payload.pagination;
+                const limit = 6; // ITEMS_PER_PAGE from AllProductsScreen
+
                 if (action.payload.page === 1) {
-                    // Reset products for new category or refresh
-                    state.allProducts = activeProducts;
+                    // Reset and cache all active category products for client-side pagination
+                    state.allActiveProducts = activeProducts;
+                    // Show first page (6 products)
+                    state.allProducts = activeProducts.slice(0, limit);
                 } else {
-                    // Append products for load more
-                    state.allProducts = [...state.allProducts, ...activeProducts];
+                    // Client-side pagination: get next page from cached active products
+                    const startIndex = (action.payload.page - 1) * limit;
+                    const endIndex = startIndex + limit;
+                    const nextPageProducts = state.allActiveProducts.slice(startIndex, endIndex);
+
+                    // Append to displayed products
+                    const previousCount = state.allProducts.length;
+                    state.allProducts = [...state.allProducts, ...nextPageProducts];
                 }
 
-                // Update pagination based on API response
-                const { currentPage, totalPage } = action.payload.pagination;
+                // Update pagination based on active products count
                 state.pagination.currentPage = currentPage;
                 state.pagination.totalPages = totalPage;
                 state.pagination.hasMore = currentPage < totalPage;

@@ -24,15 +24,8 @@ const CategorySection = ({ categories }) => {
     }
 
     const handleCategoryPress = (category) => {
-        console.log('=== CATEGORY CLICK DEBUG ===');
-        console.log('Category clicked:', category);
-        console.log('Category name:', category.name);
-        console.log('Category ID:', category._id);
-        console.log('Navigating to AllProducts with:', {
-            categoryId: category._id,
-            categoryName: category.name
-        });
-        console.log('=== END CATEGORY CLICK DEBUG ===');
+
+
 
         navigation.navigate('AllProducts', {
             categoryId: category._id,
