@@ -13,7 +13,7 @@ import {
     Modal,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProductsAsync, resetAllProducts } from '../store/slices/productSlice';
+import { fetchProductsAsync, fetchProductsByCategoryAsync, resetAllProducts } from '../store/slices/productSlice';
 import ProductCard from '../components/ProductCard';
 import CategorySection from '../components/CategorySection';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -35,50 +35,75 @@ const AllProductsScreen = ({ navigation, route }) => {
     // Get category info from route params (for display only)
     const categoryName = route.params?.categoryName;
 
-
-
-
     useEffect(() => {
-
-        dispatch(fetchProductsAsync({
-            page: 1,
-            limit: ITEMS_PER_PAGE,
-            isAllProducts: true,
-            search: null
-        }));
+        if (categoryName) {
+            // If navigated with categoryName, fetch products by category
+            dispatch(fetchProductsByCategoryAsync({
+                category_name: categoryName,
+                page: 1,
+                limit: ITEMS_PER_PAGE
+            }));
+        } else {
+            // Otherwise, fetch all products
+            dispatch(fetchProductsAsync({
+                page: 1,
+                limit: ITEMS_PER_PAGE,
+                isAllProducts: true,
+                search: null
+            }));
+        }
         return () => {
             dispatch(resetAllProducts());
         };
-    }, [dispatch]);
+    }, [dispatch, categoryName]);
 
     // No auto search - only search when user clicks search button
-
-
 
     const handleRefresh = useCallback(() => {
         setRefreshing(true);
         dispatch(resetAllProducts());
-        dispatch(fetchProductsAsync({
-            page: 1,
-            limit: ITEMS_PER_PAGE,
-            isAllProducts: true,
-            search: currentSearch
-        }));
-        setRefreshing(false);
-    }, [dispatch, currentSearch]);
 
-    const handleLoadMore = useCallback(() => {
-        if (!isLoading && pagination.hasMore) {
-
-            const pageToLoad = pagination.currentPage + 1;
+        if (categoryName) {
+            // Refresh category products
+            dispatch(fetchProductsByCategoryAsync({
+                category_name: categoryName,
+                page: 1,
+                limit: ITEMS_PER_PAGE
+            }));
+        } else {
+            // Refresh all products or search results
             dispatch(fetchProductsAsync({
-                page: pageToLoad,
+                page: 1,
                 limit: ITEMS_PER_PAGE,
                 isAllProducts: true,
                 search: currentSearch
             }));
         }
-    }, [isLoading, pagination.hasMore, pagination.currentPage, currentSearch, dispatch]);
+        setRefreshing(false);
+    }, [dispatch, currentSearch, categoryName]);
+
+    const handleLoadMore = useCallback(() => {
+        if (!isLoading && pagination.hasMore) {
+            const pageToLoad = pagination.currentPage + 1;
+
+            if (categoryName && !currentSearch) {
+                // Load more category products
+                dispatch(fetchProductsByCategoryAsync({
+                    category_name: categoryName,
+                    page: pageToLoad,
+                    limit: ITEMS_PER_PAGE
+                }));
+            } else {
+                // Load more all products or search results
+                dispatch(fetchProductsAsync({
+                    page: pageToLoad,
+                    limit: ITEMS_PER_PAGE,
+                    isAllProducts: true,
+                    search: currentSearch
+                }));
+            }
+        }
+    }, [isLoading, pagination.hasMore, pagination.currentPage, currentSearch, categoryName, dispatch]);
 
     const handleSearchPress = () => {
         setSearchText(currentSearch || ''); // Set current search when opening modal
@@ -113,16 +138,25 @@ const AllProductsScreen = ({ navigation, route }) => {
         if (currentSearch !== '') {
             setCurrentSearch('');
             dispatch(resetAllProducts());
-            dispatch(fetchProductsAsync({
-                page: 1,
-                limit: ITEMS_PER_PAGE,
-                isAllProducts: true,
-                search: null
-            }));
+
+            if (categoryName) {
+                // Return to category filtering
+                dispatch(fetchProductsByCategoryAsync({
+                    category_name: categoryName,
+                    page: 1,
+                    limit: ITEMS_PER_PAGE
+                }));
+            } else {
+                // Return to all products
+                dispatch(fetchProductsAsync({
+                    page: 1,
+                    limit: ITEMS_PER_PAGE,
+                    isAllProducts: true,
+                    search: null
+                }));
+            }
         }
     };
-
-
 
     const renderSearchModal = () => (
         <Modal
@@ -263,6 +297,8 @@ const AllProductsScreen = ({ navigation, route }) => {
         );
     };
 
+
+
     const renderItem = ({ item, index }) => {
         return (
             <View style={styles.productContainer}>
@@ -314,8 +350,6 @@ const AllProductsScreen = ({ navigation, route }) => {
         );
     }
 
-
-
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#0D364C" />
@@ -364,12 +398,22 @@ const AllProductsScreen = ({ navigation, route }) => {
                                     style={styles.retryButton}
                                     onPress={() => {
                                         dispatch(resetAllProducts());
-                                        dispatch(fetchProductsAsync({
-                                            page: 1,
-                                            limit: ITEMS_PER_PAGE,
-                                            isAllProducts: true,
-                                            search: currentSearch
-                                        }));
+                                        if (categoryName && !currentSearch) {
+                                            // Retry category products
+                                            dispatch(fetchProductsByCategoryAsync({
+                                                category_name: categoryName,
+                                                page: 1,
+                                                limit: ITEMS_PER_PAGE
+                                            }));
+                                        } else {
+                                            // Retry all products or search
+                                            dispatch(fetchProductsAsync({
+                                                page: 1,
+                                                limit: ITEMS_PER_PAGE,
+                                                isAllProducts: true,
+                                                search: currentSearch
+                                            }));
+                                        }
                                     }}
                                 >
                                     <Text style={styles.retryButtonText}>Try Again</Text>

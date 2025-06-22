@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
     getProducts,
-    getProductById
+    getProductById,
+    getProductsByCategory
 } from '../../services/productService';
 
 // Initial state cho product
@@ -31,6 +32,26 @@ export const fetchProductsAsync = createAsyncThunk(
             };
         } catch (error) {
             console.error('API error:', error);
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+export const fetchProductsByCategoryAsync = createAsyncThunk(
+    'product/fetchProductsByCategory',
+    async ({ category_name, page, limit }, { rejectWithValue }) => {
+        try {
+            console.log('fetchProductsByCategoryAsync called with:', { category_name, page, limit });
+            const response = await getProductsByCategory({ category_name, page, limit });
+            console.log('fetchProductsByCategoryAsync response:', response);
+            return {
+                products: response.data.products,
+                pagination: response.data.total,
+                isAllProducts: true,
+                page
+            };
+        } catch (error) {
+            console.error('fetchProductsByCategoryAsync error:', error);
             return rejectWithValue(error.message);
         }
     }
@@ -101,6 +122,37 @@ const productSlice = createSlice({
                 }
             })
             .addCase(fetchProductsAsync.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+            })
+            // Fetch Products By Category
+            .addCase(fetchProductsByCategoryAsync.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchProductsByCategoryAsync.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.error = null;
+
+                // Filter chỉ lấy sản phẩm có status = true (active products)
+                const activeProducts = action.payload.products.filter(product => product.status === true);
+
+                // Handle pagination for category products
+                if (action.payload.page === 1) {
+                    // Reset products for new category or refresh
+                    state.allProducts = activeProducts;
+                } else {
+                    // Append products for load more
+                    state.allProducts = [...state.allProducts, ...activeProducts];
+                }
+
+                // Update pagination based on API response
+                const { currentPage, totalPage } = action.payload.pagination;
+                state.pagination.currentPage = currentPage;
+                state.pagination.totalPages = totalPage;
+                state.pagination.hasMore = currentPage < totalPage;
+            })
+            .addCase(fetchProductsByCategoryAsync.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload;
             })

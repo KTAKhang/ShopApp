@@ -16,7 +16,23 @@ const CategorySection = ({ categories }) => {
         return <Text style={styles.errorText}>No categories available.</Text>;
     }
 
+    // Component level filtering: Chỉ hiển thị active categories (status = true)
+    const activeCategories = categories.filter(category => category.status === true);
+
+    if (activeCategories.length === 0) {
+        return <Text style={styles.errorText}>No active categories available.</Text>;
+    }
+
     const handleCategoryPress = (category) => {
+        console.log('=== CATEGORY CLICK DEBUG ===');
+        console.log('Category clicked:', category);
+        console.log('Category name:', category.name);
+        console.log('Category ID:', category._id);
+        console.log('Navigating to AllProducts with:', {
+            categoryId: category._id,
+            categoryName: category.name
+        });
+        console.log('=== END CATEGORY CLICK DEBUG ===');
 
         navigation.navigate('AllProducts', {
             categoryId: category._id,
@@ -33,7 +49,7 @@ const CategorySection = ({ categories }) => {
                 contentContainerStyle={styles.scrollContent}
                 style={styles.scrollView}
             >
-                {categories.map((category) => (
+                {activeCategories.map((category) => (
                     <TouchableOpacity
                         key={category._id}
                         style={styles.categoryItem}
