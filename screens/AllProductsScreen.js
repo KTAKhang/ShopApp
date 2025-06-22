@@ -271,7 +271,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                         </Text>
                         <Text style={styles.headerSubtitle}>
                             {allProducts.length} items
-                            {currentSearch && ` for "${currentSearch}"`}
+                            {currentSearch ? ` for "${currentSearch}"` : ''}
                         </Text>
                     </View>
 

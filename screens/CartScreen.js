@@ -540,9 +540,9 @@ const CartScreen = ({ navigation }) => {
                     </View>
 
                     <Text style={[styles.itemSpecs, isUnavailable && styles.unavailableText]}>
-                        {item.size && `Size: ${item.size} | `}
-                        {item.color && `Color: ${item.color}`}
-                        {item.in_stock !== undefined && ` | Stock: ${item.in_stock}`}
+                        {item.size ? `Size: ${item.size} | ` : ''}
+                        {item.color ? `Color: ${item.color}` : ''}
+                        {item.in_stock !== undefined ? ` | Stock: ${item.in_stock}` : ''}
                     </Text>
 
                     <View style={styles.itemFooter}>
