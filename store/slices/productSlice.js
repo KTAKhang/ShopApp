@@ -1,7 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
-    createProduct,
-    updateProduct,
     getProducts,
     getProductById
 } from '../../services/productService';
@@ -13,9 +11,6 @@ const initialState = {
     product: null,
     isLoading: false,
     error: null,
-    createProductStatus: null,
-    updateProductStatus: null,
-    fetchProductsStatus: null,
     pagination: {
         currentPage: 1,
         totalPages: 1,
@@ -23,41 +18,16 @@ const initialState = {
     }
 };
 
-
-
-export const createProductAsync = createAsyncThunk(
-    'product/createProduct',
-    async (productData, { rejectWithValue }) => {
-        try {
-            const response = await createProduct(productData);
-            return response; // Trả về response sau khi tạo sản phẩm
-        } catch (error) {
-            return rejectWithValue(error.message);  // Xử lý lỗi nếu có
-        }
-    }
-);
-
-export const updateProductAsync = createAsyncThunk(
-    'product/updateProduct',
-    async (productData, { rejectWithValue }) => {
-        try {
-            const response = await updateProduct(productData);
-            return response; // Trả về response sau khi cập nhật sản phẩm
-        } catch (error) {
-            return rejectWithValue(error.message);  // Xử lý lỗi nếu có
-        }
-    }
-);
-
 export const fetchProductsAsync = createAsyncThunk(
     'product/fetchProducts',
-    async ({ page, limit, isAllProducts = false, categoryId = null }, { rejectWithValue }) => {
+    async ({ page, limit, isAllProducts = false, search = null }, { rejectWithValue }) => {
         try {
-            const response = await getProducts({ page, limit, categoryId });
+            const response = await getProducts({ page, limit, search });
             return {
                 products: response.data.products,
                 pagination: response.data.total,
-                isAllProducts
+                isAllProducts,
+                page
             };
         } catch (error) {
             console.error('API error:', error);
@@ -84,11 +54,8 @@ const productSlice = createSlice({
     initialState,
     reducers: {
         resetProductState: (state) => {
-            state.createProductStatus = null;
-            state.updateProductStatus = null;
-            state.fetchProductsStatus = null;
             state.product = null;
-            state.error = null; // Thêm dòng này
+            state.error = null;
         },
         clearError: (state) => {
             state.error = null;
@@ -101,7 +68,6 @@ const productSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            
             // Fetch Products
             .addCase(fetchProductsAsync.pending, (state) => {
                 state.isLoading = true;
@@ -110,16 +76,22 @@ const productSlice = createSlice({
             .addCase(fetchProductsAsync.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.error = null;
-                
+
                 if (action.payload.isAllProducts) {
                     // Handle pagination for all products page
-                    if (action.meta.arg.page === 1) {
+                    if (action.payload.page === 1) {
+                        // Reset products for new search or refresh
                         state.allProducts = action.payload.products;
                     } else {
+                        // Append products for load more
                         state.allProducts = [...state.allProducts, ...action.payload.products];
                     }
-                    state.pagination.currentPage = action.meta.arg.page;
-                    state.pagination.hasMore = action.payload.products.length === action.meta.arg.limit;
+
+                    // Update pagination based on API response
+                    const { currentPage, totalPage } = action.payload.pagination;
+                    state.pagination.currentPage = currentPage;
+                    state.pagination.totalPages = totalPage;
+                    state.pagination.hasMore = currentPage < totalPage;
                 } else {
                     // Handle featured products
                     state.products = action.payload.products;
