@@ -10,7 +10,6 @@ import {
     StatusBar,
     Dimensions,
     ActivityIndicator,
-    Alert,
     Modal,
     FlatList,
 } from 'react-native';
@@ -33,6 +32,8 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const [quantity, setQuantity] = useState(1);
     const [isFavorite, setIsFavorite] = useState(false);
     const [showAllReviews, setShowAllReviews] = useState(false);
+    const [showLoadingModal, setShowLoadingModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     // Get product ID from route params
     const productId = route?.params?.productId;
@@ -265,32 +266,32 @@ const ProductDetailScreen = ({ navigation, route }) => {
     };
 
     const handleAddToCart = async () => {
+        if (showLoadingModal) return; // Prevent multiple clicks
+
+        setShowLoadingModal(true);
         try {
             await dispatch(addToCart({
                 product_id: productId,
                 quantity: quantity
             })).unwrap();
 
-            Alert.alert(
-                'Success',
-                'Product added to cart successfully',
-                [{ text: 'OK' }]
-            );
+            // Hide loading and show success
+            setShowLoadingModal(false);
+            setShowSuccessModal(true);
+
+            // Auto hide success modal after 2 seconds
+            setTimeout(() => {
+                setShowSuccessModal(false);
+            }, 2000);
+
         } catch (error) {
-            Alert.alert(
-                'Error',
-                'Failed to add item to cart. Please try again.',
-                [{ text: 'OK' }]
-            );
+            console.error('Failed to add to cart:', error);
+            setShowLoadingModal(false);
+            // Could add error modal here
         }
     };
 
-    const handleBuyNow = () => {
-        navigation.navigate('BuyNow', {
-            product: product,
-            quantity: quantity
-        });
-    };
+
 
     // Refresh function để fetch lại data khi cần
     const handleRefresh = useCallback(() => {
@@ -409,6 +410,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Product Details</Text>
                         <View style={styles.featureItem}>
+                            <Icon name="label" size={16} color="#4caf50" />
+                            <Text style={styles.featureText}>Category: {product.category_id?.name || 'General'}</Text>
+                        </View>
+                        <View style={styles.featureItem}>
                             <Icon name="category" size={16} color="#4caf50" />
                             <Text style={styles.featureText}>Type: {product.target}</Text>
                         </View>
@@ -444,22 +449,43 @@ const ProductDetailScreen = ({ navigation, route }) => {
             {/* Reviews Modal */}
             <ReviewsModal />
 
+            {/* Loading Modal */}
+            <Modal
+                transparent={true}
+                animationType="fade"
+                visible={showLoadingModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                        <Text style={styles.modalText}>Đang thêm vào giỏ hàng...</Text>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Success Modal */}
+            <Modal
+                transparent={true}
+                animationType="fade"
+                visible={showSuccessModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Icon name="check-circle" size={50} color="#4CAF50" />
+                        <Text style={styles.modalText}>Thêm vào giỏ hàng thành công!</Text>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Bottom Action Bar */}
             <View style={styles.actionBar}>
                 <TouchableOpacity
-                    style={styles.addToCartButton}
+                    style={styles.addToCartButtonFull}
                     onPress={handleAddToCart}
+                    disabled={showLoadingModal}
                 >
-                    <Icon name="shopping-cart" size={20} color={COLORS.primary} />
-                    <Text style={styles.addToCartText}>Add to Cart</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.buyNowButton}
-                    onPress={handleBuyNow}
-                >
-                    <Icon name="shopping-bag" size={20} color={COLORS.white} />
-                    <Text style={styles.buyNowText}>Buy Now</Text>
+                    <Icon name="shopping-cart" size={20} color={COLORS.white} />
+                    <Text style={styles.addToCartTextFull}>Add to Cart</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -794,45 +820,56 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        flexDirection: 'row',
         paddingHorizontal: 16,
         paddingVertical: 12,
         backgroundColor: COLORS.white,
         borderTopWidth: 1,
         borderTopColor: COLORS.border.light,
     },
-    addToCartButton: {
+    addToCartButtonFull: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
-        borderWidth: 1,
-        borderColor: COLORS.primary,
-        borderRadius: 8,
-        marginRight: 8,
-    },
-    addToCartText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: COLORS.primary,
-        marginLeft: 8,
-    },
-    buyNowButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
+        paddingVertical: 14,
         backgroundColor: COLORS.primary,
         borderRadius: 8,
-        marginLeft: 8,
+        elevation: 2,
+        shadowColor: COLORS.shadow?.dark || '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
     },
-    buyNowText: {
+    addToCartTextFull: {
         fontSize: 16,
         fontWeight: '600',
         color: COLORS.white,
         marginLeft: 8,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: COLORS.white,
+        padding: 30,
+        borderRadius: 20,
+        alignItems: 'center',
+        minWidth: 250,
+        elevation: 5,
+        shadowColor: COLORS.shadow?.dark || '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
+    },
+    modalText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.text?.primary || '#333',
+        marginTop: 15,
+        textAlign: 'center',
     },
 });
 
