@@ -4,6 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 
+const truncateText = (text, maxLength) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+};
+
 const CategorySection = ({ categories }) => {
     const navigation = useNavigation();
 
@@ -43,7 +48,7 @@ const CategorySection = ({ categories }) => {
                             <View style={styles.categoryImageContainer}>
                                 <Image source={{ uri: category.image }} style={styles.categoryImage} />
                             </View>
-                            <Text style={styles.categoryName}>{category.name}</Text>
+                            <Text style={styles.categoryName}>{truncateText(category.name, 10)}</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 ))}
