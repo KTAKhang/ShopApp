@@ -1,32 +1,65 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import ProductCard from './ProductCard';
 import { COLORS } from '../constants/colors';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { fetchProductReviewsByProductId } from '../store/slices/reviewSlice';
+import { fetchTopSoldProductsAsync } from '../store/slices/productSlice';
+import { MinimalLoading } from './Loading';
 
-const FeaturedProducts = ({ products, title }) => {
+const FeaturedTopProducts = ({ title }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
-
-    // Filter chỉ lấy sản phẩm có status = true (active products)
-    const activeProducts = products ? products.filter(product => product.status === true) : [];
+    const { topSoldProducts, isLoadingTopSold } = useSelector((state) => state.product);
 
     useEffect(() => {
-        // Fetch reviews for all active products
-        if (activeProducts && activeProducts.length > 0) {
-            activeProducts.forEach(product => {
+        // Fetch top sold products only once when component mounts
+        if (!topSoldProducts || topSoldProducts.length === 0) {
+            dispatch(fetchTopSoldProductsAsync({ page: 1, limit: 10 }));
+        }
+    }, [dispatch]); // Remove topSoldProducts from dependencies to prevent infinite loop
+
+    useEffect(() => {
+        // Fetch reviews for all top sold products
+        if (topSoldProducts && topSoldProducts.length > 0) {
+            topSoldProducts.forEach(product => {
                 if (product._id) {
                     dispatch(fetchProductReviewsByProductId(product._id));
                 }
             });
         }
-    }, [dispatch, activeProducts]);
+    }, [dispatch]);
 
-    if (!activeProducts || activeProducts.length === 0) {
-        return <Text style={styles.errorText}>No products available.</Text>;
+    if (isLoadingTopSold) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <View style={styles.titleContainer}>
+                        <Text style={styles.title}>{title}</Text>
+                        <View style={styles.titleUnderline} />
+                    </View>
+                </View>
+                <View style={styles.loadingContainer}>
+                    <MinimalLoading color={COLORS.primary} />
+                </View>
+            </View>
+        );
+    }
+
+    if (!topSoldProducts || topSoldProducts.length === 0) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <View style={styles.titleContainer}>
+                        <Text style={styles.title}>{title}</Text>
+                        <View style={styles.titleUnderline} />
+                    </View>
+                </View>
+                <Text style={styles.errorText}>No top sold products available.</Text>
+            </View>
+        );
     }
 
     return (
@@ -52,7 +85,7 @@ const FeaturedProducts = ({ products, title }) => {
                 snapToInterval={200}
                 snapToAlignment="center"
             >
-                {activeProducts.map((product) => (
+                {topSoldProducts.map((product) => (
                     <View key={product._id} style={styles.productWrapper}>
                         <ProductCard product={product} />
                     </View>
@@ -116,6 +149,11 @@ const styles = StyleSheet.create({
         width: 180,
         marginRight: 16,
     },
+    loadingContainer: {
+        height: 200,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     errorText: {
         color: COLORS.primary,
         textAlign: 'center',
@@ -124,4 +162,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default FeaturedProducts;
+export default FeaturedTopProducts; 
