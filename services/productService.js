@@ -1,15 +1,15 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Hàm lấy danh sách sản phẩm với phân trang và lọc theo category
-export async function getProducts({ page = 1, limit = 10, categoryId = null }) {
+// Hàm lấy danh sách sản phẩm với phân trang và tìm kiếm
+export async function getProducts({ page = 1, limit = 10, search = null }) {
     try {
         const token = await AsyncStorage.getItem('token');
         if (!token) throw new Error('Token not found');
 
         let url = `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/product?page=${page}&limit=${limit}`;
-        if (categoryId) {
-            url += `&category_id=${categoryId}`;
+        if (search && search.trim() !== '') {
+            url += `&search=${encodeURIComponent(search.trim())}`;
         }
 
         console.log('Fetching products with URL:', url); // Debug log

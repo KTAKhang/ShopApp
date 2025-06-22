@@ -17,10 +17,10 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { fetchProductByIdAsync } from '../store/slices/productSlice';
-import { 
-    fetchProductReviewsByProductId, 
+import {
+    fetchProductReviewsByProductId,
     selectProductReviews,
-    selectProductReviewsLoading 
+    selectProductReviewsLoading
 } from '../store/slices/reviewSlice';
 import { addToCart } from '../store/slices/cartSlice';
 import { COLORS } from '../constants/colors';
@@ -39,7 +39,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
     // Get product and loading state from Redux
     const { product, isLoading: productLoading, error } = useSelector((state) => state.product);
-    
+
     // Get reviews for this specific product ONLY
     const reviews = useSelector(state => selectProductReviews(state, productId));
     const reviewsLoading = useSelector(state => selectProductReviewsLoading(state, productId));
@@ -49,7 +49,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
         if (productId && productId !== 'undefined') {
             // Fetch product details
             dispatch(fetchProductByIdAsync(productId));
-            
+
             // Chỉ fetch reviews nếu chưa có data cho sản phẩm này
             // Hoặc nếu bạn muốn luôn refresh data, hãy bỏ điều kiện này
             if (!reviews || reviews.length === 0) {
@@ -96,11 +96,11 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const renderUserAvatar = (user) => {
         const avatarUrl = user?.avatar;
         const userName = user?.name || user?.user_name || user?.username || 'Anonymous';
-        
+
         if (avatarUrl) {
             return (
-                <Image 
-                    source={{ uri: avatarUrl }} 
+                <Image
+                    source={{ uri: avatarUrl }}
                     style={styles.userAvatar}
                     onError={() => {
                         // Fallback nếu không load được avatar
@@ -127,12 +127,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         {renderUserAvatar(review.user)}
                         <View style={styles.reviewerDetails}>
                             <Text style={styles.reviewerName}>
-                                {review.user?.name || 
-                                 review.user?.user_name || 
-                                 review.user?.username ||
-                                 review.userName ||
-                                 review.user_name ||
-                                 'Anonymous'}
+                                {review.user?.name ||
+                                    review.user?.user_name ||
+                                    review.user?.username ||
+                                    review.userName ||
+                                    review.user_name ||
+                                    'Anonymous'}
                             </Text>
                             <Text style={styles.reviewDate}>
                                 {new Date(review.createdAt).toLocaleDateString()}
@@ -157,7 +157,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
 
         const previewReviews = reviews.slice(0, 2);
-        
+
         return (
             <>
                 {previewReviews.map((review, index) => (
@@ -167,12 +167,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
                                 {renderUserAvatar(review.user)}
                                 <View style={styles.reviewerDetails}>
                                     <Text style={styles.reviewerName}>
-                                        {review.user?.name || 
-                                         review.user?.user_name || 
-                                         review.user?.username ||
-                                         review.userName ||
-                                         review.user_name ||
-                                         'Anonymous'}
+                                        {review.user?.name ||
+                                            review.user?.user_name ||
+                                            review.user?.username ||
+                                            review.userName ||
+                                            review.user_name ||
+                                            'Anonymous'}
                                     </Text>
                                     <Text style={styles.reviewDate}>
                                         {new Date(review.createdAt).toLocaleDateString()}
@@ -186,9 +186,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         <Text style={styles.reviewText}>{review.content}</Text>
                     </View>
                 ))}
-                
+
                 {reviews.length > 2 && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.showAllButton}
                         onPress={() => setShowAllReviews(true)}
                     >
@@ -220,12 +220,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         >
                             <Icon name="close" size={24} color={COLORS.text} />
                         </TouchableOpacity>
-                        
+
                         <Text style={styles.modalTitle}>
                             All Reviews ({reviews ? reviews.length : 0})
                         </Text>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={styles.modalRefreshButton}
                             onPress={handleRefresh}
                         >
@@ -304,8 +304,8 @@ const ProductDetailScreen = ({ navigation, route }) => {
         return (
             <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Error: {error}</Text>
-                <TouchableOpacity 
-                    style={styles.retryButton} 
+                <TouchableOpacity
+                    style={styles.retryButton}
                     onPress={handleRefresh}
                 >
                     <Text style={styles.retryText}>Retry</Text>
@@ -327,8 +327,8 @@ const ProductDetailScreen = ({ navigation, route }) => {
         return (
             <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Product not found</Text>
-                <TouchableOpacity 
-                    style={styles.retryButton} 
+                <TouchableOpacity
+                    style={styles.retryButton}
                     onPress={() => navigation.goBack()}
                 >
                     <Text style={styles.retryText}>Go Back</Text>
@@ -352,16 +352,14 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                 <Text style={styles.headerTitle}>Product Details</Text>
 
-                <TouchableOpacity style={styles.headerButton}>
-                    <Icon name="share" size={24} color={COLORS.white} />
-                </TouchableOpacity>
+                <View style={styles.headerButton} />
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Product Image */}
                 <View style={styles.imageContainer}>
-                    <Image 
-                        source={{ uri: product.image }} 
+                    <Image
+                        source={{ uri: product.image }}
                         style={styles.productImage}
                     />
                 </View>
@@ -426,7 +424,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                             <Text style={styles.sectionTitle}>
                                 Reviews ({reviews ? reviews.length : 0})
                             </Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.refreshButton}
                                 onPress={handleRefresh}
                             >
@@ -434,7 +432,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                                 <Text style={styles.refreshText}>Refresh</Text>
                             </TouchableOpacity>
                         </View>
-                        
+
                         {/* Preview Reviews */}
                         <View style={styles.reviewsPreviewContainer}>
                             {renderPreviewReviews()}
@@ -448,16 +446,16 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
             {/* Bottom Action Bar */}
             <View style={styles.actionBar}>
-                <TouchableOpacity 
-                    style={styles.addToCartButton} 
+                <TouchableOpacity
+                    style={styles.addToCartButton}
                     onPress={handleAddToCart}
                 >
                     <Icon name="shopping-cart" size={20} color={COLORS.primary} />
                     <Text style={styles.addToCartText}>Add to Cart</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={styles.buyNowButton} 
+                <TouchableOpacity
+                    style={styles.buyNowButton}
                     onPress={handleBuyNow}
                 >
                     <Icon name="shopping-bag" size={20} color={COLORS.white} />

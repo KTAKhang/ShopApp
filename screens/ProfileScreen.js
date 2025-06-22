@@ -167,9 +167,6 @@ const ProfileScreen = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Profile</Text>
-                <TouchableOpacity onPress={handleLogout}>
-                    <Ionicons name="settings-outline" size={24} color="#374151" />
-                </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -246,7 +243,7 @@ const styles = StyleSheet.create({
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 12,
