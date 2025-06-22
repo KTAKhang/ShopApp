@@ -73,8 +73,7 @@ const FeaturedTopProducts = ({ title }) => {
                     style={styles.seeAllButton}
                     onPress={() => navigation.navigate('AllProducts')}
                 >
-                    <Text style={styles.seeAllText}>See All</Text>
-                    <Icon name="arrow-forward" size={20} color={COLORS.primary} />
+
                 </TouchableOpacity>
             </View>
             <ScrollView
