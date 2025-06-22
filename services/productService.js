@@ -30,7 +30,42 @@ export async function getProducts({ page = 1, limit = 10, search = null, categor
             throw new Error(data.message || 'Failed to fetch products');
         }
 
-        return data; // Trả về toàn bộ response data
+        // Simple approach: fetch all products and let Redux handle pagination
+        // Increase limit to get more products for better active products coverage
+        const fetchLimit = Math.max(limit * 3, 50); // Fetch 3x more to ensure enough active products
+        const enhancedUrl = url.replace(`limit=${limit}`, `limit=${fetchLimit}`);
+
+        const enhancedResponse = await axios.get(enhancedUrl, {
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        const enhancedData = enhancedResponse.data;
+        if (enhancedData.status !== 'OK') {
+            throw new Error(enhancedData.message || 'Failed to fetch products');
+        }
+
+        // Filter active products and use API's totalActive for proper pagination
+        const allProducts = enhancedData.data.products;
+        const activeProducts = allProducts.filter(product => product.status === true);
+        const totalActive = enhancedData.data.total.totalActive || activeProducts.length;
+        const totalPages = Math.ceil(totalActive / limit);
+
+        return {
+            ...enhancedData,
+            data: {
+                ...enhancedData.data,
+                products: activeProducts, // Return all active products fetched
+                total: {
+                    ...enhancedData.data.total,
+                    totalProduct: totalActive,
+                    currentPage: page,
+                    totalPage: totalPages
+                }
+            }
+        };
 
     } catch (error) {
         console.error('getProducts error:', error);
@@ -102,17 +137,26 @@ export async function getProductsByCategory({ category_name, page = 1, limit = 1
             return productCategory.includes(targetCategory) || targetCategory.includes(productCategory);
         });
 
-        // Use client-side filtered results
+        // Implement proper client-side pagination
+        const totalProducts = filteredProducts.length;
+        const totalPages = Math.ceil(totalProducts / limit);
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+
+
+        // Use client-side filtered and paginated results
         const result = {
             ...allProductsResponse,
             data: {
                 ...allProductsResponse.data,
-                products: filteredProducts,
+                products: paginatedProducts,
                 total: {
                     ...allProductsResponse.data.total,
-                    totalProduct: filteredProducts.length,
-                    currentPage: 1,
-                    totalPage: 1
+                    totalProduct: totalProducts,
+                    currentPage: page,
+                    totalPage: totalPages
                 }
             }
         };
