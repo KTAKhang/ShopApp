@@ -338,6 +338,45 @@ const ProductDetailScreen = ({ navigation, route }) => {
         );
     }
 
+    // Check if product is inactive (status = false)
+    if (product.status === false) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
+
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Icon name="arrow-back" size={24} color={COLORS.white} />
+                    </TouchableOpacity>
+
+                    <Text style={styles.headerTitle}>Product Details</Text>
+
+                    <View style={styles.headerButton} />
+                </View>
+
+                <View style={styles.inactiveContainer}>
+                    <View style={styles.inactiveWrapper}>
+                        <Icon name="block" size={80} color="#ff6b6b" />
+                        <Text style={styles.inactiveTitle}>Product Not Available</Text>
+                        <Text style={styles.inactiveText}>
+                            This product is currently not available for purchase.
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.goBackButton}
+                            onPress={() => navigation.goBack()}
+                        >
+                            <Text style={styles.goBackButtonText}>Go Back</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
@@ -870,6 +909,56 @@ const styles = StyleSheet.create({
         color: COLORS.text?.primary || '#333',
         marginTop: 15,
         textAlign: 'center',
+    },
+    inactiveContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
+        padding: 20,
+    },
+    inactiveWrapper: {
+        backgroundColor: COLORS.white,
+        padding: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        shadowColor: COLORS.shadow?.dark || '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
+        maxWidth: 300,
+    },
+    inactiveTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#ff6b6b',
+        marginTop: 20,
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    inactiveText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 30,
+    },
+    goBackButton: {
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 12,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    goBackButtonText: {
+        color: COLORS.white,
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
 

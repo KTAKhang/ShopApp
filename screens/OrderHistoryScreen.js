@@ -66,7 +66,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     // Load more handler
     const loadMoreOrders = useCallback(() => {
         if (!isLoadingMore && hasMore && !orderLoading) {
-            console.log(`Loading more orders - page ${currentPage + 1}`);
+
             dispatch(fetchOrderByUser({
                 page: currentPage + 1,
                 limit: 5,

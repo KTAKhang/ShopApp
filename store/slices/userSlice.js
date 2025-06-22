@@ -32,7 +32,7 @@ export const changePassword = createAsyncThunk(
     async ({ old_password, new_password }, { rejectWithValue }) => {
         try {
             const response = await changePasswordApi({ old_password, new_password });
-            console.log('Change password response:', response);
+
             return response.message;
         } catch (error) {
             return rejectWithValue(error.message);

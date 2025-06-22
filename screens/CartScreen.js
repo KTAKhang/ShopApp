@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCartByUser, updateCartItem, removeCartItem } from '../store/slices/cartSlice';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const CartScreen = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -37,7 +38,7 @@ const CartScreen = ({ navigation }) => {
             const transformedItems = cart.items.map(item => ({
                 id: item.product_id,
                 name: item.name,
-                price: item.price / 1000,
+                price: item.price, // Giữ nguyên giá VND
                 image: item.image,
                 quantity: item.quantity,
                 color: 'Default',
@@ -113,7 +114,7 @@ const CartScreen = ({ navigation }) => {
                     quantity
                 })).unwrap();
 
-                console.log('Cart updated successfully');
+
             } catch (error) {
                 console.error('Update failed:', error);
                 Alert.alert(
@@ -242,7 +243,7 @@ const CartScreen = ({ navigation }) => {
                 quantity: newQuantity
             })).unwrap();
 
-            console.log('Cart updated successfully from input');
+
 
             // Clear editing state sau khi update thành công
             setEditingQuantity(prev => {
@@ -308,7 +309,7 @@ const CartScreen = ({ navigation }) => {
 
         try {
             await dispatch(removeCartItem(product_id)).unwrap();
-            console.log('Item removed successfully');
+
 
             // Remove from selected items if it was selected
             setSelectedItems(prev => prev.filter(id => id !== product_id));
@@ -417,8 +418,8 @@ const CartScreen = ({ navigation }) => {
     // Calculate totals for selected items only
     const selectedCartItems = cartItems.filter(item => selectedItems.includes(item.id));
     const subtotal = selectedCartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const shipping = selectedCartItems.length > 0 ? 0 : 0; // Free shipping or calculate based on selection
-    const tax = selectedCartItems.length > 0 ? 24.00 : 0;
+    const shipping = selectedCartItems.length > 0 ? 0 : 0; // Free shipping
+    const tax = selectedCartItems.length > 0 ? Math.round(subtotal * 0.1) : 0; // Tax 10% of subtotal
     const total = subtotal + shipping + tax;
 
     const handleCheckout = () => {
@@ -447,7 +448,7 @@ const CartScreen = ({ navigation }) => {
         }
 
         const selected_product_ids = selectedProducts.map(item => item.id);
-        console.log("selected_product_ids", selected_product_ids);
+
 
         navigation.navigate('Payment', {
             selectedItems: selectedProducts,
@@ -545,7 +546,7 @@ const CartScreen = ({ navigation }) => {
                             !isSelected && styles.itemPriceUnselected,
                             isUnavailable && styles.unavailableText
                         ]}>
-                            ${item.price.toFixed(2)}
+                            {formatCurrency(item.price)}
                         </Text>
 
                         {/* Quantity controls - disabled nếu hết hàng hoặc ngừng bán */}
@@ -758,20 +759,20 @@ const CartScreen = ({ navigation }) => {
                         <View style={styles.summaryContent}>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Subtotal</Text>
-                                <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+                                <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
                             </View>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Shipping</Text>
-                                <Text style={styles.summaryValue}>${shipping.toFixed(2)}</Text>
+                                <Text style={styles.summaryValue}>{formatCurrency(shipping)}</Text>
                             </View>
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Tax</Text>
-                                <Text style={styles.summaryValue}>${tax.toFixed(2)}</Text>
+                                <Text style={styles.summaryLabel}>Tax (10%)</Text>
+                                <Text style={styles.summaryValue}>{formatCurrency(tax)}</Text>
                             </View>
                             <View style={styles.totalDivider} />
                             <View style={[styles.summaryRow, styles.totalRow]}>
                                 <Text style={styles.totalLabel}>Total</Text>
-                                <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+                                <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
                             </View>
                         </View>
                     </View>

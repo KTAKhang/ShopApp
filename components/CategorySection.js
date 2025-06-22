@@ -17,7 +17,7 @@ const CategorySection = ({ categories }) => {
     }
 
     const handleCategoryPress = (category) => {
-        console.log('Selected category:', category);
+
         navigation.navigate('AllProducts', {
             categoryId: category._id,
             categoryName: category.name

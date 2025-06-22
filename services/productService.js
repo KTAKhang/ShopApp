@@ -12,7 +12,10 @@ export async function getProducts({ page = 1, limit = 10, search = null }) {
             url += `&search=${encodeURIComponent(search.trim())}`;
         }
 
-        console.log('Fetching products with URL:', url); // Debug log
+        // Luôn filter chỉ lấy sản phẩm có status = true (active products)
+        url += `&status=true`;
+
+
 
         const response = await axios.get(url, {
             headers: {
@@ -21,7 +24,7 @@ export async function getProducts({ page = 1, limit = 10, search = null }) {
             },
         });
 
-        console.log('API Response:', response.data); // Debug log
+
 
         const data = response.data;
 
@@ -43,7 +46,7 @@ export async function getProductById(id) {
         const token = await AsyncStorage.getItem('token');
         if (!token) throw new Error('Token not found');
 
-        console.log('Fetching product with ID:', id); // Debug log
+
 
         const response = await axios.get(
             `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/product/${id}`,
@@ -55,7 +58,7 @@ export async function getProductById(id) {
             }
         );
 
-        console.log('Product API response:', response.data); // Debug log
+
 
         const data = response.data;
 
