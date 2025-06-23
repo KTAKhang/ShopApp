@@ -1,8 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const truncateText = (text, maxLength) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+};
 
 const CategorySection = ({ categories }) => {
     const navigation = useNavigation();
@@ -11,8 +16,17 @@ const CategorySection = ({ categories }) => {
         return <Text style={styles.errorText}>No categories available.</Text>;
     }
 
+    // Component level filtering: Chỉ hiển thị active categories (status = true)
+    const activeCategories = categories.filter(category => category.status === true);
+
+    if (activeCategories.length === 0) {
+        return <Text style={styles.errorText}>No active categories available.</Text>;
+    }
+
     const handleCategoryPress = (category) => {
-        console.log('Selected category:', category);
+
+
+
         navigation.navigate('AllProducts', {
             categoryId: category._id,
             categoryName: category.name
@@ -22,10 +36,15 @@ const CategorySection = ({ categories }) => {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Categories</Text>
-            <View style={styles.categoriesGrid}>
-                {categories.map((category) => (
-                    <TouchableOpacity 
-                        key={category._id} 
+            <ScrollView
+                horizontal={true}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                style={styles.scrollView}
+            >
+                {activeCategories.map((category) => (
+                    <TouchableOpacity
+                        key={category._id}
                         style={styles.categoryItem}
                         onPress={() => handleCategoryPress(category)}
                     >
@@ -38,11 +57,11 @@ const CategorySection = ({ categories }) => {
                             <View style={styles.categoryImageContainer}>
                                 <Image source={{ uri: category.image }} style={styles.categoryImage} />
                             </View>
-                            <Text style={styles.categoryName}>{category.name}</Text>
+                            <Text style={styles.categoryName}>{truncateText(category.name, 10)}</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 ))}
-            </View>
+            </ScrollView>
         </View>
     );
 };
@@ -59,17 +78,17 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         letterSpacing: 0.5,
     },
-    categoriesGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        marginHorizontal: -6,
+    scrollView: {
+        marginHorizontal: -16,
+    },
+    scrollContent: {
+        paddingHorizontal: 16,
+        paddingVertical: 4,
     },
     categoryItem: {
-        width: '23%',
-        aspectRatio: 0.9,
-        marginHorizontal: 6,
-        marginBottom: 12,
+        width: 90,
+        height: 100,
+        marginRight: 12,
     },
     categoryGradient: {
         flex: 1,
@@ -84,12 +103,12 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
     categoryImageContainer: {
-        width: '70%',
-        aspectRatio: 1,
+        width: 50,
+        height: 50,
         backgroundColor: COLORS.white,
-        borderRadius: 35,
-        padding: 8,
-        marginBottom: 8,
+        borderRadius: 25,
+        padding: 6,
+        marginBottom: 6,
         elevation: 2,
         shadowColor: COLORS.shadow.dark,
         shadowOffset: { width: 0, height: 2 },
@@ -100,16 +119,17 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         resizeMode: 'contain',
-        borderRadius: 35,
+        borderRadius: 19,
     },
     categoryName: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '600',
         color: COLORS.white,
         textAlign: 'center',
         textShadowColor: 'rgba(0, 0, 0, 0.3)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
+        marginHorizontal: 2,
     },
     errorText: {
         color: COLORS.primary,
