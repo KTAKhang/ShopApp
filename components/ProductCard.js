@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../constants/colors';
@@ -44,6 +44,13 @@ const renderStars = (rating) => {
 const ProductCard = ({ product }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
+    const [showLoadingModal, setShowLoadingModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+    // Safety check: Don't render inactive products
+    if (!product || product.status === false) {
+        return null;
+    }
 
     // Get reviews for THIS specific product only
     const productReviews = useSelector(state => selectProductReviews(state, product._id));
@@ -58,24 +65,28 @@ const ProductCard = ({ product }) => {
     };
 
     const handleAddToCart = async () => {
+        if (showLoadingModal) return; // Prevent multiple clicks
+
+        setShowLoadingModal(true);
         try {
             await dispatch(addToCart({
                 product_id: product._id,
                 quantity: 1
             })).unwrap();
 
-            Alert.alert(
-                'Success',
-                'Product added to cart successfully',
-                [{ text: 'OK' }]
-            );
+            // Hide loading and show success
+            setShowLoadingModal(false);
+            setShowSuccessModal(true);
+
+            // Auto hide success modal after 2 seconds
+            setTimeout(() => {
+                setShowSuccessModal(false);
+            }, 2000);
+
         } catch (error) {
             console.error('Failed to add to cart:', error);
-            Alert.alert(
-                'Error',
-                'Failed to add item to cart. Please try again.',
-                [{ text: 'OK' }]
-            );
+            setShowLoadingModal(false);
+            // Could add error modal here
         }
     };
 
@@ -99,12 +110,41 @@ const ProductCard = ({ product }) => {
                         <TouchableOpacity
                             style={styles.addButton}
                             onPress={handleAddToCart}
+                            disabled={showLoadingModal}
                         >
-                            <Icon name="add-shopping-cart" size={20} color={COLORS.white} />
+                            <Icon name="add-shopping-cart" size={16} color={COLORS.white} />
                         </TouchableOpacity>
                     </View>
                 </View>
             </LinearGradient>
+
+            {/* Loading Modal */}
+            <Modal
+                transparent={true}
+                animationType="fade"
+                visible={showLoadingModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                        <Text style={styles.modalText}>Đang thêm vào giỏ hàng...</Text>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Success Modal */}
+            <Modal
+                transparent={true}
+                animationType="fade"
+                visible={showSuccessModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Icon name="check-circle" size={50} color="#4CAF50" />
+                        <Text style={styles.modalText}>Thêm vào giỏ hàng thành công!</Text>
+                    </View>
+                </View>
+            </Modal>
         </TouchableOpacity>
     );
 };
@@ -168,13 +208,38 @@ const styles = StyleSheet.create({
     },
     addButton: {
         backgroundColor: COLORS.primary,
-        padding: 8,
-        borderRadius: 15,
+        padding: 6,
+        borderRadius: 12,
         elevation: 2,
         shadowColor: COLORS.shadow.dark,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 3,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: COLORS.white,
+        padding: 30,
+        borderRadius: 20,
+        alignItems: 'center',
+        minWidth: 250,
+        elevation: 5,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
+    },
+    modalText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.text.primary,
+        marginTop: 15,
+        textAlign: 'center',
     },
 });
 

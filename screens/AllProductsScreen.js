@@ -1,22 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
     FlatList,
     StyleSheet,
-    ActivityIndicator,
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
-    Animated,
     Dimensions,
     TextInput,
     Modal,
+    Alert,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProductsAsync, resetAllProducts } from '../store/slices/productSlice';
+import { fetchProductsAsync, fetchProductsByCategoryAsync, resetAllProducts } from '../store/slices/productSlice';
 import ProductCard from '../components/ProductCard';
 import CategorySection from '../components/CategorySection';
+import { InlineLoading, FooterLoading } from '../components/Loading';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,100 +28,143 @@ const AllProductsScreen = ({ navigation, route }) => {
     const { allProducts, isLoading, pagination } = useSelector((state) => state.product);
     const { categories } = useSelector((state) => state.category); // Lấy categories từ store
     const [refreshing, setRefreshing] = useState(false);
-    const [scrollY] = useState(new Animated.Value(0));
     const [searchText, setSearchText] = useState('');
-    const [filteredProducts, setFilteredProducts] = useState([]);
     const [isSearchVisible, setIsSearchVisible] = useState(false);
-    const [isSearching, setIsSearching] = useState(false);
-    const ITEMS_PER_PAGE = 10;
+    const [currentSearch, setCurrentSearch] = useState(''); // Track current search term for API
+    const ITEMS_PER_PAGE = 6;
 
-    // Get category info from route params
-    const categoryId = route.params?.categoryId;
+    // Get category info from route params (for display only)
     const categoryName = route.params?.categoryName;
 
-    console.log('Route params:', route.params); // Debug log
-    console.log('Category ID:', categoryId); // Debug log
-    console.log('Category Name:', categoryName); // Debug log
-
     useEffect(() => {
-        console.log('Loading products with categoryId:', categoryId); // Debug log
-        loadProducts();
+
+
+        if (categoryName) {
+            // If navigated with categoryName, fetch products by category
+            dispatch(fetchProductsByCategoryAsync({
+                category_name: categoryName,
+                page: 1,
+                limit: ITEMS_PER_PAGE
+            }));
+        } else {
+            // Otherwise, fetch all products
+            dispatch(fetchProductsAsync({
+                page: 1,
+                limit: ITEMS_PER_PAGE,
+                isAllProducts: true,
+                search: null
+            }));
+        }
         return () => {
             dispatch(resetAllProducts());
         };
-    }, [categoryId]);
+    }, [dispatch, categoryName]);
 
-    // Filter products based on search text
-    useEffect(() => {
-        if (searchText.trim() === '') {
-            setFilteredProducts(allProducts);
-            setIsSearching(false);
-        } else {
-            setIsSearching(true);
-            const filtered = allProducts.filter(product =>
-                product.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-                product.title?.toLowerCase().includes(searchText.toLowerCase()) ||
-                product.description?.toLowerCase().includes(searchText.toLowerCase())
-            );
-            setFilteredProducts(filtered);
-        }
-    }, [searchText, allProducts]);
 
-    const loadProducts = (refresh = false) => {
-        const pageToLoad = refresh ? 1 : pagination.currentPage;
-        console.log('Loading page:', pageToLoad, 'with categoryId:', categoryId); // Debug log
 
-        dispatch(fetchProductsAsync({
-            page: pageToLoad,
-            limit: ITEMS_PER_PAGE,
-            isAllProducts: true,
-            categoryId
-        }));
-    };
+    // No auto search - only search when user clicks search button
 
-    const handleRefresh = () => {
+    const handleRefresh = useCallback(() => {
         setRefreshing(true);
         dispatch(resetAllProducts());
-        loadProducts(true);
-        setRefreshing(false);
-    };
 
-    const handleLoadMore = () => {
-        if (!isLoading && pagination.hasMore && !isSearching) {
-            console.log('Loading more products with categoryId:', categoryId); // Debug log
+        if (categoryName) {
+            // Refresh category products
+            dispatch(fetchProductsByCategoryAsync({
+                category_name: categoryName,
+                page: 1,
+                limit: ITEMS_PER_PAGE
+            }));
+        } else {
+            // Refresh all products or search results
             dispatch(fetchProductsAsync({
-                page: pagination.currentPage + 1,
+                page: 1,
                 limit: ITEMS_PER_PAGE,
                 isAllProducts: true,
-                categoryId
+                search: currentSearch
             }));
         }
-    };
+        setRefreshing(false);
+    }, [dispatch, currentSearch, categoryName]);
+
+    const handleLoadMore = useCallback(() => {
+        // Additional conditions to prevent unnecessary loading
+        if (!isLoading && pagination.hasMore && allProducts.length >= ITEMS_PER_PAGE) {
+            const pageToLoad = pagination.currentPage + 1;
+
+
+
+            if (categoryName && !currentSearch) {
+                // Load more category products
+                dispatch(fetchProductsByCategoryAsync({
+                    category_name: categoryName,
+                    page: pageToLoad,
+                    limit: ITEMS_PER_PAGE
+                }));
+            } else {
+                // Load more all products or search results
+                dispatch(fetchProductsAsync({
+                    page: pageToLoad,
+                    limit: ITEMS_PER_PAGE,
+                    isAllProducts: true,
+                    search: currentSearch
+                }));
+            }
+        }
+    }, [isLoading, pagination.hasMore, pagination.currentPage, currentSearch, categoryName, dispatch, allProducts.length]);
 
     const handleSearchPress = () => {
+        setSearchText(currentSearch || ''); // Set current search when opening modal
         setIsSearchVisible(true);
     };
 
     const handleSearchClose = () => {
         setIsSearchVisible(false);
-        setSearchText('');
+        // Reset searchText to currentSearch when closing modal
+        setSearchText(currentSearch || '');
+    };
+
+    const handleSearch = () => {
+        if (searchText.trim() !== currentSearch) {
+            setCurrentSearch(searchText.trim());
+            const searchToUse = searchText.trim() || null;
+            dispatch(resetAllProducts());
+            setIsSearchVisible(false); // Close modal before starting search
+            dispatch(fetchProductsAsync({
+                page: 1,
+                limit: ITEMS_PER_PAGE,
+                isAllProducts: true,
+                search: searchToUse
+            }));
+        } else {
+            setIsSearchVisible(false); // Close modal if search term is same
+        }
     };
 
     const clearSearch = () => {
         setSearchText('');
+        if (currentSearch !== '') {
+            setCurrentSearch('');
+            dispatch(resetAllProducts());
+
+            if (categoryName) {
+                // Return to category filtering
+                dispatch(fetchProductsByCategoryAsync({
+                    category_name: categoryName,
+                    page: 1,
+                    limit: ITEMS_PER_PAGE
+                }));
+            } else {
+                // Return to all products
+                dispatch(fetchProductsAsync({
+                    page: 1,
+                    limit: ITEMS_PER_PAGE,
+                    isAllProducts: true,
+                    search: null
+                }));
+            }
+        }
     };
-
-    const headerOpacity = scrollY.interpolate({
-        inputRange: [0, 100],
-        outputRange: [1, 0.9],
-        extrapolate: 'clamp',
-    });
-
-    const headerTranslateY = scrollY.interpolate({
-        inputRange: [0, 100],
-        outputRange: [0, -10],
-        extrapolate: 'clamp',
-    });
 
     const renderSearchModal = () => (
         <Modal
@@ -139,18 +182,20 @@ const AllProductsScreen = ({ navigation, route }) => {
                         >
                             <Icon name="arrow-back" size={24} color="#0D364C" />
                         </TouchableOpacity>
-                        <Text style={styles.searchTitle}>Search Products</Text>
+                        <Text style={styles.searchTitle}>Tìm kiếm sản phẩm</Text>
                     </View>
 
                     <View style={styles.searchInputContainer}>
                         <Icon name="search" size={20} color="#13C2C2" style={styles.searchIcon} />
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Search by product name..."
+                            placeholder="Tìm kiếm theo tên sản phẩm..."
                             placeholderTextColor="#A0A0A0"
                             value={searchText}
                             onChangeText={setSearchText}
                             autoFocus={true}
+                            onSubmitEditing={handleSearch}
+                            returnKeyType="search"
                         />
                         {searchText.length > 0 && (
                             <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
@@ -159,10 +204,40 @@ const AllProductsScreen = ({ navigation, route }) => {
                         )}
                     </View>
 
-                    {searchText.trim() !== '' && (
+                    <View style={styles.searchButtonContainer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.searchActionButton,
+                                searchText.trim() === '' && styles.searchActionButtonDisabled
+                            ]}
+                            onPress={handleSearch}
+                            disabled={searchText.trim() === ''}
+                        >
+                            <Icon name="search" size={20} color="#fff" />
+                            <Text style={styles.searchActionButtonText}>Tìm kiếm</Text>
+                        </TouchableOpacity>
+
+                        {currentSearch && (
+                            <TouchableOpacity
+                                style={styles.clearAllButton}
+                                onPress={() => {
+                                    clearSearch();
+                                    setIsSearchVisible(false);
+                                }}
+                            >
+                                <Icon name="clear-all" size={20} color="#6b7280" />
+                                <Text style={styles.clearAllButtonText}>Xóa tất cả</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {currentSearch && (
                         <View style={styles.searchResultsContainer}>
                             <Text style={styles.searchResultsText}>
-                                {filteredProducts.length} results found
+                                Tìm kiếm hiện tại: "{currentSearch}"
+                            </Text>
+                            <Text style={styles.searchResultsSubText}>
+                                Tìm thấy {allProducts.length} sản phẩm
                             </Text>
                         </View>
                     )}
@@ -172,15 +247,7 @@ const AllProductsScreen = ({ navigation, route }) => {
     );
 
     const renderHeader = () => (
-        <Animated.View
-            style={[
-                styles.headerContainer,
-                {
-                    opacity: headerOpacity,
-                    transform: [{ translateY: headerTranslateY }]
-                }
-            ]}
-        >
+        <View style={styles.headerContainer}>
             <LinearGradient
                 colors={['#13C2C2', '#0D364C', '#13C2C2']}
                 start={{ x: 0, y: 0 }}
@@ -200,11 +267,11 @@ const AllProductsScreen = ({ navigation, route }) => {
 
                     <View style={styles.headerTitleContainer}>
                         <Text style={styles.headerTitle}>
-                            {categoryName || 'All Products'}
+                            {currentSearch ? 'Kết quả tìm kiếm' : (categoryName || 'Tất cả sản phẩm')}
                         </Text>
                         <Text style={styles.headerSubtitle}>
-                            {isSearching ? filteredProducts.length : allProducts.length} items
-                            {isSearching && ` (filtered)`}
+                            {allProducts.length} sản phẩm
+                            {currentSearch ? ` cho "${currentSearch}"` : ''}
                         </Text>
                     </View>
 
@@ -224,12 +291,12 @@ const AllProductsScreen = ({ navigation, route }) => {
                 <View style={styles.decorativeCircle2} />
                 <View style={styles.decorativeCircle3} />
             </LinearGradient>
-        </Animated.View>
+        </View>
     );
 
     const renderCategorySection = () => {
-        // Chỉ hiển thị CategorySection khi không có categoryId cụ thể (tức là đang xem tất cả sản phẩm)
-        if (categoryId || isSearching) return null;
+        // Chỉ hiển thị CategorySection khi không có search term và không có category cụ thể
+        if (currentSearch || categoryName) return null;
 
         return (
             <View style={styles.categorySectionContainer}>
@@ -238,119 +305,118 @@ const AllProductsScreen = ({ navigation, route }) => {
         );
     };
 
+
+
     const renderItem = ({ item, index }) => {
-        const animatedStyle = {
-            opacity: scrollY.interpolate({
-                inputRange: [0, 50 * index, 50 * (index + 2)],
-                outputRange: [1, 1, 0.3],
-                extrapolate: 'clamp',
-            }),
-            transform: [{
-                scale: scrollY.interpolate({
-                    inputRange: [0, 50 * index, 50 * (index + 2)],
-                    outputRange: [1, 1, 0.95],
-                    extrapolate: 'clamp',
-                })
-            }]
-        };
-
         return (
-
-            <Animated.View style={[styles.productContainer, animatedStyle]}>
+            <View style={styles.productContainer}>
                 <View style={styles.productCardWrapper}>
                     <ProductCard product={item} />
-                </View>
-            </Animated.View>
-        );
-    };
-
-    const renderFooter = () => {
-        if (!isLoading || !pagination.hasMore || isSearching) return null;
-        return (
-            <View style={styles.footerLoader}>
-                <View style={styles.loaderContainer}>
-                    <ActivityIndicator size="small" color="#13C2C2" />
-                    <Text style={styles.loadingText}>Loading more...</Text>
                 </View>
             </View>
         );
     };
 
-    if (isLoading && pagination.currentPage === 1 && allProducts.length === 0) {
+    // Loading footer component
+    const LoadingFooter = () => {
+        if (!isLoading || !pagination.hasMore) return null;
+
+        return <FooterLoading text="Đang tải thêm sản phẩm..." />;
+    };
+
+    // No more items footer
+    const NoMoreFooter = () => {
+        if (pagination.hasMore || allProducts.length === 0) return null;
+
         return (
-            <SafeAreaView style={styles.container}>
-                <StatusBar barStyle="light-content" backgroundColor="#0D364C" />
-                {renderHeader()}
-                <View style={styles.loadingContainer}>
-                    <View style={styles.loadingWrapper}>
-                        <ActivityIndicator size="large" color="#13C2C2" />
-                        <Text style={styles.loadingMainText}>Loading Products</Text>
-                        <Text style={styles.loadingSubText}>Please wait a moment...</Text>
-                    </View>
-                </View>
-                {renderSearchModal()}
-            </SafeAreaView>
+            <View style={styles.noMoreFooter}>
+                <Text style={styles.noMoreText}>Không còn sản phẩm nào để tải</Text>
+                <Text style={styles.totalProductsText}>Tổng cộng: {allProducts.length} sản phẩm</Text>
+            </View>
         );
-    }
+    };
 
-    console.log('Rendering products:', allProducts.length); // Debug log
-    console.log('Filtered products:', filteredProducts.length); // Debug log
-
-    const displayProducts = isSearching ? filteredProducts : allProducts;
+    const isInitialLoading = isLoading && pagination.currentPage === 1 && allProducts.length === 0;
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#0D364C" />
             {renderHeader()}
+
             <View style={styles.content}>
-                <Animated.FlatList
-                    data={displayProducts}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item._id}
-                    numColumns={2}
-                    contentContainerStyle={styles.listContent}
-                    onRefresh={handleRefresh}
-                    refreshing={refreshing}
-                    onEndReached={handleLoadMore}
-                    onEndReachedThreshold={0.5}
-                    ListHeaderComponent={renderCategorySection}
-                    ListFooterComponent={renderFooter}
-                    showsVerticalScrollIndicator={false}
-                    onScroll={Animated.event(
-                        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                        { useNativeDriver: false }
-                    )}
-                    scrollEventThrottle={16}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <LinearGradient
-                                colors={['#f8f9ff', '#e8ecff']}
-                                style={styles.emptyGradient}
-                            >
-                                <View style={styles.emptyIconContainer}>
-                                    <Icon name={isSearching ? "search-off" : "inventory-2"} size={80} color="#c7d2fe" />
-                                </View>
-                                <Text style={styles.emptyTitle}>
-                                    {isSearching ? 'No Search Results' : 'No Products Found'}
-                                </Text>
-                                <Text style={styles.emptyText}>
-                                    {isSearching
-                                        ? `No products found matching "${searchText}"`
-                                        : categoryId
-                                            ? `No products available in ${categoryName}`
-                                            : 'No products available at the moment'
-                                    }
-                                </Text>
-                                {!isSearching && (
-                                    <TouchableOpacity style={styles.retryButton} onPress={() => loadProducts(true)}>
-                                        <Text style={styles.retryButtonText}>Try Again</Text>
+                {isInitialLoading ? (
+                    <InlineLoading text="Đang tải sản phẩm..." style={styles.loadingContainer} />
+                ) : (
+                    <FlatList
+                        data={allProducts}
+                        renderItem={renderItem}
+                        keyExtractor={(item) => item._id}
+                        numColumns={2}
+                        contentContainerStyle={[styles.listContent, { paddingBottom: 100 }]}
+                        onRefresh={handleRefresh}
+                        refreshing={refreshing}
+                        onEndReached={handleLoadMore}
+                        onEndReachedThreshold={0.1}
+                        ListHeaderComponent={renderCategorySection}
+                        ListFooterComponent={() => (
+                            <>
+                                <LoadingFooter />
+                                <NoMoreFooter />
+                            </>
+                        )}
+                        showsVerticalScrollIndicator={false}
+                        scrollEventThrottle={400}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <LinearGradient
+                                    colors={['#f8f9ff', '#e8ecff']}
+                                    style={styles.emptyGradient}
+                                >
+                                    <View style={styles.emptyIconContainer}>
+                                        <Icon name={currentSearch ? "search-off" : "inventory-2"} size={80} color="#c7d2fe" />
+                                    </View>
+                                    <Text style={styles.emptyTitle}>
+                                        {currentSearch ? 'Không có kết quả tìm kiếm' : 'Không tìm thấy sản phẩm'}
+                                    </Text>
+                                    <Text style={styles.emptyText}>
+                                        {currentSearch
+                                            ? `Không tìm thấy sản phẩm nào phù hợp với "${currentSearch}"`
+                                            : categoryName
+                                                ? `Không có sản phẩm nào trong danh mục ${categoryName}`
+                                                : 'Hiện tại không có sản phẩm nào'
+                                        }
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.retryButton}
+                                        onPress={() => {
+                                            dispatch(resetAllProducts());
+                                            if (categoryName && !currentSearch) {
+                                                // Retry category products
+                                                dispatch(fetchProductsByCategoryAsync({
+                                                    category_name: categoryName,
+                                                    page: 1,
+                                                    limit: ITEMS_PER_PAGE
+                                                }));
+                                            } else {
+                                                // Retry all products or search
+                                                dispatch(fetchProductsAsync({
+                                                    page: 1,
+                                                    limit: ITEMS_PER_PAGE,
+                                                    isAllProducts: true,
+                                                    search: currentSearch
+                                                }));
+                                            }
+                                        }}
+                                    >
+                                        <Text style={styles.retryButtonText}>Thử lại</Text>
                                     </TouchableOpacity>
-                                )}
-                            </LinearGradient>
-                        </View>
-                    }
-                />
+                                </LinearGradient>
+                            </View>
+                        }
+                    />
+                )}
             </View>
+
             {renderSearchModal()}
         </SafeAreaView>
     );
@@ -489,57 +555,28 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#f0feff',
     },
-    loadingWrapper: {
-        alignItems: 'center',
-        padding: 40,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        shadowColor: '#13C2C2',
-        shadowOffset: {
-            width: 0,
-            height: 8,
-        },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-        elevation: 8,
-        marginHorizontal: 40,
-    },
-    loadingMainText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#0D364C',
-        marginTop: 16,
-    },
-    loadingSubText: {
-        fontSize: 14,
-        color: '#13C2C2',
-        marginTop: 4,
-    },
-    footerLoader: {
+    // Cleaned up - using unified loading component
+    noMoreFooter: {
         paddingVertical: 20,
         alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f8f9fa',
+        marginHorizontal: 20,
+        marginTop: 10,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#e9ecef',
     },
-    loaderContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 20,
-        shadowColor: '#13C2C2',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    loadingText: {
-        marginLeft: 10,
+    noMoreText: {
         fontSize: 14,
-        color: '#13C2C2',
+        color: COLORS.text.secondary,
         fontWeight: '500',
+        marginBottom: 4,
+    },
+    totalProductsText: {
+        fontSize: 12,
+        color: COLORS.text.light,
+        fontWeight: '400',
     },
     emptyContainer: {
         flex: 1,
@@ -666,14 +703,75 @@ const styles = StyleSheet.create({
     clearButton: {
         padding: 4,
     },
+    searchButtonContainer: {
+        flexDirection: 'row',
+        marginTop: 20,
+        gap: 12,
+    },
+    searchActionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#13C2C2',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        shadowColor: '#13C2C2',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    searchActionButtonDisabled: {
+        backgroundColor: '#d1d5db',
+        shadowColor: '#d1d5db',
+    },
+    searchActionButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+        marginLeft: 8,
+    },
+    clearAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f3f4f6',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+    },
+    clearAllButtonText: {
+        color: '#6b7280',
+        fontSize: 14,
+        fontWeight: '500',
+        marginLeft: 6,
+    },
     searchResultsContainer: {
         marginTop: 16,
         paddingHorizontal: 4,
+        backgroundColor: '#f0f8ff',
+        borderRadius: 8,
+        padding: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: '#13C2C2',
     },
     searchResultsText: {
         fontSize: 14,
         color: '#13C2C2',
-        fontWeight: '500',
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    searchResultsSubText: {
+        fontSize: 12,
+        color: '#0D364C',
+        fontWeight: '400',
     },
 });
 

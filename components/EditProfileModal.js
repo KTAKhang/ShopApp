@@ -8,7 +8,6 @@ import {
     Image,
     StyleSheet,
     Alert,
-    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -16,6 +15,7 @@ import {
 } from 'react-native';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import * as ImagePicker from 'expo-image-picker';
+import { MinimalLoading } from './Loading';
 
 const EditProfileModal = ({ visible, onClose, profile, onSave }) => {
     const [name, setName] = useState('');
@@ -253,7 +253,7 @@ const EditProfileModal = ({ visible, onClose, profile, onSave }) => {
                                                 />
                                                 {imageLoading && (
                                                     <View style={styles.imageLoadingOverlay}>
-                                                        <ActivityIndicator size="small" color="#13C2C2" />
+                                                        <MinimalLoading size="small" color="#13C2C2" />
                                                     </View>
                                                 )}
                                             </>
@@ -338,7 +338,7 @@ const EditProfileModal = ({ visible, onClose, profile, onSave }) => {
                                         disabled={loading}
                                     >
                                         {loading ? (
-                                            <ActivityIndicator size="small" color="#fff" />
+                                            <MinimalLoading size="small" color="#fff" />
                                         ) : (
                                             <Text style={styles.saveText}>Lưu thay đổi</Text>
                                         )}
