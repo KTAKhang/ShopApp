@@ -12,18 +12,20 @@ import {
     Alert,
     RefreshControl,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useDispatch, useSelector } from 'react-redux';
 import { COLORS } from '../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavigation from '../components/BottomNavigation';
-import { fetchOrderByUser, cancelOrder, clearOrderState, resetPagination } from '../store/slices/orderSlice';
+import { fetchOrderByUser, cancelOrder, clearOrderState, } from '../store/slices/orderSlice';
+
+
 
 const OrderHistoryScreen = ({ navigation }) => {
     const [selectedFilter, setSelectedFilter] = useState('All Orders');
     const [cancellingOrders, setCancellingOrders] = useState(new Set());
     const [refreshing, setRefreshing] = useState(false);
+    const [isScrollLoading, setIsScrollLoading] = useState(false);
 
     const filters = ['All Orders', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Returned'];
 
@@ -42,9 +44,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     const dispatch = useDispatch();
 
 
-
     useEffect(() => {
-
         dispatch(fetchOrderByUser({ page: 1, limit: 5 }));
     }, [dispatch]);
 
@@ -55,35 +55,93 @@ const OrderHistoryScreen = ({ navigation }) => {
         }
     }, [cancelSuccess, cancelMessage]);
 
-    // Refresh handler
+    // Cải tiến hàm onRefresh để pull-to-refresh
     const onRefresh = useCallback(async () => {
-        setRefreshing(true);
-        dispatch(resetPagination());
-        await dispatch(fetchOrderByUser({ page: 1, limit: 5 }));
-        setRefreshing(false);
-    }, [dispatch]);
 
-    // Load more handler
+        setRefreshing(true);
+        setIsScrollLoading(false); // Reset scroll loading state
+
+        try {
+            // Reset pagination về trang đầu tiên TRƯỚC khi gọi API
+            dispatch(fetchOrderByUser());
+
+
+            // Gọi API để load lại orders từ trang 1
+            const result = await dispatch(fetchOrderByUser({
+                page: 1,
+                limit: 5,
+                refresh: true // Thêm flag để distinguish refresh vs normal load
+            })).unwrap();
+
+
+        } catch (error) {
+            console.error('❌ Pull to refresh failed:', error);
+            Alert.alert('Error', 'Failed to refresh orders. Please try again.');
+        } finally {
+            setRefreshing(false);
+
+        }
+    }, [dispatch, refreshing, orderLoading, orderData, currentPage, hasMore, total]);
+
+    // Load more handler with better logic
     const loadMoreOrders = useCallback(() => {
-        if (!isLoadingMore && hasMore && !orderLoading) {
-            console.log(`Loading more orders - page ${currentPage + 1}`);
+
+        // Kiểm tra các điều kiện chặt chẽ hơn
+        if (
+            !isLoadingMore &&
+            hasMore &&
+            !orderLoading &&
+            !isScrollLoading &&
+            orderData &&
+            orderData.length > 0 &&
+            orderData.length < total
+        ) {
+            setIsScrollLoading(true);
+
             dispatch(fetchOrderByUser({
                 page: currentPage + 1,
                 limit: 5,
                 isLoadMore: true
-            }));
+            })).finally(() => {
+                setIsScrollLoading(false);
+            });
         }
-    }, [dispatch, currentPage, hasMore, isLoadingMore, orderLoading]);
+    }, [dispatch, currentPage, hasMore, isLoadingMore, orderLoading, isScrollLoading, orderData, total]);
 
-    // Handle scroll
     const handleScroll = useCallback((event) => {
-        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-        const paddingToBottom = 20;
+        // ✅ Kiểm tra event hợp lệ
+        if (!event?.nativeEvent?.layoutMeasurement) {
+            return;
+        }
 
-        if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
+        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+
+        // ✅ Tránh bounce scroll và kiểm tra điều kiện
+        if (
+            contentOffset.y < 0 || // Tránh bounce scroll
+            !hasMore ||
+            isLoadingMore ||
+            orderLoading
+        ) {
+            return;
+        }
+
+        const paddingToBottom = 100;
+        const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+        const hasEnoughContent = contentSize.height > layoutMeasurement.height;
+
+        if (isNearBottom && hasEnoughContent) {
+
             loadMoreOrders();
         }
-    }, [loadMoreOrders]);
+    }, [hasMore, isLoadingMore, orderLoading, loadMoreOrders]);
+
+    // Stop loading when all items are loaded
+    useEffect(() => {
+        if (orderData && orderData.length >= total && total > 0) {
+            setIsScrollLoading(false);
+        }
+    }, [orderData?.length, total]);
 
     // Transform API data to match UI format
     const transformOrderData = (apiOrders) => {
@@ -186,7 +244,6 @@ const OrderHistoryScreen = ({ navigation }) => {
         );
     };
 
-
     const handleActionPress = (order) => {
         switch (order.status) {
             case 'Pending':
@@ -287,7 +344,7 @@ const OrderHistoryScreen = ({ navigation }) => {
 
     // Loading footer component
     const LoadingFooter = () => {
-        if (!isLoadingMore) return null;
+        if (!isLoadingMore && !isScrollLoading) return null;
 
         return (
             <View style={styles.loadingFooter}>
@@ -310,7 +367,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     };
 
     // Initial loading state
-    if (orderLoading && !orderData.length) {
+    if (orderLoading && !orderData?.length) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
@@ -334,7 +391,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     }
 
     // Error state
-    if (orderError && !orderData.length) {
+    if (orderError && !orderData?.length) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
@@ -383,13 +440,20 @@ const OrderHistoryScreen = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 }]}
                 onScroll={handleScroll}
-                scrollEventThrottle={400}
+                scrollEventThrottle={400} // Giảm từ 1000 xuống 400 để responsive hơn
+                bounces={true} // Cho phép bounce effect trên iOS
+                alwaysBounceVertical={true} // Luôn cho phép bounce vertical
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={[COLORS.primary]}
-                        tintColor={COLORS.primary}
+                        colors={[COLORS.primary, COLORS.secondary]} // Android - nhiều màu
+                        tintColor={COLORS.primary} // iOS
+                        title="Pull to refresh orders" // iOS
+                        titleColor={COLORS.textPrimary || '#333'} // iOS
+                        progressBackgroundColor="#ffffff" // Android
+                        size="default" // Android
+                        enabled={true} // Đảm bảo RefreshControl được enable
                     />
                 }
             >
@@ -446,71 +510,252 @@ const OrderHistoryScreen = ({ navigation }) => {
         </SafeAreaView>
     );
 };
-
+// Styles (giữ nguyên styles cũ của bạn)
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: '#f8f9fa',
     },
     headerGradient: {
-        paddingTop: StatusBar.currentHeight + 10,
-        paddingBottom: 20,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-        elevation: 5,
-        shadowColor: COLORS.shadow.dark,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+        paddingTop: 20,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 15,
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: COLORS.white,
-        letterSpacing: 0.5,
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: 'white',
     },
     content: {
         flex: 1,
-        marginTop: -20,
     },
     scrollContent: {
+        paddingHorizontal: 20,
+    },
+    filterContainer: {
+        marginVertical: 15,
+    },
+    filterButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        marginRight: 10,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+    },
+    selectedFilterButton: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    filterButtonText: {
+        fontSize: 14,
+        color: '#6b7280',
+        fontWeight: '500',
+    },
+    selectedFilterButtonText: {
+        color: 'white',
+    },
+    ordersContainer: {
+        flex: 1,
+    },
+    orderCard: {
+        backgroundColor: 'white',
+        borderRadius: 12,
         padding: 16,
-        paddingTop: 30,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    orderHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    orderInfo: {
+        flex: 1,
+    },
+    orderId: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1f2937',
+    },
+    orderDate: {
+        fontSize: 14,
+        color: '#6b7280',
+        marginTop: 2,
+    },
+    statusBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    productContainer: {
+        flexDirection: 'row',
+        marginBottom: 12,
+    },
+    productImage: {
+        width: 60,
+        height: 60,
+        borderRadius: 8,
+        marginRight: 12,
+    },
+    productInfo: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    productName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1f2937',
+        marginBottom: 4,
+    },
+    productDetails: {
+        fontSize: 14,
+        color: '#6b7280',
+        marginBottom: 4,
+    },
+    productPricing: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    productPrice: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    itemCount: {
+        fontSize: 12,
+        color: '#6b7280',
+        marginLeft: 8,
+    },
+    orderFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    orderTotal: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    totalLabel: {
+        fontSize: 14,
+        color: '#6b7280',
+    },
+    totalAmount: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1f2937',
+    },
+    actionButton: {
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+    },
+    cancelButton: {
+        backgroundColor: '#ef4444',
+    },
+    disabledButton: {
+        opacity: 0.6,
+    },
+    actionButtonText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    cancelButtonText: {
+        color: 'white',
+    },
+    cancellingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    loadingFooter: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    loadingFooterText: {
+        marginLeft: 10,
+        fontSize: 14,
+        color: '#6b7280',
+    },
+    noMoreFooter: {
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    noMoreText: {
+        fontSize: 14,
+        color: '#6b7280',
+        marginBottom: 4,
+    },
+    totalOrdersText: {
+        fontSize: 12,
+        color: '#9ca3af',
+    },
+    emptyState: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 60,
+    },
+    emptyStateTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#4b5563',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    emptyStateSubtitle: {
+        fontSize: 14,
+        color: '#6b7280',
+        textAlign: 'center',
+        paddingHorizontal: 32,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: COLORS.background,
     },
     loadingText: {
         marginTop: 16,
         fontSize: 16,
-        color: COLORS.text.secondary,
+        color: '#6b7280',
     },
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 32,
-        backgroundColor: COLORS.background,
     },
     errorTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: COLORS.text.primary,
+        color: '#ef4444',
         marginTop: 16,
         marginBottom: 8,
     },
     errorSubtitle: {
         fontSize: 14,
-        color: COLORS.text.secondary,
+        color: '#6b7280',
         textAlign: 'center',
         marginBottom: 24,
     },
@@ -521,206 +766,10 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     retryButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: COLORS.white,
-    },
-    filterContainer: {
-        marginBottom: 16,
-    },
-    filterButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        marginRight: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: COLORS.border.light,
-        backgroundColor: COLORS.white,
-    },
-    selectedFilterButton: {
-        backgroundColor: `${COLORS.primary}10`,
-        borderColor: COLORS.primary,
-    },
-    filterButtonText: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: COLORS.text.secondary,
-    },
-    selectedFilterButtonText: {
-        color: COLORS.primary,
-    },
-    ordersContainer: {
-        paddingBottom: 20,
-    },
-    orderCard: {
-        backgroundColor: COLORS.white,
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-        elevation: 2,
-        shadowColor: COLORS.shadow.dark,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    orderHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    orderInfo: {
-        flex: 1,
-    },
-    orderId: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: 4,
-    },
-    orderDate: {
-        fontSize: 14,
-        color: '#6b7280',
-    },
-    statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-    },
-    statusText: {
-        fontSize: 12,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-    },
-    productContainer: {
-        flexDirection: 'row',
-        marginBottom: 16,
-    },
-    productImage: {
-        width: 64,
-        height: 64,
-        borderRadius: 8,
-        backgroundColor: '#f3f4f6',
-        marginRight: 12,
-    },
-    productInfo: {
-        flex: 1,
-        justifyContent: 'space-between',
-    },
-    productName: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#111827',
-        marginBottom: 4,
-    },
-    productDetails: {
-        fontSize: 14,
-        color: '#6b7280',
-        marginBottom: 8,
-    },
-    productPricing: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    productPrice: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#111827',
-        marginRight: 8,
-    },
-    itemCount: {
-        fontSize: 14,
-        color: '#6b7280',
-    },
-    orderFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingTop: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#f3f4f6',
-    },
-    orderTotal: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    totalLabel: {
-        fontSize: 16,
-        color: '#6b7280',
-    },
-    totalAmount: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#111827',
-    },
-    actionButton: {
-        backgroundColor: '#13c2c2',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 8,
-    },
-    cancelButton: {
-        backgroundColor: '#ef4444',
-    },
-    disabledButton: {
-        opacity: 0.6,
-    },
-    actionButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
         color: 'white',
-    },
-    cancelButtonText: {
-        color: 'white',
-    },
-    cancellingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    emptyState: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 64,
-    },
-    emptyStateTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
-        color: '#111827',
-        marginTop: 16,
-        marginBottom: 8,
     },
-    emptyStateSubtitle: {
-        fontSize: 14,
-        color: '#6b7280',
-        textAlign: 'center',
-    },
-    loadingFooter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 20,
-        marginTop: 10,
-    },
-    loadingFooterText: {
-        fontSize: 14,
-        color: COLORS.text.secondary,
-        marginLeft: 8,
-    },
-    noMoreFooter: {
-        alignItems: 'center',
-        paddingVertical: 20,
-        marginTop: 10,
-    },
-    noMoreText: {
-        fontSize: 14,
-        color: COLORS.text.secondary,
-        marginBottom: 4,
-    },
-    totalOrdersText: {
-        fontSize: 12,
-        color: COLORS.text.secondary,
-        fontStyle: 'italic',
-    },
-});
+}); ``
 
 export default OrderHistoryScreen;
