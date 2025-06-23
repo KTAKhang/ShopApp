@@ -21,6 +21,7 @@ import {
     clearReviewState,
     getReviewsByOrderId
 } from '../store/slices/reviewSlice';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const OrderDetailsScreen = ({ navigation }) => {
     const route = useRoute();
@@ -32,7 +33,19 @@ const OrderDetailsScreen = ({ navigation }) => {
 
     const alertShownRef = useRef(false); // Dùng useRef để tránh lặp alert
 
-    const [orderStatus, setOrderStatus] = useState(orderData?.order_status?.name || 'PENDING');
+    // Map order status names to display format
+    const statusMapping = {
+        'PENDING': 'Chờ xử lý',
+        'CONFIRMED': 'Đã xác nhận',
+        'SHIPPED': 'Đang giao',
+        'DELIVERED': 'Đã giao',
+        'CANCELLED': 'Đã hủy',
+        'RETURNED': 'Đã trả'
+    };
+
+    const [orderStatus, setOrderStatus] = useState(
+        statusMapping[orderData?.order_status?.name] || 'Chờ xử lý'
+    );
     const [isRefetchingReviews, setIsRefetchingReviews] = useState(false);
 
     const initialRatings = {};
@@ -94,8 +107,8 @@ const OrderDetailsScreen = ({ navigation }) => {
             alertShownRef.current = true;
 
             Alert.alert(
-                'Success',
-                'Review submitted successfully!',
+                'Thành công',
+                'Đánh giá đã được gửi thành công!',
                 [{
                     text: 'OK',
                     onPress: async () => {
@@ -117,7 +130,7 @@ const OrderDetailsScreen = ({ navigation }) => {
             alertShownRef.current = true;
 
             Alert.alert(
-                'Error',
+                'Lỗi',
                 error,
                 [{
                     text: 'OK',
@@ -142,7 +155,7 @@ const OrderDetailsScreen = ({ navigation }) => {
         // Allow rating changes if order is delivered and either:
         // 1. No review exists yet, or
         // 2. Review exists but is in edit mode
-        if (orderStatus === 'DELIVERED' && (!hasReviewed || isEditing)) {
+        if (orderStatus === 'Đã giao' && (!hasReviewed || isEditing)) {
             setRatings(prev => ({
                 ...prev,
                 [productId]: starIndex + 1,
@@ -183,19 +196,19 @@ const OrderDetailsScreen = ({ navigation }) => {
 
         // Validation
         if (rating === 0) {
-            Alert.alert('Error', 'Please select a rating');
+            Alert.alert('Lỗi', 'Vui lòng chọn mức đánh giá');
             return;
         }
 
         if (!reviewContent) {
-            Alert.alert('Error', 'Please write a review');
+            Alert.alert('Lỗi', 'Vui lòng viết đánh giá');
             return;
         }
 
         // Find the item to get order_details_id and existing review info
         const item = orderData?.items?.find(item => item.product_id === productId);
         if (!item) {
-            Alert.alert('Error', 'found');
+            Alert.alert('Lỗi', 'Không tìm thấy sản phẩm');
             return;
         }
 
@@ -215,7 +228,7 @@ const OrderDetailsScreen = ({ navigation }) => {
             } else {
                 // Create new review
                 if (!item.order_details_id) {
-                    Alert.alert('Error', 'Order details ID not found');
+                    Alert.alert('Lỗi', 'Không tìm thấy ID chi tiết đơn hàng');
                     return;
                 }
 
@@ -254,7 +267,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                     <TouchableOpacity
                         key={index}
                         onPress={() => handleStarPress(productId, index)}
-                        disabled={orderStatus !== 'DELIVERED' || (hasReviewed && !isEditing) || isRefetchingReviews}
+                        disabled={orderStatus !== 'Đã giao' || (hasReviewed && !isEditing) || isRefetchingReviews}
                     >
                         <Icon
                             name={index < currentRating ? 'star' : 'star-border'}
@@ -262,7 +275,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                             color={index < currentRating ? (orderDataColor || '#FFB800') : '#D1D5DB'}
                             style={[
                                 styles.star,
-                                (orderStatus !== 'DELIVERED' || (hasReviewed && !isEditing) || isRefetchingReviews) && styles.disabledStar
+                                (orderStatus !== 'Đã giao' || (hasReviewed && !isEditing) || isRefetchingReviews) && styles.disabledStar
                             ]}
                         />
                     </TouchableOpacity>
@@ -272,7 +285,7 @@ const OrderDetailsScreen = ({ navigation }) => {
     };
 
     const renderRatingSection = (productId) => {
-        if (orderStatus !== 'DELIVERED') return null;
+        if (orderStatus !== 'Đã giao') return null;
 
         const hasReviewed = submittedReviews[productId];
         const isEditing = editingReviews[productId];
@@ -294,7 +307,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                 <Text style={styles.ratingTitle}>
                     {hasReviewed && !isEditing ? 'Đánh giá của bạn' :
                         hasReviewed && isEditing ? 'Chỉnh sửa đánh giá' :
-                            'Rate this product'}
+                            'Đánh giá sản phẩm này'}
                 </Text>
                 {renderStars(productId)}
 
@@ -331,7 +344,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                                 styles.reviewInput,
                                 { borderColor: orderDataColor || '#D1D5DB' }
                             ]}
-                            placeholder="Write your review here..."
+                            placeholder="Viết đánh giá của bạn ở đây..."
                             multiline
                             numberOfLines={3}
                             value={reviews[productId]}
@@ -367,12 +380,12 @@ const OrderDetailsScreen = ({ navigation }) => {
                                     <View style={styles.loadingButtonContent}>
                                         <ActivityIndicator size="small" color="#FFFFFF" />
                                         <Text style={styles.submitReviewText}>
-                                            {isLoading ? 'Submitting...' : 'Đang tải...'}
+                                            {isLoading ? 'Đang gửi...' : 'Đang tải...'}
                                         </Text>
                                     </View>
                                 ) : (
                                     <Text style={styles.submitReviewText}>
-                                        {isEditing ? 'Cập nhật' : 'Submit Review'}
+                                        {isEditing ? 'Cập nhật' : 'Gửi đánh giá'}
                                     </Text>
                                 )}
                             </TouchableOpacity>
@@ -383,13 +396,7 @@ const OrderDetailsScreen = ({ navigation }) => {
         );
     };
 
-    // Format số tiền
-    const formatPrice = (price) => {
-        return new Intl.NumberFormat('vi-VN', {
-            style: 'currency',
-            currency: 'VND'
-        }).format(price);
-    };
+
 
     // Format ngày
     const formatDate = (dateString) => {
@@ -418,7 +425,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                 >
                     <Icon name="arrow-back" size={24} color="#000" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Order Details</Text>
+                <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
                 <View style={styles.headerSpacer} />
             </View>
 
@@ -442,26 +449,26 @@ const OrderDetailsScreen = ({ navigation }) => {
                         </View>
                         <View style={[
                             styles.statusBadge,
-                            orderStatus === 'DELIVERED' && styles.deliveredBadge,
+                            orderStatus === 'Đã giao' && styles.deliveredBadge,
                             { backgroundColor: orderDataBg || 'rgba(255, 184, 0, 0.1)' }
                         ]}>
                             <Text style={[
                                 styles.statusText,
-                                orderStatus === 'DELIVERED' && styles.deliveredText,
+                                orderStatus === 'Đã giao' && styles.deliveredText,
                                 { color: orderDataColor || '#FFB800' }
                             ]}>
-                                {orderData?.order_status?.name || orderStatus}
+                                {orderStatus}
                             </Text>
                         </View>
                     </View>
 
                     {/* Delivery Address */}
                     <View style={styles.addressContainer}>
-                        <Text style={styles.addressTitle}>Delivery Address</Text>
+                        <Text style={styles.addressTitle}>Địa chỉ giao hàng</Text>
                         <Text style={styles.customerName}>{orderData?.receiver_name}</Text>
                         <Text style={styles.address}>
                             {orderData?.receiver_address}{'\n'}
-                            Phone: {orderData?.receiver_phone}
+                            Điện thoại: {orderData?.receiver_phone}
                         </Text>
                     </View>
 
@@ -478,13 +485,13 @@ const OrderDetailsScreen = ({ navigation }) => {
                                         <Text style={styles.productName}>{item.name}</Text>
                                         <Text style={styles.productVariant}>ID: {item.product_id.slice(-8)}</Text>
                                         <View style={styles.priceRow}>
-                                            <Text style={styles.price}>{formatPrice(item.price)}</Text>
-                                            <Text style={styles.quantity}>Qty: {item.quantity}</Text>
+                                            <Text style={styles.price}>{formatCurrency(item.price)}</Text>
+                                            <Text style={styles.quantity}>SL: {item.quantity}</Text>
                                         </View>
                                         <Text style={[
                                             styles.subtotal,
                                             { color: orderDataColor || '#22C55E' }
-                                        ]}>Subtotal: {formatPrice(item.subtotal)}</Text>
+                                        ]}>Tạm tính: {formatCurrency(item.subtotal)}</Text>
                                     </View>
                                 </View>
                                 {renderRatingSection(item.product_id)}
@@ -495,35 +502,22 @@ const OrderDetailsScreen = ({ navigation }) => {
                     {/* Order Summary */}
                     <View style={styles.summaryContainer}>
                         <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Subtotal</Text>
-                            <Text style={styles.summaryValue}>{formatPrice(calculateSubtotal())}</Text>
+                            <Text style={styles.summaryLabel}>Tạm tính</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(calculateSubtotal())}</Text>
                         </View>
                         <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Shipping Fee</Text>
+                            <Text style={styles.summaryLabel}>Phí vận chuyển</Text>
                             <Text style={styles.summaryValue}>
-                                {formatPrice(Math.max(0, (orderData?.total_price || 0) - calculateSubtotal()))}
+                                {formatCurrency(Math.max(0, (orderData?.total_price || 0) - calculateSubtotal()))}
                             </Text>
                         </View>
                         <View style={[styles.summaryRow, styles.totalRow]}>
-                            <Text style={styles.totalLabel}>Total</Text>
-                            <Text style={styles.totalValue}>{formatPrice(orderData?.total_price)}</Text>
+                            <Text style={styles.totalLabel}>Tổng cộng</Text>
+                            <Text style={styles.totalValue}>{formatCurrency(orderData?.total_price)}</Text>
                         </View>
                     </View>
                 </View>
             </ScrollView>
-
-            {/* Bottom Actions */}
-            <View style={styles.bottomActions}>
-                <TouchableOpacity style={styles.helpButton}>
-                    <Text style={styles.helpButtonText}>Need Help?</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[
-                    styles.trackButton,
-                    { backgroundColor: orderDataColor || '#1CD4D4' }
-                ]}>
-                    <Text style={styles.trackButtonText}>Track Order</Text>
-                </TouchableOpacity>
-            </View>
         </SafeAreaView>
     );
 };
@@ -863,39 +857,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
         color: '#000',
-    },
-    bottomActions: {
-        flexDirection: 'row',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#FFFFFF',
-        borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
-        gap: 12,
-    },
-    helpButton: {
-        flex: 1,
-        paddingVertical: 12,
-        backgroundColor: '#F3F4F6',
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    helpButtonText: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#374151',
-    },
-    trackButton: {
-        flex: 1,
-        paddingVertical: 12,
-        backgroundColor: '#1CD4D4',
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    trackButtonText: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#FFFFFF',
     },
 });
 

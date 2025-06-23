@@ -153,7 +153,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const renderPreviewReviews = () => {
         if (!reviews || reviews.length === 0) {
             return (
-                <Text style={styles.noReviewsText}>No reviews yet for this product.</Text>
+                <Text style={styles.noReviewsText}>Chưa có đánh giá nào cho sản phẩm này.</Text>
             );
         }
 
@@ -194,7 +194,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         onPress={() => setShowAllReviews(true)}
                     >
                         <Text style={styles.showAllButtonText}>
-                            Show All Reviews ({reviews.length})
+                            Xem tất cả đánh giá ({reviews.length})
                         </Text>
                         <Icon name="keyboard-arrow-right" size={20} color={COLORS.primary} />
                     </TouchableOpacity>
@@ -223,7 +223,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         </TouchableOpacity>
 
                         <Text style={styles.modalTitle}>
-                            All Reviews ({reviews ? reviews.length : 0})
+                            Tất cả đánh giá ({reviews ? reviews.length : 0})
                         </Text>
 
                         <TouchableOpacity
@@ -245,9 +245,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         ListEmptyComponent={() => (
                             <View style={styles.emptyReviewsContainer}>
                                 <Icon name="rate-review" size={48} color="#ccc" />
-                                <Text style={styles.emptyReviewsText}>No reviews yet</Text>
+                                <Text style={styles.emptyReviewsText}>Chưa có đánh giá nào</Text>
                                 <Text style={styles.emptyReviewsSubText}>
-                                    Be the first to review this product
+                                    Hãy là người đầu tiên đánh giá sản phẩm này
                                 </Text>
                             </View>
                         )}
@@ -304,12 +304,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
     if (error) {
         return (
             <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Error: {error}</Text>
+                <Text style={styles.errorText}>Lỗi: {error}</Text>
                 <TouchableOpacity
                     style={styles.retryButton}
                     onPress={handleRefresh}
                 >
-                    <Text style={styles.retryText}>Retry</Text>
+                    <Text style={styles.retryText}>Thử lại</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -317,19 +317,19 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
     if (isLoading) {
         return (
-            <InlineLoading text="Loading product..." style={styles.loadingContainer} />
+            <InlineLoading text="Đang tải sản phẩm..." style={styles.loadingContainer} />
         );
     }
 
     if (!product) {
         return (
             <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Product not found</Text>
+                <Text style={styles.errorText}>Không tìm thấy sản phẩm</Text>
                 <TouchableOpacity
                     style={styles.retryButton}
                     onPress={() => navigation.goBack()}
                 >
-                    <Text style={styles.retryText}>Go Back</Text>
+                    <Text style={styles.retryText}>Quay lại</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -350,7 +350,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         <Icon name="arrow-back" size={24} color={COLORS.white} />
                     </TouchableOpacity>
 
-                    <Text style={styles.headerTitle}>Product Details</Text>
+                    <Text style={styles.headerTitle}>Chi tiết sản phẩm</Text>
 
                     <View style={styles.headerButton} />
                 </View>
@@ -358,15 +358,15 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 <View style={styles.inactiveContainer}>
                     <View style={styles.inactiveWrapper}>
                         <Icon name="block" size={80} color="#ff6b6b" />
-                        <Text style={styles.inactiveTitle}>Product Not Available</Text>
+                        <Text style={styles.inactiveTitle}>Sản phẩm không khả dụng</Text>
                         <Text style={styles.inactiveText}>
-                            This product is currently not available for purchase.
+                            Sản phẩm này hiện tại không có sẵn để mua.
                         </Text>
                         <TouchableOpacity
                             style={styles.goBackButton}
                             onPress={() => navigation.goBack()}
                         >
-                            <Text style={styles.goBackButtonText}>Go Back</Text>
+                            <Text style={styles.goBackButtonText}>Quay lại</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -411,7 +411,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                             {renderStars(averageRating)}
                         </View>
                         <Text style={styles.ratingText}>({averageRating.toFixed(1)})</Text>
-                        <Text style={styles.reviewCount}>• {reviews ? reviews.length : 0} Reviews</Text>
+                        <Text style={styles.reviewCount}>• {reviews ? reviews.length : 0} Đánh giá</Text>
                     </View>
 
                     {/* Price and Quantity */}
@@ -438,24 +438,24 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                     {/* Description */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Description</Text>
+                        <Text style={styles.sectionTitle}>Mô tả</Text>
                         <Text style={styles.description}>{product.detail_desc}</Text>
                     </View>
 
                     {/* Type and Rating */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Product Details</Text>
+                        <Text style={styles.sectionTitle}>Thông tin sản phẩm</Text>
                         <View style={styles.featureItem}>
                             <Icon name="label" size={16} color="#4caf50" />
-                            <Text style={styles.featureText}>Category: {product.category_id?.name || 'General'}</Text>
+                            <Text style={styles.featureText}>Danh mục: {product.category_id?.name || 'Chung'}</Text>
                         </View>
                         <View style={styles.featureItem}>
                             <Icon name="category" size={16} color="#4caf50" />
-                            <Text style={styles.featureText}>Type: {product.target}</Text>
+                            <Text style={styles.featureText}>Loại: {product.target}</Text>
                         </View>
                         <View style={styles.featureItem}>
                             <Icon name="star" size={16} color="#4caf50" />
-                            <Text style={styles.featureText}>Rating: {averageRating.toFixed(1)}/5</Text>
+                            <Text style={styles.featureText}>Đánh giá: {averageRating.toFixed(1)}/5</Text>
                         </View>
                     </View>
 
@@ -463,14 +463,14 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     <View style={styles.section}>
                         <View style={styles.reviewsHeader}>
                             <Text style={styles.sectionTitle}>
-                                Reviews ({reviews ? reviews.length : 0})
+                                Đánh giá ({reviews ? reviews.length : 0})
                             </Text>
                             <TouchableOpacity
                                 style={styles.refreshButton}
                                 onPress={handleRefresh}
                             >
                                 <Icon name="refresh" size={20} color={COLORS.primary} />
-                                <Text style={styles.refreshText}>Refresh</Text>
+                                <Text style={styles.refreshText}>Làm mới</Text>
                             </TouchableOpacity>
                         </View>
 

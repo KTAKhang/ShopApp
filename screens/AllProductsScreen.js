@@ -182,14 +182,14 @@ const AllProductsScreen = ({ navigation, route }) => {
                         >
                             <Icon name="arrow-back" size={24} color="#0D364C" />
                         </TouchableOpacity>
-                        <Text style={styles.searchTitle}>Search Products</Text>
+                        <Text style={styles.searchTitle}>Tìm kiếm sản phẩm</Text>
                     </View>
 
                     <View style={styles.searchInputContainer}>
                         <Icon name="search" size={20} color="#13C2C2" style={styles.searchIcon} />
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Search by product name..."
+                            placeholder="Tìm kiếm theo tên sản phẩm..."
                             placeholderTextColor="#A0A0A0"
                             value={searchText}
                             onChangeText={setSearchText}
@@ -214,7 +214,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                             disabled={searchText.trim() === ''}
                         >
                             <Icon name="search" size={20} color="#fff" />
-                            <Text style={styles.searchActionButtonText}>Search</Text>
+                            <Text style={styles.searchActionButtonText}>Tìm kiếm</Text>
                         </TouchableOpacity>
 
                         {currentSearch && (
@@ -226,7 +226,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                                 }}
                             >
                                 <Icon name="clear-all" size={20} color="#6b7280" />
-                                <Text style={styles.clearAllButtonText}>Clear All</Text>
+                                <Text style={styles.clearAllButtonText}>Xóa tất cả</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -234,10 +234,10 @@ const AllProductsScreen = ({ navigation, route }) => {
                     {currentSearch && (
                         <View style={styles.searchResultsContainer}>
                             <Text style={styles.searchResultsText}>
-                                Current search: "{currentSearch}"
+                                Tìm kiếm hiện tại: "{currentSearch}"
                             </Text>
                             <Text style={styles.searchResultsSubText}>
-                                {allProducts.length} products found
+                                Tìm thấy {allProducts.length} sản phẩm
                             </Text>
                         </View>
                     )}
@@ -267,11 +267,11 @@ const AllProductsScreen = ({ navigation, route }) => {
 
                     <View style={styles.headerTitleContainer}>
                         <Text style={styles.headerTitle}>
-                            {currentSearch ? 'Search Results' : (categoryName || 'All Products')}
+                            {currentSearch ? 'Kết quả tìm kiếm' : (categoryName || 'Tất cả sản phẩm')}
                         </Text>
                         <Text style={styles.headerSubtitle}>
-                            {allProducts.length} items
-                            {currentSearch ? ` for "${currentSearch}"` : ''}
+                            {allProducts.length} sản phẩm
+                            {currentSearch ? ` cho "${currentSearch}"` : ''}
                         </Text>
                     </View>
 
@@ -321,7 +321,7 @@ const AllProductsScreen = ({ navigation, route }) => {
     const LoadingFooter = () => {
         if (!isLoading || !pagination.hasMore) return null;
 
-        return <FooterLoading text="Loading more products..." />;
+        return <FooterLoading text="Đang tải thêm sản phẩm..." />;
     };
 
     // No more items footer
@@ -330,8 +330,8 @@ const AllProductsScreen = ({ navigation, route }) => {
 
         return (
             <View style={styles.noMoreFooter}>
-                <Text style={styles.noMoreText}>No more products to load</Text>
-                <Text style={styles.totalProductsText}>Total: {allProducts.length} products</Text>
+                <Text style={styles.noMoreText}>Không còn sản phẩm nào để tải</Text>
+                <Text style={styles.totalProductsText}>Tổng cộng: {allProducts.length} sản phẩm</Text>
             </View>
         );
     };
@@ -345,7 +345,7 @@ const AllProductsScreen = ({ navigation, route }) => {
 
             <View style={styles.content}>
                 {isInitialLoading ? (
-                    <InlineLoading text="Loading Products..." style={styles.loadingContainer} />
+                    <InlineLoading text="Đang tải sản phẩm..." style={styles.loadingContainer} />
                 ) : (
                     <FlatList
                         data={allProducts}
@@ -376,14 +376,14 @@ const AllProductsScreen = ({ navigation, route }) => {
                                         <Icon name={currentSearch ? "search-off" : "inventory-2"} size={80} color="#c7d2fe" />
                                     </View>
                                     <Text style={styles.emptyTitle}>
-                                        {currentSearch ? 'No Search Results' : 'No Products Found'}
+                                        {currentSearch ? 'Không có kết quả tìm kiếm' : 'Không tìm thấy sản phẩm'}
                                     </Text>
                                     <Text style={styles.emptyText}>
                                         {currentSearch
-                                            ? `No products found matching "${currentSearch}"`
+                                            ? `Không tìm thấy sản phẩm nào phù hợp với "${currentSearch}"`
                                             : categoryName
-                                                ? `No products available in ${categoryName}`
-                                                : 'No products available at the moment'
+                                                ? `Không có sản phẩm nào trong danh mục ${categoryName}`
+                                                : 'Hiện tại không có sản phẩm nào'
                                         }
                                     </Text>
                                     <TouchableOpacity
@@ -408,7 +408,7 @@ const AllProductsScreen = ({ navigation, route }) => {
                                             }
                                         }}
                                     >
-                                        <Text style={styles.retryButtonText}>Try Again</Text>
+                                        <Text style={styles.retryButtonText}>Thử lại</Text>
                                     </TouchableOpacity>
                                 </LinearGradient>
                             </View>

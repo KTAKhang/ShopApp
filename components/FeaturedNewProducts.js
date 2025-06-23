@@ -26,7 +26,7 @@ const FeaturedNewProducts = ({ products, title }) => {
     }, [dispatch, activeProducts]);
 
     if (!activeProducts || activeProducts.length === 0) {
-        return <Text style={styles.errorText}>No products available.</Text>;
+        return <Text style={styles.errorText}>Không có sản phẩm nào.</Text>;
     }
 
     return (
@@ -40,7 +40,7 @@ const FeaturedNewProducts = ({ products, title }) => {
                     style={styles.seeAllButton}
                     onPress={() => navigation.navigate('AllProducts')}
                 >
-                    <Text style={styles.seeAllText}>See All</Text>
+                    <Text style={styles.seeAllText}>Xem tất cả</Text>
                     <Icon name="arrow-forward" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
             </View>

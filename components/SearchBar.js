@@ -120,7 +120,7 @@ const SearchBar = () => {
                         styles.itemType,
                         { color: item.type === 'category' ? '#10B981' : '#3B82F6' }
                     ]}>
-                        {item.type === 'category' ? 'Category' : 'Product'}
+                        {item.type === 'category' ? 'Danh mục' : 'Sản phẩm'}
                     </Text>
                 </View>
             </View>
@@ -134,7 +134,7 @@ const SearchBar = () => {
                 <Icon name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
                 <TextInput
                     style={styles.input}
-                    placeholder="Search products or categories..."
+                    placeholder="Tìm kiếm sản phẩm hoặc danh mục..."
                     value={searchText}
                     onChangeText={setSearchText}
                     placeholderTextColor="#9CA3AF"
@@ -170,7 +170,7 @@ const SearchBar = () => {
                     <View style={styles.resultsContainer}>
                         <View style={styles.resultsHeader}>
                             <Text style={styles.resultsTitle}>
-                                Search Results ({searchResults.length})
+                                Kết quả tìm kiếm ({searchResults.length})
                             </Text>
                             <TouchableOpacity onPress={() => setShowResults(false)}>
                                 <Icon name="close" size={24} color="#6B7280" />
@@ -187,9 +187,9 @@ const SearchBar = () => {
                             ListEmptyComponent={() => (
                                 <View style={styles.emptyContainer}>
                                     <Icon name="search-off" size={48} color="#D1D5DB" />
-                                    <Text style={styles.emptyText}>No results found</Text>
+                                    <Text style={styles.emptyText}>Không tìm thấy kết quả</Text>
                                     <Text style={styles.emptySubText}>
-                                        Try searching with different keywords
+                                        Thử tìm kiếm với từ khóa khác
                                     </Text>
                                 </View>
                             )}
