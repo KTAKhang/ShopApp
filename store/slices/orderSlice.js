@@ -3,6 +3,7 @@ import {
     createOrderApi,
     getOrderByUserApi,
     cancelOrderApi,
+    returnOrderApi,
 } from '../../services/orderService';
 
 export const fetchOrderByUser = createAsyncThunk(
@@ -44,6 +45,19 @@ export const cancelOrder = createAsyncThunk(
     }
 );
 
+export const returnOrder = createAsyncThunk(
+    'order/returnOrder',
+    async (order_id, { rejectWithValue }) => {
+        try {
+            const response = await returnOrderApi(order_id);
+            return { order_id, message: response.message };
+        } catch (error) {
+
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 const initialState = {
     orders: [],
     isLoading: false,
@@ -53,6 +67,8 @@ const initialState = {
     newOrderId: null,
     cancelSuccess: false,
     cancelMessage: null,
+    returnSuccess: false,
+    returnMessage: null,
     // Pagination states
     currentPage: 1,
     totalPages: 1,
@@ -73,6 +89,8 @@ const orderSlice = createSlice({
             state.newOrderId = null;
             state.cancelSuccess = false;
             state.cancelMessage = null;
+            state.returnSuccess = false;
+            state.returnMessage = null;
             state.currentPage = 1;
             state.totalPages = 1;
             state.hasMore = true;
@@ -206,9 +224,34 @@ const orderSlice = createSlice({
                 state.cancelSuccess = false;
                 state.cancelMessage = null;
                 state.error = action.payload;
+            })
+            // Return order
+            .addCase(returnOrder.pending, (state) => {
+                state.isLoading = true;
+                state.returnSuccess = false;
+                state.returnMessage = null;
+                state.error = null;
+            })
+            .addCase(returnOrder.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.returnSuccess = true;
+                state.returnMessage = action.payload.message;
+
+                // Cập nhật trạng thái đơn hàng trong danh sách
+                state.orders = state.orders.map(order =>
+                    order._id === action.payload.order_id
+                        ? { ...order, status: 'returned' }
+                        : order
+                );
+            })
+            .addCase(returnOrder.rejected, (state, action) => {
+                state.isLoading = false;
+                state.returnSuccess = false;
+                state.returnMessage = null;
+                state.error = action.payload;
             });
     },
 });
 
-export const { clearOrderState } = orderSlice.actions;
+export const { clearOrderState, resetPagination } = orderSlice.actions;
 export default orderSlice.reducer;
