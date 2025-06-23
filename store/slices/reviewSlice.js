@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { createReviewApi, updateReviewApi, getReviewsByOrderIdApi, getProductReviewsByProductId } from '../../services/reviewService';
 
 
@@ -22,7 +22,6 @@ export const createReview = createAsyncThunk(
             const response = await createReviewApi({ product_id, order_detail_id, rating, review_content });
             return response.review;
         } catch (error) {
-            console.log('createReview error:', error);
             return rejectWithValue(error.message);
         }
     }
@@ -34,7 +33,6 @@ export const updateReview = createAsyncThunk(
             const response = await updateReviewApi({ review_id, rating, review_content });
             return response.review;
         } catch (error) {
-            console.log('updateReview error:', error);
             return rejectWithValue(error.message);
         }
     }
@@ -47,7 +45,6 @@ export const getReviewsByOrderId = createAsyncThunk(
             const reviews = await getReviewsByOrderIdApi(order_id);
             return reviews;
         } catch (error) {
-            console.log('getReviewsByOrderId error:', error);
             return rejectWithValue(error.message);
         }
     }
@@ -175,26 +172,35 @@ const reviewSlice = createSlice({
 
 export const { clearReviewState, clearProductReviews } = reviewSlice.actions;
 
-// Selectors - Đảm bảo chỉ trả về reviews của sản phẩm cụ thể
-export const selectProductReviews = (state, productId) => {
-    if (!productId || !state.review.reviewsByProduct[productId]) {
-        return [];
+// Memoized Selectors - Đảm bảo chỉ trả về reviews của sản phẩm cụ thể
+export const selectProductReviews = createSelector(
+    [(state) => state.review.reviewsByProduct, (state, productId) => productId],
+    (reviewsByProduct, productId) => {
+        if (!productId || !reviewsByProduct[productId]) {
+            return [];
+        }
+        return reviewsByProduct[productId].reviews || [];
     }
-    return state.review.reviewsByProduct[productId].reviews || [];
-};
+);
 
-export const selectProductReviewsLoading = (state, productId) => {
-    if (!productId || !state.review.reviewsByProduct[productId]) {
-        return false;
+export const selectProductReviewsLoading = createSelector(
+    [(state) => state.review.reviewsByProduct, (state, productId) => productId],
+    (reviewsByProduct, productId) => {
+        if (!productId || !reviewsByProduct[productId]) {
+            return false;
+        }
+        return reviewsByProduct[productId].isLoading || false;
     }
-    return state.review.reviewsByProduct[productId].isLoading || false;
-};
+);
 
-export const selectProductReviewsError = (state, productId) => {
-    if (!productId || !state.review.reviewsByProduct[productId]) {
-        return null;
+export const selectProductReviewsError = createSelector(
+    [(state) => state.review.reviewsByProduct, (state, productId) => productId],
+    (reviewsByProduct, productId) => {
+        if (!productId || !reviewsByProduct[productId]) {
+            return null;
+        }
+        return reviewsByProduct[productId].error || null;
     }
-    return state.review.reviewsByProduct[productId].error || null;
-};
+);
 
 export default reviewSlice.reducer;

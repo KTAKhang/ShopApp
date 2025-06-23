@@ -34,3 +34,34 @@ export async function getCategories({ page = 1, limit = 10 }) {
     }
 }
 
+// Hàm tìm kiếm danh mục theo tên
+export async function searchCategories({ search, page = 1, limit = 10 }) {
+    try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) throw new Error('Token not found');
+
+        let url = `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/category?page=${page}&limit=${limit}`;
+        if (search && search.trim() !== '') {
+            url += `&search=${encodeURIComponent(search.trim())}`;
+        }
+
+        const response = await axios.get(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        const data = response.data;
+
+        if (data.status !== 'OK') {
+            throw new Error(data.message || 'Failed to search categories');
+        }
+
+        return data;
+    } catch (error) {
+        console.error('searchCategories error:', error);
+        throw new Error(error.response?.data?.message || error.message || 'Failed to search categories');
+    }
+}
+
