@@ -20,13 +20,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavigation from '../components/BottomNavigation';
 import { InlineLoading, FooterLoading } from '../components/Loading';
 import { fetchOrderByUser, cancelOrder, clearOrderState, resetPagination } from '../store/slices/orderSlice';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const OrderHistoryScreen = ({ navigation }) => {
-    const [selectedFilter, setSelectedFilter] = useState('All Orders');
+    const [selectedFilter, setSelectedFilter] = useState('Tất cả đơn hàng');
     const [cancellingOrders, setCancellingOrders] = useState(new Set());
     const [refreshing, setRefreshing] = useState(false);
 
-    const filters = ['All Orders', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Returned'];
+    const filters = ['Tất cả đơn hàng', 'Chờ xử lý', 'Đã xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy', 'Đã trả'];
 
     const {
         orders: orderData,
@@ -52,7 +53,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     // Handle cancel success
     useEffect(() => {
         if (cancelSuccess && cancelMessage) {
-            Alert.alert('Success', cancelMessage);
+            Alert.alert('Thành công', cancelMessage);
         }
     }, [cancelSuccess, cancelMessage]);
 
@@ -93,26 +94,26 @@ const OrderHistoryScreen = ({ navigation }) => {
         return apiOrders.map((order, index) => {
             // Map order status names to display format
             const statusMapping = {
-                'PENDING': 'Pending',
-                'CONFIRMED': 'Confirmed',
-                'SHIPPED': 'Shipped',
-                'DELIVERED': 'Delivered',
-                'CANCELLED': 'Cancelled',
-                'RETURNED': 'Returned'
+                'PENDING': 'Chờ xử lý',
+                'CONFIRMED': 'Đã xác nhận',
+                'SHIPPED': 'Đang giao',
+                'DELIVERED': 'Đã giao',
+                'CANCELLED': 'Đã hủy',
+                'RETURNED': 'Đã trả'
             };
 
             // Map status to colors
             const statusColors = {
-                'Pending': { color: '#f59e0b', bg: '#fffbeb' },
-                'Confirmed': { color: '#8b5cf6', bg: '#f3e8ff' },
-                'Shipped': { color: '#3b82f6', bg: '#eff6ff' },
-                'Delivered': { color: '#10b981', bg: '#ecfdf5' },
-                'Cancelled': { color: '#6b7280', bg: '#f3f4f6' },
-                'Returned': { color: '#ef4444', bg: '#fef2f2' }
+                'Chờ xử lý': { color: '#f59e0b', bg: '#fffbeb' },
+                'Đã xác nhận': { color: '#8b5cf6', bg: '#f3e8ff' },
+                'Đang giao': { color: '#3b82f6', bg: '#eff6ff' },
+                'Đã giao': { color: '#10b981', bg: '#ecfdf5' },
+                'Đã hủy': { color: '#6b7280', bg: '#f3f4f6' },
+                'Đã trả': { color: '#ef4444', bg: '#fef2f2' }
             };
 
-            const status = statusMapping[order.order_status?.name] || 'Pending';
-            const statusColor = statusColors[status] || statusColors['Pending'];
+            const status = statusMapping[order.order_status?.name] || 'Chờ xử lý';
+            const statusColor = statusColors[status] || statusColors['Chờ xử lý'];
 
             // Format date
             const formatDate = (dateString) => {
@@ -132,14 +133,14 @@ const OrderHistoryScreen = ({ navigation }) => {
                 orderId: order.order_id,
                 date: formatDate(order.createdAt),
                 items: order.items ? order.items.length : 1,
-                total: (order.total_price / 1000).toFixed(2),
+                total: order.total_price,
                 status: status,
                 statusColor: statusColor.color,
                 statusBg: statusColor.bg,
                 product: {
-                    name: firstItem?.product_name || firstItem?.name || 'Product',
-                    details: `Receiver: ${order.receiver_name}`,
-                    price: firstItem?.price ? (firstItem.price / 1000).toFixed(2) : (order.total_price / 1000).toFixed(2),
+                    name: firstItem?.product_name || firstItem?.name || 'Sản phẩm',
+                    details: `Người nhận: ${order.receiver_name}`,
+                    price: firstItem?.price || order.total_price,
                     image: firstItem?.image || 'https://res.cloudinary.com/dkbsae4kc/image/upload/v1747706328/avatars/mfwbvrkvqcsv6kgze587.png',
                 },
                 originalOrder: order
@@ -151,29 +152,29 @@ const OrderHistoryScreen = ({ navigation }) => {
 
     // Filter orders based on selected filter
     const filteredOrders = orders.filter(order => {
-        if (selectedFilter === 'All Orders') return true;
+        if (selectedFilter === 'Tất cả đơn hàng') return true;
         return order.status === selectedFilter;
     });
 
     // Handle cancel order
     const handleCancelOrder = (order) => {
         Alert.alert(
-            'Cancel Order',
-            `Are you sure you want to cancel order ${order.id}?`,
+            'Hủy đơn hàng',
+            `Bạn có chắc chắn muốn hủy đơn hàng ${order.id} không?`,
             [
                 {
-                    text: 'No',
+                    text: 'Không',
                     style: 'cancel'
                 },
                 {
-                    text: 'Yes, Cancel',
+                    text: 'Có, Hủy đơn',
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             setCancellingOrders(prev => new Set([...prev, order.orderId]));
                             await dispatch(cancelOrder(order.orderId)).unwrap();
                         } catch (error) {
-                            Alert.alert('Error', error || 'Failed to cancel order');
+                            Alert.alert('Lỗi', error || 'Không thể hủy đơn hàng');
                         } finally {
                             setCancellingOrders(prev => {
                                 const newSet = new Set(prev);
@@ -190,10 +191,10 @@ const OrderHistoryScreen = ({ navigation }) => {
 
     const handleActionPress = (order) => {
         switch (order.status) {
-            case 'Pending':
+            case 'Chờ xử lý':
                 handleCancelOrder(order);
                 break;
-            case 'Delivered':
+            case 'Đã giao':
                 navigation.navigate('OrderDetails', {
                     orderData: order.originalOrder,
                     orderDataColor: order.statusColor,
@@ -240,9 +241,9 @@ const OrderHistoryScreen = ({ navigation }) => {
                         <Text style={styles.productName}>{order.product.name}</Text>
                         <Text style={styles.productDetails}>{order.product.details}</Text>
                         <View style={styles.productPricing}>
-                            <Text style={styles.productPrice}>${order.product.price}</Text>
+                            <Text style={styles.productPrice}>{formatCurrency(order.product.price)}</Text>
                             {order.items > 1 && (
-                                <Text style={styles.itemCount}>+{order.items - 1} more item{order.items > 2 ? 's' : ''}</Text>
+                                <Text style={styles.itemCount}>+{order.items - 1} sản phẩm khác</Text>
                             )}
                         </View>
                     </View>
@@ -250,13 +251,13 @@ const OrderHistoryScreen = ({ navigation }) => {
 
                 <View style={styles.orderFooter}>
                     <View style={styles.orderTotal}>
-                        <Text style={styles.totalLabel}>Total: </Text>
-                        <Text style={styles.totalAmount}>${order.total}</Text>
+                        <Text style={styles.totalLabel}>Tổng cộng: </Text>
+                        <Text style={styles.totalAmount}>{formatCurrency(order.total)}</Text>
                     </View>
                     <TouchableOpacity
                         style={[
                             styles.actionButton,
-                            order.status === 'Pending' && styles.cancelButton,
+                            order.status === 'Chờ xử lý' && styles.cancelButton,
                             isCancelling && styles.disabledButton
                         ]}
                         onPress={() => handleActionPress(order)}
@@ -266,18 +267,18 @@ const OrderHistoryScreen = ({ navigation }) => {
                             <View style={styles.cancellingContainer}>
                                 <ActivityIndicator size="small" color="white" />
                                 <Text style={[styles.actionButtonText, { marginLeft: 8 }]}>
-                                    Cancelling...
+                                    Đang hủy...
                                 </Text>
                             </View>
                         ) : (
                             <Text style={[
                                 styles.actionButtonText,
-                                order.status === 'Pending' && styles.cancelButtonText
+                                order.status === 'Chờ xử lý' && styles.cancelButtonText
                             ]}>
-                                {order.status === 'Delivered' ? 'Rating' :
-                                    order.status === 'Pending' ? 'Cancel Order' :
-                                        order.status === 'Returned' ? 'View Details' :
-                                            'View Details'}
+                                {order.status === 'Đã giao' ? 'Đánh giá' :
+                                    order.status === 'Chờ xử lý' ? 'Hủy đơn hàng' :
+                                        order.status === 'Đã trả' ? 'Xem chi tiết' :
+                                            'Xem chi tiết'}
                             </Text>
                         )}
                     </TouchableOpacity>
@@ -290,7 +291,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     const LoadingFooter = () => {
         if (!isLoadingMore) return null;
 
-        return <FooterLoading text="Loading more orders..." />;
+        return <FooterLoading text="Đang tải thêm đơn hàng..." />;
     };
 
     // No more items footer
@@ -299,8 +300,8 @@ const OrderHistoryScreen = ({ navigation }) => {
 
         return (
             <View style={styles.noMoreFooter}>
-                <Text style={styles.noMoreText}>No more orders to load</Text>
-                <Text style={styles.totalOrdersText}>Total: {total} orders</Text>
+                <Text style={styles.noMoreText}>Không còn đơn hàng nào để tải</Text>
+                <Text style={styles.totalOrdersText}>Tổng cộng: {total} đơn hàng</Text>
             </View>
         );
     };
@@ -317,10 +318,10 @@ const OrderHistoryScreen = ({ navigation }) => {
                     style={styles.headerGradient}
                 >
                     <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Order History</Text>
+                        <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
                     </View>
                 </LinearGradient>
-                <InlineLoading text="Loading orders..." style={styles.loadingContainer} />
+                <InlineLoading text="Đang tải đơn hàng..." style={styles.loadingContainer} />
                 <BottomNavigation />
             </SafeAreaView>
         );
@@ -338,18 +339,18 @@ const OrderHistoryScreen = ({ navigation }) => {
                     style={styles.headerGradient}
                 >
                     <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Order History</Text>
+                        <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
                     </View>
                 </LinearGradient>
                 <View style={styles.errorContainer}>
                     <Icon name="error-outline" size={64} color={COLORS.error} />
-                    <Text style={styles.errorTitle}>Failed to load orders</Text>
+                    <Text style={styles.errorTitle}>Không thể tải đơn hàng</Text>
                     <Text style={styles.errorSubtitle}>{orderError}</Text>
                     <TouchableOpacity
                         style={styles.retryButton}
                         onPress={() => dispatch(fetchOrderByUser({ page: 1, limit: 5 }))}
                     >
-                        <Text style={styles.retryButtonText}>Retry</Text>
+                        <Text style={styles.retryButtonText}>Thử lại</Text>
                     </TouchableOpacity>
                 </View>
                 <BottomNavigation />
@@ -367,7 +368,7 @@ const OrderHistoryScreen = ({ navigation }) => {
                 style={styles.headerGradient}
             >
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Order History</Text>
+                    <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
                 </View>
             </LinearGradient>
 
@@ -424,11 +425,11 @@ const OrderHistoryScreen = ({ navigation }) => {
                     ) : (
                         <View style={styles.emptyState}>
                             <Icon name="shopping-bag" size={64} color="#d1d5db" />
-                            <Text style={styles.emptyStateTitle}>No orders found</Text>
+                            <Text style={styles.emptyStateTitle}>Không tìm thấy đơn hàng</Text>
                             <Text style={styles.emptyStateSubtitle}>
                                 {orders.length === 0
-                                    ? "You haven't placed any orders yet"
-                                    : "No orders match the selected filter"
+                                    ? "Bạn chưa đặt đơn hàng nào"
+                                    : "Không có đơn hàng nào phù hợp với bộ lọc đã chọn"
                                 }
                             </Text>
                         </View>

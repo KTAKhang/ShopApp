@@ -175,11 +175,11 @@ const CartScreen = ({ navigation }) => {
         // Kiểm tra quantity hợp lệ (1-99)
         if (isNaN(newQuantity) || newQuantity < 1) {
             Alert.alert(
-                'Remove Item',
-                'Quantity cannot be 0. Do you want to remove this item from cart?',
+                'Xóa sản phẩm',
+                'Số lượng không thể bằng 0. Bạn có muốn xóa sản phẩm này khỏi giỏ hàng không?',
                 [
                     {
-                        text: 'Cancel',
+                        text: 'Hủy',
                         style: 'cancel',
                         onPress: () => {
                             // Reset về giá trị cũ
@@ -191,7 +191,7 @@ const CartScreen = ({ navigation }) => {
                         }
                     },
                     {
-                        text: 'Remove',
+                        text: 'Xóa',
                         style: 'destructive',
                         onPress: () => {
                             setEditingQuantity(prev => {
@@ -209,8 +209,8 @@ const CartScreen = ({ navigation }) => {
 
         if (newQuantity > 99) {
             Alert.alert(
-                'Invalid Quantity',
-                'Maximum quantity allowed is 99.',
+                'Số lượng không hợp lệ',
+                'Số lượng tối đa cho phép là 99.',
                 [
                     {
                         text: 'OK',
@@ -259,8 +259,8 @@ const CartScreen = ({ navigation }) => {
         } catch (error) {
             console.error('Update failed:', error);
             Alert.alert(
-                'Update Failed',
-                error || 'Failed to update cart item',
+                'Cập nhật thất bại',
+                error || 'Không thể cập nhật sản phẩm trong giỏ hàng',
                 [{ text: 'OK' }]
             );
 
@@ -292,15 +292,15 @@ const CartScreen = ({ navigation }) => {
     const showRemoveConfirmation = (product_id) => {
         const item = cartItems.find(item => item.id === product_id);
         Alert.alert(
-            'Remove Item',
-            `Are you sure you want to remove "${item?.name}" from your cart?`,
+            'Xóa sản phẩm',
+            `Bạn có chắc chắn muốn xóa "${item?.name}" khỏi giỏ hàng của bạn không?`,
             [
                 {
-                    text: 'Cancel',
+                    text: 'Hủy',
                     style: 'cancel'
                 },
                 {
-                    text: 'Remove',
+                    text: 'Xóa',
                     style: 'destructive',
                     onPress: () => removeItem(product_id)
                 }
@@ -321,16 +321,16 @@ const CartScreen = ({ navigation }) => {
 
             // Show success message
             Alert.alert(
-                'Success',
-                'Item removed from cart successfully',
+                'Thành công',
+                'Đã xóa sản phẩm khỏi giỏ hàng thành công',
                 [{ text: 'OK' }],
                 { cancelable: true }
             );
         } catch (error) {
             console.error('Remove failed:', error);
             Alert.alert(
-                'Remove Failed',
-                error || 'Failed to remove item from cart',
+                'Xóa thất bại',
+                error || 'Không thể xóa sản phẩm khỏi giỏ hàng',
                 [{ text: 'OK' }]
             );
         } finally {
@@ -347,12 +347,12 @@ const CartScreen = ({ navigation }) => {
         if (!productIds || productIds.length === 0) return;
 
         Alert.alert(
-            'Remove Items',
-            `Are you sure you want to remove ${productIds.length} item(s) from your cart?`,
+            'Xóa sản phẩm',
+            `Bạn có chắc chắn muốn xóa ${productIds.length} sản phẩm khỏi giỏ hàng của bạn không?`,
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Hủy', style: 'cancel' },
                 {
-                    text: 'Remove All',
+                    text: 'Xóa tất cả',
                     style: 'destructive',
                     onPress: async () => {
                         // Set updating state for all items
@@ -373,14 +373,14 @@ const CartScreen = ({ navigation }) => {
                             setSelectAll(false);
 
                             Alert.alert(
-                                'Success',
-                                'Items removed from cart successfully',
+                                'Thành công',
+                                'Đã xóa các sản phẩm khỏi giỏ hàng thành công',
                                 [{ text: 'OK' }]
                             );
                         } catch (error) {
                             Alert.alert(
-                                'Remove Failed',
-                                error || 'Failed to remove some items from cart',
+                                'Xóa thất bại',
+                                error || 'Không thể xóa một số sản phẩm khỏi giỏ hàng',
                                 [{ text: 'OK' }]
                             );
                         } finally {
@@ -404,12 +404,12 @@ const CartScreen = ({ navigation }) => {
         if (cartItems.length === 0) return;
 
         Alert.alert(
-            'Clear Cart',
-            'Are you sure you want to remove all items from your cart?',
+            'Xóa toàn bộ giỏ hàng',
+            'Bạn có chắc chắn muốn xóa tất cả sản phẩm khỏi giỏ hàng của bạn không?',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Hủy', style: 'cancel' },
                 {
-                    text: 'Clear All',
+                    text: 'Xóa tất cả',
                     style: 'destructive',
                     onPress: () => {
                         const allProductIds = cartItems.map(item => item.id);
@@ -430,8 +430,8 @@ const CartScreen = ({ navigation }) => {
     const handleCheckout = () => {
         if (selectedItems.length === 0) {
             Alert.alert(
-                'No Items Selected',
-                'Please select at least one available item to proceed to checkout.',
+                'Chưa chọn sản phẩm nào',
+                'Vui lòng chọn ít nhất một sản phẩm có sẵn để tiến hành thanh toán.',
                 [{ text: 'OK' }]
             );
             return;
@@ -445,8 +445,8 @@ const CartScreen = ({ navigation }) => {
 
         if (unavailableSelectedItems.length > 0) {
             Alert.alert(
-                'Unavailable Items',
-                'Some selected items are out of stock or discontinued. Please remove them from selection.',
+                'Sản phẩm không khả dụng',
+                'Một số sản phẩm đã chọn đã hết hàng hoặc ngừng bán. Vui lòng bỏ chọn chúng.',
                 [{ text: 'OK' }]
             );
             return;
@@ -502,7 +502,7 @@ const CartScreen = ({ navigation }) => {
                     {isUnavailable && (
                         <View style={styles.imageOverlay}>
                             <Text style={styles.overlayText}>
-                                {isOutOfStock ? 'OUT OF STOCK' : 'DISCONTINUED'}
+                                {isOutOfStock ? 'HẾT HÀNG' : 'NGỪNG BÁN'}
                             </Text>
                         </View>
                     )}
@@ -521,12 +521,12 @@ const CartScreen = ({ navigation }) => {
                             {/* Status badges */}
                             {isOutOfStock && (
                                 <View style={styles.statusBadge}>
-                                    <Text style={styles.statusBadgeText}>Out of Stock</Text>
+                                    <Text style={styles.statusBadgeText}>Hết hàng</Text>
                                 </View>
                             )}
                             {isDiscontinued && (
                                 <View style={[styles.statusBadge, styles.discontinuedBadge]}>
-                                    <Text style={styles.statusBadgeText}>Discontinued</Text>
+                                    <Text style={styles.statusBadgeText}>Ngừng bán</Text>
                                 </View>
                             )}
                         </View>
@@ -540,9 +540,9 @@ const CartScreen = ({ navigation }) => {
                     </View>
 
                     <Text style={[styles.itemSpecs, isUnavailable && styles.unavailableText]}>
-                        {item.size ? `Size: ${item.size} | ` : ''}
-                        {item.color ? `Color: ${item.color}` : ''}
-                        {item.in_stock !== undefined ? ` | Stock: ${item.in_stock}` : ''}
+                        {item.size ? `Kích thước: ${item.size} | ` : ''}
+                        {item.color ? `Màu sắc: ${item.color}` : ''}
+                        {item.in_stock !== undefined ? ` | Còn lại: ${item.in_stock}` : ''}
                     </Text>
 
                     <View style={styles.itemFooter}>
@@ -608,7 +608,7 @@ const CartScreen = ({ navigation }) => {
 
                     {itemIsUpdating && (
                         <Text style={styles.updatingText}>
-                            {Object.keys(isUpdating).some(key => key === item.id.toString()) ? 'Removing...' : 'Updating...'}
+                            {Object.keys(isUpdating).some(key => key === item.id.toString()) ? 'Đang xóa...' : 'Đang cập nhật...'}
                         </Text>
                     )}
 
@@ -616,8 +616,8 @@ const CartScreen = ({ navigation }) => {
                     {isUnavailable && (
                         <Text style={styles.unavailableWarning}>
                             {isOutOfStock
-                                ? 'This item is currently out of stock and cannot be purchased.'
-                                : 'This item has been discontinued and is no longer available.'
+                                ? 'Sản phẩm này hiện đang hết hàng và không thể mua.'
+                                : 'Sản phẩm này đã ngừng bán và không còn có sẵn.'
                             }
                         </Text>
                     )}
@@ -653,7 +653,7 @@ const CartScreen = ({ navigation }) => {
                         </View>
                     </SafeAreaView>
                 </LinearGradient>
-                <InlineLoading text="Loading cart..." style={styles.loadingContainer} />
+                <InlineLoading text="Đang tải giỏ hàng..." style={styles.loadingContainer} />
                 <BottomNavigation />
             </View>
         );
@@ -688,12 +688,12 @@ const CartScreen = ({ navigation }) => {
                     </SafeAreaView>
                 </LinearGradient>
                 <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>Error loading cart: {error}</Text>
+                    <Text style={styles.errorText}>Lỗi khi tải giỏ hàng: {error}</Text>
                     <TouchableOpacity
                         style={styles.retryButton}
                         onPress={() => dispatch(fetchCartByUser())}
                     >
-                        <Text style={styles.retryButtonText}>Retry</Text>
+                        <Text style={styles.retryButtonText}>Thử lại</Text>
                     </TouchableOpacity>
                 </View>
                 <BottomNavigation />
@@ -723,7 +723,7 @@ const CartScreen = ({ navigation }) => {
                             <Icon name="arrow-back" size={24} color="#ffffff" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>
-                            Shopping Cart ({cart?.item_count || cartItems.length})
+                            Giỏ hàng ({cart?.item_count || cartItems.length})
                         </Text>
                         {/* Empty space for header balance - invisible */}
                         <View style={styles.headerSpacer} />
@@ -748,7 +748,7 @@ const CartScreen = ({ navigation }) => {
                                 )}
                             </View>
                             <Text style={styles.selectAllText}>
-                                Select All ({selectedItems.length}/{cartItems.length})
+                                Chọn tất cả ({selectedItems.length}/{cartItems.length})
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -767,13 +767,13 @@ const CartScreen = ({ navigation }) => {
                 ) : (
                     <View style={styles.emptyCartContainer}>
                         <Icon name="shopping-cart" size={64} color="#d1d5db" />
-                        <Text style={styles.emptyCartText}>Your cart is empty</Text>
-                        <Text style={styles.emptyCartSubtext}>Add some items to get started</Text>
+                        <Text style={styles.emptyCartText}>Giỏ hàng của bạn đang trống</Text>
+                        <Text style={styles.emptyCartSubtext}>Thêm một số sản phẩm để bắt đầu</Text>
                         <TouchableOpacity
                             style={styles.continueShoppingButton}
-                            onPress={() => navigation.navigate('Home')}
+                            onPress={() => navigation.navigate('AllProducts')}
                         >
-                            <Text style={styles.continueShoppingText}>Continue Shopping</Text>
+                            <Text style={styles.continueShoppingText}>Tiếp tục mua sắm</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -783,7 +783,7 @@ const CartScreen = ({ navigation }) => {
                     <View style={styles.summaryContainer}>
                         <View style={styles.summaryHeader}>
                             <Text style={styles.summaryTitle}>
-                                Order Summary ({selectedItems.length} item{selectedItems.length > 1 ? 's' : ''})
+                                Tổng kết đơn hàng ({selectedItems.length} sản phẩm)
                             </Text>
                             {cartItems.length > 1 && (
                                 <TouchableOpacity
@@ -791,26 +791,26 @@ const CartScreen = ({ navigation }) => {
                                     disabled={isLoading}
                                     style={styles.clearAllButton}
                                 >
-                                    <Text style={styles.clearAllText}>Clear All</Text>
+                                    <Text style={styles.clearAllText}>Xóa tất cả</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
                         <View style={styles.summaryContent}>
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Subtotal</Text>
+                                <Text style={styles.summaryLabel}>Tạm tính</Text>
                                 <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
                             </View>
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Shipping</Text>
+                                <Text style={styles.summaryLabel}>Phí vận chuyển</Text>
                                 <Text style={styles.summaryValue}>{formatCurrency(shipping)}</Text>
                             </View>
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Tax (10%)</Text>
+                                <Text style={styles.summaryLabel}>Thuế (10%)</Text>
                                 <Text style={styles.summaryValue}>{formatCurrency(tax)}</Text>
                             </View>
                             <View style={styles.totalDivider} />
                             <View style={[styles.summaryRow, styles.totalRow]}>
-                                <Text style={styles.totalLabel}>Total</Text>
+                                <Text style={styles.totalLabel}>Tổng cộng</Text>
                                 <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
                             </View>
                         </View>
@@ -831,10 +831,10 @@ const CartScreen = ({ navigation }) => {
                     >
                         <Text style={styles.checkoutButtonText}>
                             {isLoading
-                                ? 'Updating...'
+                                ? 'Đang cập nhật...'
                                 : selectedItems.length === 0
-                                    ? 'Select Items to Checkout'
-                                    : `Proceed to Checkout (${selectedItems.length} item${selectedItems.length > 1 ? 's' : ''})`
+                                    ? 'Chọn sản phẩm để thanh toán'
+                                    : `Tiến hành thanh toán (${selectedItems.length} sản phẩm)`
                             }
                         </Text>
                     </TouchableOpacity>

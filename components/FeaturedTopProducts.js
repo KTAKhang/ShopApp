@@ -57,7 +57,7 @@ const FeaturedTopProducts = ({ title }) => {
                         <View style={styles.titleUnderline} />
                     </View>
                 </View>
-                <Text style={styles.errorText}>No top sold products available.</Text>
+                <Text style={styles.errorText}>Không có sản phẩm bán chạy nào.</Text>
             </View>
         );
     }
@@ -73,7 +73,8 @@ const FeaturedTopProducts = ({ title }) => {
                     style={styles.seeAllButton}
                     onPress={() => navigation.navigate('AllProducts')}
                 >
-
+                    <Text style={styles.seeAllText}>Xem tất cả</Text>
+                    <Icon name="arrow-forward" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
             </View>
             <ScrollView

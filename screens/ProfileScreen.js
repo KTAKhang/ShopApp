@@ -105,12 +105,12 @@ const ProfileScreen = ({ navigation }) => {
 
     const handleLogout = () => {
         Alert.alert(
-            'Logout',
-            'Are you sure you want to logout?',
+            'Đăng xuất',
+            'Bạn có chắc chắn muốn đăng xuất không?',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Hủy', style: 'cancel' },
                 {
-                    text: 'Logout',
+                    text: 'Đăng xuất',
                     style: 'destructive',
                     onPress: () => dispatch(logoutUser())
                 },
@@ -177,7 +177,7 @@ const ProfileScreen = ({ navigation }) => {
             >
                 <SafeAreaView>
                     <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Profile</Text>
+                        <Text style={styles.headerTitle}>Hồ sơ</Text>
                     </View>
                 </SafeAreaView>
             </LinearGradient>
@@ -213,7 +213,7 @@ const ProfileScreen = ({ navigation }) => {
 
                         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                             <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-                            <Text style={styles.logoutText}>Logout</Text>
+                            <Text style={styles.logoutText}>Đăng xuất</Text>
                         </TouchableOpacity>
                     </>
                 ) : (

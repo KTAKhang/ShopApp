@@ -54,8 +54,8 @@ const HomeScreen = () => {
                 >
                     <View style={styles.content}>
                         <CategorySection categories={categories} />
-                        <FeaturedNewProducts products={products} title="New Products" />
-                        <FeaturedTopProducts title="Best Sellers" />
+                        <FeaturedNewProducts products={products} title="Sản phẩm mới" />
+                        <FeaturedTopProducts title="Bán chạy nhất" />
                     </View>
                 </ScrollView>
             )}

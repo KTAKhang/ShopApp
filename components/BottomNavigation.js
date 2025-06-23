@@ -13,10 +13,10 @@ const BottomNavigation = () => {
     const [activeTab, setActiveTab] = useState('Home');
     const navigation = useNavigation();
     const tabs = [
-        { name: 'HomePage', icon: 'home', label: 'Home' },
-        { name: 'Cart', icon: 'shopping-cart', label: 'Cart' },
-        { name: 'OrderHistory', icon: 'local-shipping', label: 'Delivery' },
-        { name: 'Profile', icon: 'person', label: 'Profile' },
+        { name: 'HomePage', icon: 'home', label: 'Trang chủ' },
+        { name: 'Cart', icon: 'shopping-cart', label: 'Giỏ hàng' },
+        { name: 'OrderHistory', icon: 'local-shipping', label: 'Đơn hàng' },
+        { name: 'Profile', icon: 'person', label: 'Hồ sơ' },
     ];
 
     const handleTabPress = (tabName) => {
