@@ -21,6 +21,11 @@ import {
     clearReviewState,
     getReviewsByOrderId
 } from '../store/slices/reviewSlice';
+import {
+    cancelOrder,
+    returnOrder,
+    clearOrderState
+} from '../store/slices/orderSlice';
 import { formatCurrency } from '../utils/formatCurrency';
 
 const OrderDetailsScreen = ({ navigation }) => {
@@ -30,6 +35,16 @@ const OrderDetailsScreen = ({ navigation }) => {
     const dispatch = useDispatch();
     const reviewState = useSelector((state) => state.review);
     const { isLoading, error, successMessage, review } = reviewState;
+
+    const orderState = useSelector((state) => state.order);
+    const {
+        isLoading: orderLoading,
+        cancelSuccess,
+        cancelMessage,
+        returnSuccess,
+        returnMessage,
+        error: orderError
+    } = orderState;
 
     const alertShownRef = useRef(false); // Dùng useRef để tránh lặp alert
 
@@ -147,6 +162,91 @@ const OrderDetailsScreen = ({ navigation }) => {
         }
     }, [successMessage, error, isLoading, dispatch, orderData.order_id]);
 
+    // Handle order actions success/error
+    useEffect(() => {
+        if (cancelSuccess && cancelMessage) {
+            Alert.alert(
+                'Thành công',
+                cancelMessage,
+                [{
+                    text: 'OK',
+                    onPress: () => {
+                        dispatch(clearOrderState());
+                        setOrderStatus('Đã hủy');
+                        navigation.goBack();
+                    }
+                }]
+            );
+        }
+
+        if (returnSuccess && returnMessage) {
+            Alert.alert(
+                'Thành công',
+                returnMessage,
+                [{
+                    text: 'OK',
+                    onPress: () => {
+                        dispatch(clearOrderState());
+                        setOrderStatus('Đã trả');
+                        navigation.goBack();
+                    }
+                }]
+            );
+        }
+
+        if (orderError) {
+            Alert.alert(
+                'Lỗi',
+                orderError,
+                [{
+                    text: 'OK',
+                    onPress: () => dispatch(clearOrderState())
+                }]
+            );
+        }
+    }, [cancelSuccess, cancelMessage, returnSuccess, returnMessage, orderError, dispatch, navigation]);
+
+    // Handle cancel order
+    const handleCancelOrder = () => {
+        Alert.alert(
+            'Hủy đơn hàng',
+            'Bạn có chắc chắn muốn hủy đơn hàng này không?',
+            [
+                {
+                    text: 'Không',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Có, Hủy đơn',
+                    style: 'destructive',
+                    onPress: () => {
+                        dispatch(cancelOrder(orderData.order_id));
+                    }
+                }
+            ]
+        );
+    };
+
+    // Handle return order
+    const handleReturnOrder = () => {
+        Alert.alert(
+            'Trả hàng',
+            'Bạn có chắc chắn muốn trả hàng cho đơn hàng này không?',
+            [
+                {
+                    text: 'Không',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Có, Trả hàng',
+                    style: 'destructive',
+                    onPress: () => {
+                        dispatch(returnOrder(orderData.order_id));
+                    }
+                }
+            ]
+        );
+    };
 
     const handleStarPress = (productId, starIndex) => {
         const hasReviewed = submittedReviews[productId];
@@ -518,6 +618,53 @@ const OrderDetailsScreen = ({ navigation }) => {
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Action Buttons */}
+            {(orderStatus === 'Chờ xử lý' || orderStatus === 'Đã giao') && (
+                <View style={styles.actionContainer}>
+                    {orderStatus === 'Chờ xử lý' && (
+                        <TouchableOpacity
+                            style={[
+                                styles.actionButton,
+                                styles.cancelButton,
+                                orderLoading && styles.disabledButton
+                            ]}
+                            onPress={handleCancelOrder}
+                            disabled={orderLoading}
+                        >
+                            {orderLoading ? (
+                                <View style={styles.loadingButtonContent}>
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                    <Text style={styles.actionButtonText}>Đang hủy...</Text>
+                                </View>
+                            ) : (
+                                <Text style={styles.actionButtonText}>Hủy đơn hàng</Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
+
+                    {orderStatus === 'Đã giao' && (
+                        <TouchableOpacity
+                            style={[
+                                styles.actionButton,
+                                styles.returnButton,
+                                orderLoading && styles.disabledButton
+                            ]}
+                            onPress={handleReturnOrder}
+                            disabled={orderLoading}
+                        >
+                            {orderLoading ? (
+                                <View style={styles.loadingButtonContent}>
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                    <Text style={styles.actionButtonText}>Đang trả hàng...</Text>
+                                </View>
+                            ) : (
+                                <Text style={styles.actionButtonText}>Trả hàng</Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
+                </View>
+            )}
         </SafeAreaView>
     );
 };
@@ -857,6 +1004,42 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
         color: '#000',
+    },
+    actionContainer: {
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+        padding: 16,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: -2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    actionButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 48,
+    },
+    cancelButton: {
+        backgroundColor: '#EF4444',
+    },
+    returnButton: {
+        backgroundColor: '#F59E0B',
+    },
+    actionButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
+    disabledButton: {
+        opacity: 0.6,
     },
 });
 
