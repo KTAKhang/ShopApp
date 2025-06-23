@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkAuthStatus } from '../store/slices/authSlice';
-
+import ChatBotModal from '../components/ChatBotModal';
 // Import screens
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -14,7 +14,7 @@ import RegisterConfirmOTPScreen from '../screens/RegisterConfirmOTPScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ForgotPasswordOTPScreen from '../screens/ForgotPasswordOTPScreen';
-  // Thêm dòng này
+// Thêm dòng này
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
@@ -51,6 +51,9 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
+      {/* ✅ Chỉ hiển thị Chatbot nếu đã đăng nhập và không phải admin */}
+      {isAuthenticated && user.role_name !== 'admin' && <ChatBotModal />}
+
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           user.role_name === 'admin' ? (
@@ -66,7 +69,6 @@ export default function AppNavigator() {
               <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
               <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
               <Stack.Screen name="BuyNow" component={BuyNowScreen} />
-
             </>
           )
         ) : (
