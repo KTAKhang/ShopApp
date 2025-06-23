@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
-import { ScrollView, StyleSheet, View, ActivityIndicator, StatusBar } from 'react-native';
+import { ScrollView, StyleSheet, View, StatusBar } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import TopNavBar from '../components/TopNavBar';
 import SearchBar from '../components/SearchBar';
 import CategorySection from '../components/CategorySection';
-import FeaturedProducts from '../components/FeaturedProducts';
+import FeaturedNewProducts from '../components/FeaturedNewProducts';
+import FeaturedTopProducts from '../components/FeaturedTopProducts';
 import BottomNavigation from '../components/BottomNavigation';
+import { MinimalLoading } from '../components/Loading';
 import { fetchCategoriesAsync } from '../store/slices/categorySlice';
 import { fetchProductsAsync } from '../store/slices/productSlice';
 import { COLORS } from '../constants/colors';
@@ -17,19 +19,11 @@ const HomeScreen = () => {
     const { isLoading: isProductLoading, products } = useSelector((state) => state.product);
 
     useEffect(() => {
-        dispatch(fetchCategoriesAsync({ page: 1, limit: 10 }));
+        dispatch(fetchCategoriesAsync({ page: 1, limit: 20 }));
         dispatch(fetchProductsAsync({ page: 1, limit: 10 }));
     }, [dispatch]);
 
     const isLoading = isCategoryLoading || isProductLoading;
-
-    if (isLoading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-            </View>
-        );
-    }
 
     return (
         <View style={styles.container}>
@@ -47,17 +41,25 @@ const HomeScreen = () => {
                 <TopNavBar />
                 <SearchBar />
             </LinearGradient>
-            <ScrollView
-                style={styles.scrollView}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-            >
-                <View style={styles.content}>
-                    <CategorySection categories={categories} />
-                    <FeaturedProducts products={products} title="New Arrivals" />
-                    <FeaturedProducts products={products} title="Popular Products" />
+
+            {isLoading ? (
+                <View style={styles.loadingContainer}>
+                    <MinimalLoading color={COLORS.primary} />
                 </View>
-            </ScrollView>
+            ) : (
+                <ScrollView
+                    style={styles.scrollView}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                >
+                    <View style={styles.content}>
+                        <CategorySection categories={categories} />
+                        <FeaturedNewProducts products={products} title="Sản phẩm mới" />
+                        <FeaturedTopProducts title="Bán chạy nhất" />
+                    </View>
+                </ScrollView>
+            )}
+
             <BottomNavigation />
         </View>
     );

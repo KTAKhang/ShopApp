@@ -93,3 +93,31 @@ export async function cancelOrderApi(order_id) {
         throw new Error(error.response?.data?.message || error.message || 'Lỗi không xác định khi hủy đơn hàng');
     }
 }
+
+export async function returnOrderApi(order_id) {
+    try {
+        const token = await AsyncStorage.getItem('token');
+
+        const response = await axios.put(
+            `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/order/return/${order_id}`,
+            {},
+            {
+                headers: {
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = response.data;
+
+        if (!data.success) {
+            throw new Error(data.message || 'Trả hàng thất bại');
+        }
+
+        return data; // { success: true, message: "Trả hàng thành công" }
+    } catch (error) {
+        console.error('returnOrderApi error:', error);
+        throw new Error(error.response?.data?.message || error.message || 'Lỗi không xác định khi trả hàng');
+    }
+}

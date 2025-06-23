@@ -9,20 +9,19 @@ import {
     SafeAreaView,
     StatusBar,
     Dimensions,
-    ActivityIndicator,
-    Alert,
     Modal,
     FlatList,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { fetchProductByIdAsync } from '../store/slices/productSlice';
-import { 
-    fetchProductReviewsByProductId, 
+import {
+    fetchProductReviewsByProductId,
     selectProductReviews,
-    selectProductReviewsLoading 
+    selectProductReviewsLoading
 } from '../store/slices/reviewSlice';
 import { addToCart } from '../store/slices/cartSlice';
+import { InlineLoading, OverlayLoading } from '../components/Loading';
 import { COLORS } from '../constants/colors';
 import { formatCurrency } from '../utils/formatCurrency';
 
@@ -33,13 +32,15 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const [quantity, setQuantity] = useState(1);
     const [isFavorite, setIsFavorite] = useState(false);
     const [showAllReviews, setShowAllReviews] = useState(false);
+    const [showLoadingModal, setShowLoadingModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     // Get product ID from route params
     const productId = route?.params?.productId;
 
     // Get product and loading state from Redux
     const { product, isLoading: productLoading, error } = useSelector((state) => state.product);
-    
+
     // Get reviews for this specific product ONLY
     const reviews = useSelector(state => selectProductReviews(state, productId));
     const reviewsLoading = useSelector(state => selectProductReviewsLoading(state, productId));
@@ -49,7 +50,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
         if (productId && productId !== 'undefined') {
             // Fetch product details
             dispatch(fetchProductByIdAsync(productId));
-            
+
             // Chỉ fetch reviews nếu chưa có data cho sản phẩm này
             // Hoặc nếu bạn muốn luôn refresh data, hãy bỏ điều kiện này
             if (!reviews || reviews.length === 0) {
@@ -96,11 +97,11 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const renderUserAvatar = (user) => {
         const avatarUrl = user?.avatar;
         const userName = user?.name || user?.user_name || user?.username || 'Anonymous';
-        
+
         if (avatarUrl) {
             return (
-                <Image 
-                    source={{ uri: avatarUrl }} 
+                <Image
+                    source={{ uri: avatarUrl }}
                     style={styles.userAvatar}
                     onError={() => {
                         // Fallback nếu không load được avatar
@@ -127,12 +128,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         {renderUserAvatar(review.user)}
                         <View style={styles.reviewerDetails}>
                             <Text style={styles.reviewerName}>
-                                {review.user?.name || 
-                                 review.user?.user_name || 
-                                 review.user?.username ||
-                                 review.userName ||
-                                 review.user_name ||
-                                 'Anonymous'}
+                                {review.user?.name ||
+                                    review.user?.user_name ||
+                                    review.user?.username ||
+                                    review.userName ||
+                                    review.user_name ||
+                                    'Anonymous'}
                             </Text>
                             <Text style={styles.reviewDate}>
                                 {new Date(review.createdAt).toLocaleDateString()}
@@ -152,12 +153,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const renderPreviewReviews = () => {
         if (!reviews || reviews.length === 0) {
             return (
-                <Text style={styles.noReviewsText}>No reviews yet for this product.</Text>
+                <Text style={styles.noReviewsText}>Chưa có đánh giá nào cho sản phẩm này.</Text>
             );
         }
 
         const previewReviews = reviews.slice(0, 2);
-        
+
         return (
             <>
                 {previewReviews.map((review, index) => (
@@ -167,12 +168,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
                                 {renderUserAvatar(review.user)}
                                 <View style={styles.reviewerDetails}>
                                     <Text style={styles.reviewerName}>
-                                        {review.user?.name || 
-                                         review.user?.user_name || 
-                                         review.user?.username ||
-                                         review.userName ||
-                                         review.user_name ||
-                                         'Anonymous'}
+                                        {review.user?.name ||
+                                            review.user?.user_name ||
+                                            review.user?.username ||
+                                            review.userName ||
+                                            review.user_name ||
+                                            'Anonymous'}
                                     </Text>
                                     <Text style={styles.reviewDate}>
                                         {new Date(review.createdAt).toLocaleDateString()}
@@ -186,14 +187,14 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         <Text style={styles.reviewText}>{review.content}</Text>
                     </View>
                 ))}
-                
+
                 {reviews.length > 2 && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.showAllButton}
                         onPress={() => setShowAllReviews(true)}
                     >
                         <Text style={styles.showAllButtonText}>
-                            Show All Reviews ({reviews.length})
+                            Xem tất cả đánh giá ({reviews.length})
                         </Text>
                         <Icon name="keyboard-arrow-right" size={20} color={COLORS.primary} />
                     </TouchableOpacity>
@@ -220,12 +221,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         >
                             <Icon name="close" size={24} color={COLORS.text} />
                         </TouchableOpacity>
-                        
+
                         <Text style={styles.modalTitle}>
-                            All Reviews ({reviews ? reviews.length : 0})
+                            Tất cả đánh giá ({reviews ? reviews.length : 0})
                         </Text>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={styles.modalRefreshButton}
                             onPress={handleRefresh}
                         >
@@ -244,9 +245,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         ListEmptyComponent={() => (
                             <View style={styles.emptyReviewsContainer}>
                                 <Icon name="rate-review" size={48} color="#ccc" />
-                                <Text style={styles.emptyReviewsText}>No reviews yet</Text>
+                                <Text style={styles.emptyReviewsText}>Chưa có đánh giá nào</Text>
                                 <Text style={styles.emptyReviewsSubText}>
-                                    Be the first to review this product
+                                    Hãy là người đầu tiên đánh giá sản phẩm này
                                 </Text>
                             </View>
                         )}
@@ -265,32 +266,32 @@ const ProductDetailScreen = ({ navigation, route }) => {
     };
 
     const handleAddToCart = async () => {
+        if (showLoadingModal) return; // Prevent multiple clicks
+
+        setShowLoadingModal(true);
         try {
             await dispatch(addToCart({
                 product_id: productId,
                 quantity: quantity
             })).unwrap();
 
-            Alert.alert(
-                'Success',
-                'Product added to cart successfully',
-                [{ text: 'OK' }]
-            );
+            // Hide loading and show success
+            setShowLoadingModal(false);
+            setShowSuccessModal(true);
+
+            // Auto hide success modal after 2 seconds
+            setTimeout(() => {
+                setShowSuccessModal(false);
+            }, 2000);
+
         } catch (error) {
-            Alert.alert(
-                'Error',
-                'Failed to add item to cart. Please try again.',
-                [{ text: 'OK' }]
-            );
+            console.error('Failed to add to cart:', error);
+            setShowLoadingModal(false);
+            // Could add error modal here
         }
     };
 
-    const handleBuyNow = () => {
-        navigation.navigate('BuyNow', {
-            product: product,
-            quantity: quantity
-        });
-    };
+
 
     // Refresh function để fetch lại data khi cần
     const handleRefresh = useCallback(() => {
@@ -303,12 +304,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
     if (error) {
         return (
             <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Error: {error}</Text>
-                <TouchableOpacity 
-                    style={styles.retryButton} 
+                <Text style={styles.errorText}>Lỗi: {error}</Text>
+                <TouchableOpacity
+                    style={styles.retryButton}
                     onPress={handleRefresh}
                 >
-                    <Text style={styles.retryText}>Retry</Text>
+                    <Text style={styles.retryText}>Thử lại</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -316,24 +317,60 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
     if (isLoading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-                <Text style={styles.loadingText}>Loading product...</Text>
-            </View>
+            <InlineLoading text="Đang tải sản phẩm..." style={styles.loadingContainer} />
         );
     }
 
     if (!product) {
         return (
             <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Product not found</Text>
-                <TouchableOpacity 
-                    style={styles.retryButton} 
+                <Text style={styles.errorText}>Không tìm thấy sản phẩm</Text>
+                <TouchableOpacity
+                    style={styles.retryButton}
                     onPress={() => navigation.goBack()}
                 >
-                    <Text style={styles.retryText}>Go Back</Text>
+                    <Text style={styles.retryText}>Quay lại</Text>
                 </TouchableOpacity>
             </View>
+        );
+    }
+
+    // Check if product is inactive (status = false)
+    if (product.status === false) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
+
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Icon name="arrow-back" size={24} color={COLORS.white} />
+                    </TouchableOpacity>
+
+                    <Text style={styles.headerTitle}>Chi tiết sản phẩm</Text>
+
+                    <View style={styles.headerButton} />
+                </View>
+
+                <View style={styles.inactiveContainer}>
+                    <View style={styles.inactiveWrapper}>
+                        <Icon name="block" size={80} color="#ff6b6b" />
+                        <Text style={styles.inactiveTitle}>Sản phẩm không khả dụng</Text>
+                        <Text style={styles.inactiveText}>
+                            Sản phẩm này hiện tại không có sẵn để mua.
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.goBackButton}
+                            onPress={() => navigation.goBack()}
+                        >
+                            <Text style={styles.goBackButtonText}>Quay lại</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </SafeAreaView>
         );
     }
 
@@ -352,16 +389,14 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                 <Text style={styles.headerTitle}>Product Details</Text>
 
-                <TouchableOpacity style={styles.headerButton}>
-                    <Icon name="share" size={24} color={COLORS.white} />
-                </TouchableOpacity>
+                <View style={styles.headerButton} />
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Product Image */}
                 <View style={styles.imageContainer}>
-                    <Image 
-                        source={{ uri: product.image }} 
+                    <Image
+                        source={{ uri: product.image }}
                         style={styles.productImage}
                     />
                 </View>
@@ -376,7 +411,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                             {renderStars(averageRating)}
                         </View>
                         <Text style={styles.ratingText}>({averageRating.toFixed(1)})</Text>
-                        <Text style={styles.reviewCount}>• {reviews ? reviews.length : 0} Reviews</Text>
+                        <Text style={styles.reviewCount}>• {reviews ? reviews.length : 0} Đánh giá</Text>
                     </View>
 
                     {/* Price and Quantity */}
@@ -403,20 +438,24 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                     {/* Description */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Description</Text>
+                        <Text style={styles.sectionTitle}>Mô tả</Text>
                         <Text style={styles.description}>{product.detail_desc}</Text>
                     </View>
 
                     {/* Type and Rating */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Product Details</Text>
+                        <Text style={styles.sectionTitle}>Thông tin sản phẩm</Text>
+                        <View style={styles.featureItem}>
+                            <Icon name="label" size={16} color="#4caf50" />
+                            <Text style={styles.featureText}>Danh mục: {product.category_id?.name || 'Chung'}</Text>
+                        </View>
                         <View style={styles.featureItem}>
                             <Icon name="category" size={16} color="#4caf50" />
-                            <Text style={styles.featureText}>Type: {product.target}</Text>
+                            <Text style={styles.featureText}>Loại: {product.target}</Text>
                         </View>
                         <View style={styles.featureItem}>
                             <Icon name="star" size={16} color="#4caf50" />
-                            <Text style={styles.featureText}>Rating: {averageRating.toFixed(1)}/5</Text>
+                            <Text style={styles.featureText}>Đánh giá: {averageRating.toFixed(1)}/5</Text>
                         </View>
                     </View>
 
@@ -424,17 +463,17 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     <View style={styles.section}>
                         <View style={styles.reviewsHeader}>
                             <Text style={styles.sectionTitle}>
-                                Reviews ({reviews ? reviews.length : 0})
+                                Đánh giá ({reviews ? reviews.length : 0})
                             </Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.refreshButton}
                                 onPress={handleRefresh}
                             >
                                 <Icon name="refresh" size={20} color={COLORS.primary} />
-                                <Text style={styles.refreshText}>Refresh</Text>
+                                <Text style={styles.refreshText}>Làm mới</Text>
                             </TouchableOpacity>
                         </View>
-                        
+
                         {/* Preview Reviews */}
                         <View style={styles.reviewsPreviewContainer}>
                             {renderPreviewReviews()}
@@ -446,22 +485,32 @@ const ProductDetailScreen = ({ navigation, route }) => {
             {/* Reviews Modal */}
             <ReviewsModal />
 
+            {/* Loading Modal */}
+            <OverlayLoading text="Đang thêm vào giỏ hàng..." visible={showLoadingModal} />
+
+            {/* Success Modal */}
+            <Modal
+                transparent={true}
+                animationType="fade"
+                visible={showSuccessModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Icon name="check-circle" size={50} color="#4CAF50" />
+                        <Text style={styles.modalText}>Thêm vào giỏ hàng thành công!</Text>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Bottom Action Bar */}
             <View style={styles.actionBar}>
-                <TouchableOpacity 
-                    style={styles.addToCartButton} 
+                <TouchableOpacity
+                    style={styles.addToCartButtonFull}
                     onPress={handleAddToCart}
+                    disabled={showLoadingModal}
                 >
-                    <Icon name="shopping-cart" size={20} color={COLORS.primary} />
-                    <Text style={styles.addToCartText}>Add to Cart</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                    style={styles.buyNowButton} 
-                    onPress={handleBuyNow}
-                >
-                    <Icon name="shopping-bag" size={20} color={COLORS.white} />
-                    <Text style={styles.buyNowText}>Buy Now</Text>
+                    <Icon name="shopping-cart" size={20} color={COLORS.white} />
+                    <Text style={styles.addToCartTextFull}>Add to Cart</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -796,45 +845,106 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        flexDirection: 'row',
         paddingHorizontal: 16,
         paddingVertical: 12,
         backgroundColor: COLORS.white,
         borderTopWidth: 1,
         borderTopColor: COLORS.border.light,
     },
-    addToCartButton: {
+    addToCartButtonFull: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
-        borderWidth: 1,
-        borderColor: COLORS.primary,
-        borderRadius: 8,
-        marginRight: 8,
-    },
-    addToCartText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: COLORS.primary,
-        marginLeft: 8,
-    },
-    buyNowButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
+        paddingVertical: 14,
         backgroundColor: COLORS.primary,
         borderRadius: 8,
-        marginLeft: 8,
+        elevation: 2,
+        shadowColor: COLORS.shadow?.dark || '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
     },
-    buyNowText: {
+    addToCartTextFull: {
         fontSize: 16,
         fontWeight: '600',
         color: COLORS.white,
         marginLeft: 8,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: COLORS.white,
+        padding: 30,
+        borderRadius: 20,
+        alignItems: 'center',
+        minWidth: 250,
+        elevation: 5,
+        shadowColor: COLORS.shadow?.dark || '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
+    },
+    modalText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.text?.primary || '#333',
+        marginTop: 15,
+        textAlign: 'center',
+    },
+    inactiveContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
+        padding: 20,
+    },
+    inactiveWrapper: {
+        backgroundColor: COLORS.white,
+        padding: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        shadowColor: COLORS.shadow?.dark || '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
+        maxWidth: 300,
+    },
+    inactiveTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#ff6b6b',
+        marginTop: 20,
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    inactiveText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 30,
+    },
+    goBackButton: {
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 12,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    goBackButtonText: {
+        color: COLORS.white,
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
 

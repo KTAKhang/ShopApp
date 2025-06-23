@@ -44,9 +44,9 @@ const OrderHistorySection = ({ orderHistory, onViewAll, onOrderPress }) => {
         <>
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Order History</Text>
+                    <Text style={styles.sectionTitle}>Lịch sử đơn hàng</Text>
                     <TouchableOpacity onPress={onViewAll}>
-                        <Text style={styles.viewAllText}>View All</Text>
+                        <Text style={styles.viewAllText}>Xem tất cả</Text>
                     </TouchableOpacity>
                 </View>
                 {

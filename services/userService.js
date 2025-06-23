@@ -90,7 +90,7 @@ export async function changePasswordApi({ old_password, new_password }) {
         );
 
         const data = response.data;
-        console.log('Change password response:', data);
+
 
         if (data.status !== 'OK') {
             throw new Error(data.message || 'Change password failed');
