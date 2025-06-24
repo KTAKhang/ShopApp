@@ -26,8 +26,20 @@ const OrderHistoryScreen = ({ navigation }) => {
     const [selectedFilter, setSelectedFilter] = useState('Tất cả đơn hàng');
     const [cancellingOrders, setCancellingOrders] = useState(new Set());
     const [refreshing, setRefreshing] = useState(false);
+    const [filterLoading, setFilterLoading] = useState(false);
 
     const filters = ['Tất cả đơn hàng', 'Chờ xử lý', 'Đã xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy', 'Đã trả'];
+
+    // Map filter display names to API status values
+    const filterToStatusMapping = {
+        'Tất cả đơn hàng': '',
+        'Chờ xử lý': 'PENDING',
+        'Đã xác nhận': 'CONFIRMED',
+        'Đang giao': 'SHIPPED',
+        'Đã giao': 'DELIVERED',
+        'Đã hủy': 'CANCELLED',
+        'Đã trả': 'RETURNED'
+    };
 
     const {
         orders: orderData,
@@ -43,39 +55,81 @@ const OrderHistoryScreen = ({ navigation }) => {
 
     const dispatch = useDispatch();
 
-
+    // Get current status filter for API
+    const getCurrentStatusFilter = () => {
+        return filterToStatusMapping[selectedFilter] || '';
+    };
 
     useEffect(() => {
+        dispatch(fetchOrderByUser({
+            page: 1,
+            limit: 5,
+            search: getCurrentStatusFilter()
+        }));
+    }, [dispatch]);
 
-        dispatch(fetchOrderByUser({ page: 1, limit: 5 }));
+    // Sửa lại handleFilterChange function
+    const handleFilterChange = useCallback(async (filter) => {
+        setSelectedFilter(filter);
+        setFilterLoading(true); // Bắt đầu loading
+
+        const statusFilter = filterToStatusMapping[filter] || '';
+
+        try {
+            // Reset pagination và fetch với filter mới
+            dispatch(resetPagination());
+            await dispatch(fetchOrderByUser({
+                page: 1,
+                limit: 5,
+                search: statusFilter
+            })).unwrap();
+        } catch (error) {
+            console.error('Error filtering orders:', error);
+        } finally {
+            setFilterLoading(false); // Kết thúc loading
+        }
     }, [dispatch]);
 
     // Handle cancel success
     useEffect(() => {
         if (cancelSuccess && cancelMessage) {
             Alert.alert('Thành công', cancelMessage);
+            // Refresh current filter after successful cancel
+            const statusFilter = getCurrentStatusFilter();
+            dispatch(resetPagination());
+            dispatch(fetchOrderByUser({
+                page: 1,
+                limit: 5,
+                search: statusFilter
+            }));
         }
-    }, [cancelSuccess, cancelMessage]);
+    }, [cancelSuccess, cancelMessage, selectedFilter, dispatch]);
 
     // Refresh handler
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         dispatch(resetPagination());
-        await dispatch(fetchOrderByUser({ page: 1, limit: 5 }));
+        const statusFilter = getCurrentStatusFilter();
+        await dispatch(fetchOrderByUser({
+            page: 1,
+            limit: 5,
+            search: statusFilter
+        }));
         setRefreshing(false);
-    }, [dispatch]);
+    }, [dispatch, selectedFilter]);
 
     // Load more handler
     const loadMoreOrders = useCallback(() => {
         if (!isLoadingMore && hasMore && !orderLoading) {
-
+            const statusFilter = getCurrentStatusFilter();
             dispatch(fetchOrderByUser({
                 page: currentPage + 1,
                 limit: 5,
+                search: statusFilter,
                 isLoadMore: true
             }));
         }
-    }, [dispatch, currentPage, hasMore, isLoadingMore, orderLoading]);
+    }, [dispatch, currentPage, hasMore, isLoadingMore, orderLoading, selectedFilter]);
 
     // Handle scroll
     const handleScroll = useCallback((event) => {
@@ -150,12 +204,6 @@ const OrderHistoryScreen = ({ navigation }) => {
 
     const orders = transformOrderData(orderData);
 
-    // Filter orders based on selected filter
-    const filteredOrders = orders.filter(order => {
-        if (selectedFilter === 'Tất cả đơn hàng') return true;
-        return order.status === selectedFilter;
-    });
-
     // Handle cancel order
     const handleCancelOrder = (order) => {
         Alert.alert(
@@ -187,7 +235,6 @@ const OrderHistoryScreen = ({ navigation }) => {
             ]
         );
     };
-
 
     const handleActionPress = (order) => {
         switch (order.status) {
@@ -307,7 +354,7 @@ const OrderHistoryScreen = ({ navigation }) => {
     };
 
     // Initial loading state
-    if (orderLoading && !orderData.length) {
+    if ((orderLoading && !orderData.length) || filterLoading) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
@@ -348,7 +395,11 @@ const OrderHistoryScreen = ({ navigation }) => {
                     <Text style={styles.errorSubtitle}>{orderError}</Text>
                     <TouchableOpacity
                         style={styles.retryButton}
-                        onPress={() => dispatch(fetchOrderByUser({ page: 1, limit: 5 }))}
+                        onPress={() => dispatch(fetchOrderByUser({
+                            page: 1,
+                            limit: 5,
+                            search: getCurrentStatusFilter()
+                        }))}
                     >
                         <Text style={styles.retryButtonText}>Thử lại</Text>
                     </TouchableOpacity>
@@ -399,7 +450,7 @@ const OrderHistoryScreen = ({ navigation }) => {
                                 styles.filterButton,
                                 selectedFilter === filter && styles.selectedFilterButton,
                             ]}
-                            onPress={() => setSelectedFilter(filter)}
+                            onPress={() => handleFilterChange(filter)}
                         >
                             <Text
                                 style={[
@@ -414,9 +465,9 @@ const OrderHistoryScreen = ({ navigation }) => {
                 </ScrollView>
 
                 <View style={styles.ordersContainer}>
-                    {filteredOrders.length > 0 ? (
+                    {orders.length > 0 ? (
                         <>
-                            {filteredOrders.map((order) => (
+                            {orders.map((order) => (
                                 <OrderItem key={order.id} order={order} />
                             ))}
                             <LoadingFooter />
@@ -427,9 +478,9 @@ const OrderHistoryScreen = ({ navigation }) => {
                             <Icon name="shopping-bag" size={64} color="#d1d5db" />
                             <Text style={styles.emptyStateTitle}>Không tìm thấy đơn hàng</Text>
                             <Text style={styles.emptyStateSubtitle}>
-                                {orders.length === 0
+                                {selectedFilter === 'Tất cả đơn hàng'
                                     ? "Bạn chưa đặt đơn hàng nào"
-                                    : "Không có đơn hàng nào phù hợp với bộ lọc đã chọn"
+                                    : `Không có đơn hàng nào có trạng thái "${selectedFilter}"`
                                 }
                             </Text>
                         </View>

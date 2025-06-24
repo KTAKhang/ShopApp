@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,11 +7,13 @@ import {
     SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 
 const BottomNavigation = () => {
-    const [activeTab, setActiveTab] = useState('Home');
+    const [activeTab, setActiveTab] = useState('HomePage');
     const navigation = useNavigation();
+    const route = useRoute();
+
     const tabs = [
         { name: 'HomePage', icon: 'home', label: 'Trang chủ' },
         { name: 'Cart', icon: 'shopping-cart', label: 'Giỏ hàng' },
@@ -19,10 +21,21 @@ const BottomNavigation = () => {
         { name: 'Profile', icon: 'person', label: 'Hồ sơ' },
     ];
 
+    // Cập nhật activeTab khi route thay đổi
+    useFocusEffect(
+        React.useCallback(() => {
+            const currentRouteName = route.name;
+            // Kiểm tra xem route hiện tại có trong danh sách tabs không
+            const tabExists = tabs.some(tab => tab.name === currentRouteName);
+            if (tabExists) {
+                setActiveTab(currentRouteName);
+            }
+        }, [route.name])
+    );
+
     const handleTabPress = (tabName) => {
         setActiveTab(tabName);
-        navigation.navigate(tabName)
-
+        navigation.navigate(tabName);
     };
 
     return (
