@@ -77,6 +77,38 @@ const RegisterScreen = () => {
             return;
         }
 
+        // Kiểm tra họ tên không được để trống sau khi trim
+        if (userName.trim().length === 0) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Họ tên không được để trống',
+            });
+            return;
+        }
+
+        // Kiểm tra họ tên không được có số
+        const hasNumber = /\d/;
+        if (hasNumber.test(userName)) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Họ tên không được chứa số',
+            });
+            return;
+        }
+
+        // Kiểm tra họ tên không được có ký tự đặc biệt (chỉ cho phép chữ cái, dấu cách và dấu tiếng Việt)
+        const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+        if (hasSpecialChar.test(userName)) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Họ tên không được chứa ký tự đặc biệt',
+            });
+            return;
+        }
+
         dispatch(sendOtp({ user_name: userName, email, password }));
     };
 
