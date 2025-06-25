@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Hàm lấy danh mục
-export async function getCategories({ page = 1, limit = 10 }) {
+export async function getCategories({ page = 1, limit = 100 }) {
     try {
         const token = await AsyncStorage.getItem('token');  // Lấy token từ AsyncStorage
 

@@ -45,6 +45,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const reviews = useSelector(state => selectProductReviews(state, productId));
     const reviewsLoading = useSelector(state => selectProductReviewsLoading(state, productId));
 
+    // Check if product is out of stock
+    const isOutOfStock = product && product.quantity <= 0;
+
     // Fetch data chỉ khi cần thiết (không clear data cũ)
     useEffect(() => {
         if (productId && productId !== 'undefined') {
@@ -188,7 +191,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     </View>
                 ))}
 
-                {reviews.length > 2 && (
+                {reviews && reviews.length > 2 && (
                     <TouchableOpacity
                         style={styles.showAllButton}
                         onPress={() => setShowAllReviews(true)}
@@ -258,7 +261,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
     };
 
     const handleQuantityChange = (type) => {
-        if (type === 'increase') {
+        if (type === 'increase' && quantity < product.quantity) {
             setQuantity(prev => prev + 1);
         } else if (type === 'decrease' && quantity > 1) {
             setQuantity(prev => prev - 1);
@@ -266,7 +269,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
     };
 
     const handleAddToCart = async () => {
-        if (showLoadingModal) return; // Prevent multiple clicks
+        if (showLoadingModal || isOutOfStock) return; // Prevent multiple clicks or out of stock
 
         setShowLoadingModal(true);
         try {
@@ -290,8 +293,6 @@ const ProductDetailScreen = ({ navigation, route }) => {
             // Could add error modal here
         }
     };
-
-
 
     // Refresh function để fetch lại data khi cần
     const handleRefresh = useCallback(() => {
@@ -419,19 +420,31 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         <Text style={styles.price}>{formatCurrency(product.price)}</Text>
                         <View style={styles.quantityContainer}>
                             <TouchableOpacity
-                                style={styles.quantityButton}
+                                style={[
+                                    styles.quantityButton,
+                                    quantity <= 1 && styles.quantityButtonDisabled
+                                ]}
                                 onPress={() => handleQuantityChange('decrease')}
+                                disabled={quantity <= 1}
                             >
-                                <Icon name="remove" size={20} color="#666" />
+                                <Icon name="remove" size={20} color={quantity <= 1 ? "#ccc" : "#666"} />
                             </TouchableOpacity>
 
                             <Text style={styles.quantityText}>{quantity}</Text>
 
                             <TouchableOpacity
-                                style={styles.quantityButton}
+                                style={[
+                                    styles.quantityButton,
+                                    (quantity >= product.quantity || isOutOfStock) && styles.quantityButtonDisabled
+                                ]}
                                 onPress={() => handleQuantityChange('increase')}
+                                disabled={quantity >= product.quantity || isOutOfStock}
                             >
-                                <Icon name="add" size={20} color="#666" />
+                                <Icon
+                                    name="add"
+                                    size={20}
+                                    color={(quantity >= product.quantity || isOutOfStock) ? "#ccc" : "#666"}
+                                />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -456,6 +469,19 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         <View style={styles.featureItem}>
                             <Icon name="star" size={16} color="#4caf50" />
                             <Text style={styles.featureText}>Đánh giá: {averageRating.toFixed(1)}/5</Text>
+                        </View>
+                        <View style={styles.featureItem}>
+                            <Icon
+                                name={isOutOfStock ? "remove-shopping-cart" : "inventory"}
+                                size={16}
+                                color={isOutOfStock ? "#ff4757" : "#4caf50"}
+                            />
+                            <Text style={[
+                                styles.featureText,
+                                isOutOfStock && styles.outOfStockText
+                            ]}>
+                                {isOutOfStock ? 'Hết hàng' : `Số lượng: ${product.quantity} sản phẩm`}
+                            </Text>
                         </View>
                     </View>
 
@@ -505,12 +531,24 @@ const ProductDetailScreen = ({ navigation, route }) => {
             {/* Bottom Action Bar */}
             <View style={styles.actionBar}>
                 <TouchableOpacity
-                    style={styles.addToCartButtonFull}
+                    style={[
+                        styles.addToCartButtonFull,
+                        isOutOfStock && styles.addToCartButtonDisabled
+                    ]}
                     onPress={handleAddToCart}
-                    disabled={showLoadingModal}
+                    disabled={showLoadingModal || isOutOfStock}
                 >
-                    <Icon name="shopping-cart" size={20} color={COLORS.white} />
-                    <Text style={styles.addToCartTextFull}>Add to Cart</Text>
+                    <Icon
+                        name={isOutOfStock ? "remove-shopping-cart" : "shopping-cart"}
+                        size={20}
+                        color={isOutOfStock ? "#999" : COLORS.white}
+                    />
+                    <Text style={[
+                        styles.addToCartTextFull,
+                        isOutOfStock && styles.addToCartTextDisabled
+                    ]}>
+                        {isOutOfStock ? 'Hết hàng' : 'Add to Cart'}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -945,6 +983,18 @@ const styles = StyleSheet.create({
         color: COLORS.white,
         fontSize: 16,
         fontWeight: '600',
+    },
+    outOfStockText: {
+        color: '#ff4757',
+    },
+    addToCartButtonDisabled: {
+        backgroundColor: '#ccc',
+    },
+    addToCartTextDisabled: {
+        color: '#999',
+    },
+    quantityButtonDisabled: {
+        backgroundColor: '#f0f0f0',
     },
 });
 

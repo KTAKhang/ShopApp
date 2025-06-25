@@ -46,7 +46,7 @@ const OrderHistorySection = ({ orderHistory, onViewAll, onOrderPress }) => {
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Lịch sử đơn hàng</Text>
                     <TouchableOpacity onPress={onViewAll}>
-                        <Text style={styles.viewAllText}>Xem tất cả</Text>
+                        <Text style={styles.viewAllText}>Xem đơn hàng</Text>
                     </TouchableOpacity>
                 </View>
                 {
@@ -54,9 +54,8 @@ const OrderHistorySection = ({ orderHistory, onViewAll, onOrderPress }) => {
                         simplifiedOrders.map((order, index) => {
                             const { backgroundColor, color } = getStatusStyle(order.order_status_name);
                             return (
-                                <TouchableOpacity
+                                <View
                                     key={order.order_id}
-                                    onPress={() => onOrderPress(order)}
                                     style={[
                                         styles.orderItem,
                                         index === simplifiedOrders.length - 1 && { borderBottomWidth: 0 }
@@ -74,7 +73,7 @@ const OrderHistorySection = ({ orderHistory, onViewAll, onOrderPress }) => {
                                         <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
                                         <Text style={styles.orderAmount}>{formatCurrency(order.total_price)}</Text>
                                     </View>
-                                </TouchableOpacity>
+                                </View>
                             );
                         })
                     ) : (

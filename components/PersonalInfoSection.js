@@ -25,7 +25,7 @@ const PersonalInfoSection = ({ profile, onChangePasswordPress }) => (
 
         <TouchableOpacity style={styles.changePasswordButton} onPress={onChangePasswordPress}>
             <Ionicons name="key-outline" size={20} color="#13C2C2" />
-            <Text style={styles.changePasswordText}>Change Password</Text>
+            <Text style={styles.changePasswordText}>Đổi mật khẩu</Text>
         </TouchableOpacity>
     </View>
 );

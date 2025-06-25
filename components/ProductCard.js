@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../store/slices/cartSlice';
 import { selectProductReviews } from '../store/slices/reviewSlice';
 import { formatCurrency } from '../utils/formatCurrency';
+import Toast from 'react-native-toast-message';
 
 const truncateText = (text, maxLength) => {
     if (text.length <= maxLength) return text;
@@ -60,12 +61,15 @@ const ProductCard = ({ product }) => {
         ? productReviews.reduce((acc, review) => acc + review.rating, 0) / productReviews.length
         : 0;
 
+    // Check if product is out of stock
+    const isOutOfStock = product.quantity <= 0;
+
     const handlePress = () => {
         navigation.navigate('ProductDetail', { productId: product._id });
     };
 
     const handleAddToCart = async () => {
-        if (showLoadingModal) return; // Prevent multiple clicks
+        if (showLoadingModal || isOutOfStock) return; // Prevent multiple clicks or out of stock
 
         setShowLoadingModal(true);
         try {
@@ -74,19 +78,20 @@ const ProductCard = ({ product }) => {
                 quantity: 1
             })).unwrap();
 
-            // Hide loading and show success
             setShowLoadingModal(false);
             setShowSuccessModal(true);
-
-            // Auto hide success modal after 2 seconds
             setTimeout(() => {
                 setShowSuccessModal(false);
             }, 2000);
-
         } catch (error) {
-            console.error('Failed to add to cart:', error);
             setShowLoadingModal(false);
-            // Could add error modal here
+            Toast.show({
+                type: 'error',
+                text1: 'Không thể thêm vào giỏ hàng',
+                text2: error?.toString() || 'Có lỗi xảy ra khi thêm sản phẩm',
+                position: 'top',
+                visibilityTime: 2500,
+            });
         }
     };
 
@@ -98,6 +103,12 @@ const ProductCard = ({ product }) => {
             >
                 <View style={styles.imageContainer}>
                     <Image source={{ uri: product.image }} style={styles.image} />
+                    {/* Out of stock overlay */}
+                    {isOutOfStock && (
+                        <View style={styles.outOfStockOverlay}>
+                            <Text style={styles.outOfStockText}>Hết hàng</Text>
+                        </View>
+                    )}
                 </View>
                 <View style={styles.infoContainer}>
                     <Text style={styles.name} numberOfLines={2}>{truncateText(product.name, 20)}</Text>
@@ -108,12 +119,28 @@ const ProductCard = ({ product }) => {
                     <View style={styles.priceContainer}>
                         <Text style={styles.price}>{formatCurrency(product.price)}</Text>
                         <TouchableOpacity
-                            style={styles.addButton}
+                            style={[
+                                styles.addButton,
+                                isOutOfStock && styles.addButtonDisabled
+                            ]}
                             onPress={handleAddToCart}
-                            disabled={showLoadingModal}
+                            disabled={showLoadingModal || isOutOfStock}
                         >
-                            <Icon name="add-shopping-cart" size={16} color={COLORS.white} />
+                            <Icon
+                                name={isOutOfStock ? "remove-shopping-cart" : "add-shopping-cart"}
+                                size={16}
+                                color={isOutOfStock ? "#999" : COLORS.white}
+                            />
                         </TouchableOpacity>
+                    </View>
+                    {/* Stock indicator */}
+                    <View style={styles.stockContainer}>
+                        <Text style={[
+                            styles.stockText,
+                            isOutOfStock && styles.stockTextOutOfStock
+                        ]}>
+                            {isOutOfStock ? 'Hết hàng' : `Còn ${product.quantity} sản phẩm`}
+                        </Text>
                     </View>
                 </View>
             </LinearGradient>
@@ -175,6 +202,25 @@ const styles = StyleSheet.create({
         height: '100%',
         resizeMode: 'cover',
     },
+    outOfStockOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    outOfStockText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+        backgroundColor: '#ff4757',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
     infoContainer: {
         padding: 12,
     },
@@ -200,6 +246,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 4,
     },
     price: {
         fontSize: 18,
@@ -215,6 +262,21 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 3,
+    },
+    addButtonDisabled: {
+        backgroundColor: '#e0e0e0',
+        shadowOpacity: 0,
+    },
+    stockContainer: {
+        marginTop: 4,
+    },
+    stockText: {
+        fontSize: 11,
+        color: '#4CAF50',
+        fontWeight: '500',
+    },
+    stockTextOutOfStock: {
+        color: '#ff4757',
     },
     modalOverlay: {
         flex: 1,
