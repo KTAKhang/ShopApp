@@ -18,16 +18,16 @@ import Toast from 'react-native-toast-message';
 const { height } = Dimensions.get('window');
 
 const ForgotPasswordOTPScreen = () => {
-    const [otp, setOtp] = useState(['', '', '', '', '', '']); // 6 ký tự OTP
+    const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [step, setStep] = useState(1); // 1: Nhập OTP, 2: Đặt mật khẩu mới
-    
+    const [step, setStep] = useState(1);
+
     const inputRefs = useRef([]);
     const navigation = useNavigation();
     const route = useRoute();
     const { email } = route.params || {};
-    
+
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(50)).current;
 
@@ -87,7 +87,7 @@ const ForgotPasswordOTPScreen = () => {
         try {
             // Giả lập call API
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             Toast.show({
                 type: 'success',
                 text1: 'Thành công',
@@ -137,7 +137,7 @@ const ForgotPasswordOTPScreen = () => {
         try {
             // Giả lập call API
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             Toast.show({
                 type: 'success',
                 text1: 'Thành công',
