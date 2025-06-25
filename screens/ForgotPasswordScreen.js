@@ -30,7 +30,7 @@ const ForgotPasswordScreen = () => {
     // Reset state khi component mount
     useEffect(() => {
         // Reset forgot password state khi vào trang
-        dispatch({ type: 'auth/resetForgotPasswordState' });
+        // dispatch({ type: 'auth/resetForgotPasswordState' });
     }, []);
 
     useEffect(() => {
@@ -153,7 +153,7 @@ const ForgotPasswordScreen = () => {
                         {isLoading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.submitButtonText}>Gửi yêu cầu</Text>
+                            <Text style={styles.submitButtonText}>Gửi OTP</Text>
                         )}
                     </TouchableOpacity>
 
