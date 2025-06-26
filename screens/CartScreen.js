@@ -597,7 +597,7 @@ const CartScreen = ({ navigation }) => {
 
                     {itemIsUpdating && (
                         <Text style={styles.updatingText}>
-                            {Object.keys(isUpdating).some(key => key === item.id.toString()) ? 'Đang xóa...' : 'Đang cập nhật...'}
+                            {Object.keys(isUpdating).some(key => key === item.id.toString()) ? 'Đang Cập Nhật...' : 'Đang cập nhật...'}
                         </Text>
                     )}
 
