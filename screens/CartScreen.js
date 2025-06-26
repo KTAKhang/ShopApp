@@ -483,10 +483,14 @@ const CartScreen = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <View style={styles.imageContainer}>
-                    <Image source={{ uri: item.image }} style={[
-                        styles.itemImage,
-                        isUnavailable && styles.unavailableImage
-                    ]} />
+                    <Image
+                        source={{ uri: item.image }}
+                        style={[
+                            styles.itemImage,
+                            isUnavailable && styles.unavailableImage
+                        ]}
+                        resizeMode="contain"
+                    />
                     {/* Overlay cho hình ảnh khi hết hàng */}
                     {isUnavailable && (
                         <View style={styles.imageOverlay}>
