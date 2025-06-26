@@ -24,6 +24,7 @@ import { addToCart } from '../store/slices/cartSlice';
 import { InlineLoading, OverlayLoading } from '../components/Loading';
 import { COLORS } from '../constants/colors';
 import { formatCurrency } from '../utils/formatCurrency';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 
@@ -61,6 +62,20 @@ const ProductDetailScreen = ({ navigation, route }) => {
             }
         }
     }, [dispatch, productId]); // Bỏ reviews khỏi dependency để tránh infinite loop
+
+    // Auto-adjust quantity if it exceeds available stock when product data updates
+    useEffect(() => {
+        if (product && product.quantity > 0 && quantity > product.quantity) {
+            setQuantity(product.quantity);
+            Toast.show({
+                type: 'info',
+                text1: 'Số lượng đã được điều chỉnh',
+                text2: `Số lượng đã được giảm xuống ${product.quantity} (tối đa có sẵn)`,
+                position: 'top',
+                visibilityTime: 2500,
+            });
+        }
+    }, [product?.quantity, quantity]);
 
     const isLoading = productLoading || reviewsLoading;
 
@@ -261,7 +276,18 @@ const ProductDetailScreen = ({ navigation, route }) => {
     };
 
     const handleQuantityChange = (type) => {
-        if (type === 'increase' && quantity < product.quantity) {
+        if (type === 'increase') {
+            if (quantity >= product.quantity) {
+                // Show toast notification when trying to exceed stock
+                Toast.show({
+                    type: 'error',
+                    text1: 'Vượt quá số lượng kho',
+                    text2: `Chỉ còn ${product.quantity} sản phẩm trong kho`,
+                    position: 'top',
+                    visibilityTime: 2500,
+                });
+                return;
+            }
             setQuantity(prev => prev + 1);
         } else if (type === 'decrease' && quantity > 1) {
             setQuantity(prev => prev - 1);
@@ -270,6 +296,18 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
     const handleAddToCart = async () => {
         if (showLoadingModal || isOutOfStock) return; // Prevent multiple clicks or out of stock
+
+        // Validate quantity before adding to cart
+        if (quantity > product.quantity) {
+            Toast.show({
+                type: 'error',
+                text1: 'Số lượng không hợp lệ',
+                text2: `Chỉ còn ${product.quantity} sản phẩm trong kho. Vui lòng giảm số lượng.`,
+                position: 'top',
+                visibilityTime: 3000,
+            });
+            return;
+        }
 
         setShowLoadingModal(true);
         try {
@@ -288,9 +326,16 @@ const ProductDetailScreen = ({ navigation, route }) => {
             }, 2000);
 
         } catch (error) {
-            console.error('Failed to add to cart:', error);
             setShowLoadingModal(false);
-            // Could add error modal here
+
+            // Show error toast
+            Toast.show({
+                type: 'error',
+                text1: 'Không thể thêm vào giỏ hàng',
+                text2: error?.toString() || 'Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng',
+                position: 'top',
+                visibilityTime: 2500,
+            });
         }
     };
 
@@ -299,6 +344,14 @@ const ProductDetailScreen = ({ navigation, route }) => {
         if (productId) {
             dispatch(fetchProductByIdAsync(productId));
             dispatch(fetchProductReviewsByProductId(productId));
+
+            Toast.show({
+                type: 'success',
+                text1: 'Đã làm mới dữ liệu',
+                text2: 'Thông tin sản phẩm đã được cập nhật',
+                position: 'top',
+                visibilityTime: 1500,
+            });
         }
     }, [dispatch, productId]);
 
@@ -318,7 +371,26 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
     if (isLoading) {
         return (
-            <InlineLoading text="Đang tải sản phẩm..." style={styles.loadingContainer} />
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
+
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Icon name="arrow-back" size={24} color={COLORS.white} />
+                    </TouchableOpacity>
+
+                    <Text style={styles.headerTitle}>Product Details</Text>
+
+                    <View style={styles.headerButton} />
+                </View>
+
+                {/* Loading Content */}
+                <InlineLoading text="Đang tải sản phẩm..." style={styles.loadingContainer} />
+            </SafeAreaView>
         );
     }
 
@@ -399,6 +471,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     <Image
                         source={{ uri: product.image }}
                         style={styles.productImage}
+                        resizeMode="contain"
                     />
                 </View>
 
@@ -551,6 +624,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     </Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Toast Message */}
+            <Toast />
         </SafeAreaView>
     );
 };
@@ -629,7 +705,6 @@ const styles = StyleSheet.create({
     productImage: {
         width: '100%',
         height: '100%',
-        resizeMode: 'cover',
     },
     productInfo: {
         padding: 16,

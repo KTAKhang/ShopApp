@@ -7,7 +7,7 @@ import CategorySection from '../components/CategorySection';
 import FeaturedNewProducts from '../components/FeaturedNewProducts';
 import FeaturedTopProducts from '../components/FeaturedTopProducts';
 import BottomNavigation from '../components/BottomNavigation';
-import { MinimalLoading } from '../components/Loading';
+import { InlineLoading } from '../components/Loading';
 import { fetchCategoriesAsync } from '../store/slices/categorySlice';
 import { fetchProductsAsync } from '../store/slices/productSlice';
 import { COLORS } from '../constants/colors';
@@ -42,23 +42,27 @@ const HomeScreen = () => {
                 <SearchBar />
             </LinearGradient>
 
-            {isLoading ? (
-                <View style={styles.loadingContainer}>
-                    <MinimalLoading color={COLORS.primary} />
+            <ScrollView
+                style={styles.scrollView}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                <View style={styles.content}>
+                    {isLoading ? (
+                        <InlineLoading
+                            text="Đang tải dữ liệu..."
+                            style={styles.loadingContainer}
+                            color={COLORS.primary}
+                        />
+                    ) : (
+                        <>
+                            <CategorySection categories={categories} />
+                            <FeaturedNewProducts products={products} title="Sản phẩm mới" />
+                            <FeaturedTopProducts title="Bán chạy nhất" />
+                        </>
+                    )}
                 </View>
-            ) : (
-                <ScrollView
-                    style={styles.scrollView}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollContent}
-                >
-                    <View style={styles.content}>
-                        <CategorySection categories={categories} />
-                        <FeaturedNewProducts products={products} title="Sản phẩm mới" />
-                        <FeaturedTopProducts title="Bán chạy nhất" />
-                    </View>
-                </ScrollView>
-            )}
+            </ScrollView>
 
             <BottomNavigation />
         </View>
@@ -97,10 +101,8 @@ const styles = StyleSheet.create({
         marginHorizontal: 0,
     },
     loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: COLORS.background,
+        marginTop: 40,
+        paddingVertical: 60,
     },
 });
 

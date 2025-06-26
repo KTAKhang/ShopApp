@@ -102,7 +102,11 @@ const ProductCard = ({ product }) => {
                 style={styles.card}
             >
                 <View style={styles.imageContainer}>
-                    <Image source={{ uri: product.image }} style={styles.image} />
+                    <Image
+                        source={{ uri: product.image }}
+                        style={styles.image}
+                        resizeMode="contain"
+                    />
                     {/* Out of stock overlay */}
                     {isOutOfStock && (
                         <View style={styles.outOfStockOverlay}>
@@ -200,7 +204,6 @@ const styles = StyleSheet.create({
     image: {
         width: '100%',
         height: '100%',
-        resizeMode: 'cover',
     },
     outOfStockOverlay: {
         position: 'absolute',
