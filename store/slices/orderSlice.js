@@ -102,6 +102,8 @@ const orderSlice = createSlice({
             state.totalPages = 1;
             state.hasMore = true;
             state.total = 0;
+            state.cancelSuccess = false;
+            state.cancelMessage = null;
         },
     },
     extraReducers: (builder) => {

@@ -12,7 +12,7 @@ export default function App() {
   return (
     <Provider store={store}>
       <ActionSheetProvider>
-        <View style={{ flex: 1 }}> {/* Single container wrapping multiple children */}
+        <View style={{ flex: 1 }}>
           <AppNavigator />
           <Toast />
         </View>
