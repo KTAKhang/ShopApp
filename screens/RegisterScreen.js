@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, User } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { sendOtp } from '../store/slices/authSlice';
+import { sendOtp, resetOtpState } from '../store/slices/authSlice';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 
@@ -30,6 +30,15 @@ const RegisterScreen = () => {
 
     const dispatch = useDispatch();
     const { isLoading, otpStatus, otpMessage } = useSelector((state) => state.auth);
+
+    // Reset OTP state khi component mount
+    useEffect(() => {
+        dispatch(resetOtpState());
+        // Clear input fields
+        setUserName('');
+        setEmail('');
+        setPassword('');
+    }, [dispatch]);
 
     useEffect(() => {
         Animated.parallel([
@@ -58,14 +67,76 @@ const RegisterScreen = () => {
                 navigation.navigate('VerifyOtp', { email }); // hoặc màn nào bạn muốn
             }, 1000);
         } else if (otpStatus === 'error') {
-            Toast.show({
-                type: 'error',
-                text1: 'Lỗi',
-                text2: otpMessage,
-            });
-        }
-    }, [otpStatus]);
+            console.log('OTP Error Message:', otpMessage); // Debug log
 
+            const errorType = getErrorType(otpMessage);
+
+            switch (errorType) {
+                case 'username':
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Lỗi',
+                        text2: 'Username đã tồn tại',
+                    });
+                    break;
+                case 'email':
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Lỗi',
+                        text2: 'Email đã tồn tại',
+                    });
+                    break;
+                default:
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Lỗi',
+                        text2: otpMessage || 'Đăng ký thất bại',
+                    });
+            }
+
+            // Delay reset để Toast có thời gian hiển thị
+            setTimeout(() => {
+                dispatch(resetOtpState());
+            }, 100);
+        }
+    }, [otpStatus, otpMessage]);
+
+    // Helper function để kiểm tra loại lỗi
+    const getErrorType = (message) => {
+        if (!message) return null;
+
+        const lowerMessage = message.toLowerCase();
+
+        // Kiểm tra lỗi username
+        const usernameErrors = [
+            'username already taken',
+            'user_name already exists',
+            'username already exists',
+            'user already exists',
+            'tên người dùng đã tồn tại',
+            'username đã tồn tại'
+        ];
+
+        // Kiểm tra lỗi email
+        const emailErrors = [
+            'email already taken',
+            'email already exists',
+            'email already registered',
+            'email đã tồn tại',
+            'email đã được đăng ký',
+            'email is already in use'
+        ];
+
+        if (usernameErrors.some(error => lowerMessage.includes(error))) {
+            return 'username';
+        }
+
+        if (emailErrors.some(error => lowerMessage.includes(error))) {
+            return 'email';
+        }
+
+        return 'other';
+    };
 
     const handleRegister = () => {
         if (!userName.trim() || !email.trim() || !password.trim()) {
@@ -77,34 +148,55 @@ const RegisterScreen = () => {
             return;
         }
 
-        // Kiểm tra họ tên không được để trống sau khi trim
+        // Kiểm tra Username không được để trống sau khi trim
         if (userName.trim().length === 0) {
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
-                text2: 'Họ tên không được để trống',
+                text2: 'Username không được để trống',
             });
             return;
         }
 
-        // Kiểm tra họ tên không được có số
-        const hasNumber = /\d/;
-        if (hasNumber.test(userName)) {
+        // Kiểm tra độ dài username
+        if (userName.trim().length < 3) {
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
-                text2: 'Họ tên không được chứa số',
+                text2: 'Username phải có ít nhất 3 ký tự',
             });
             return;
         }
 
-        // Kiểm tra họ tên không được có ký tự đặc biệt (chỉ cho phép chữ cái, dấu cách và dấu tiếng Việt)
+        // // Kiểm Username không được có số
+        // const hasNumber = /\d/;
+        // if (hasNumber.test(userName)) {
+        //     Toast.show({
+        //         type: 'error',
+        //         text1: 'Lỗi',
+        //         text2: 'Username không được chứa số',
+        //     });
+        //     return;
+        // }
+
+        // Kiểm tra họ không được có ký tự đặc biệt (chỉ cho phép chữ cái, dấu cách và dấu tiếng Việt)
         const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
         if (hasSpecialChar.test(userName)) {
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
-                text2: 'Họ tên không được chứa ký tự đặc biệt',
+                text2: 'Username không được chứa ký tự đặc biệt',
+            });
+            return;
+        }
+
+        // Kiểm tra định dạng email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Email không hợp lệ',
             });
             return;
         }
@@ -142,7 +234,7 @@ const RegisterScreen = () => {
                         <User color="#13C2C2" size={20} />
                         <TextInput
                             style={styles.inputField}
-                            placeholder="Họ tên"
+                            placeholder="Username"
                             placeholderTextColor="#aaa"
                             value={userName}
                             onChangeText={setUserName}

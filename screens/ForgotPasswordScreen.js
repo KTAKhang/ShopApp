@@ -12,7 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, ArrowLeft } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { forgotPassword } from '../store/slices/authSlice';
+import { forgotPassword, resetForgotPasswordState } from '../store/slices/authSlice';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 
@@ -27,11 +27,37 @@ const ForgotPasswordScreen = () => {
     const dispatch = useDispatch();
     const { isLoading, forgotPasswordStatus, forgotPasswordMessage } = useSelector((state) => state.auth);
 
+    // Helper function để dịch lỗi sang tiếng Việt
+    const getErrorMessage = (error) => {
+        if (!error) return 'Có lỗi xảy ra';
+
+        const lowerError = error.toLowerCase();
+
+        // Các lỗi phổ biến
+        if (lowerError.includes('email does not exist') || lowerError.includes('email not found')) {
+            return 'Email không tồn tại trong hệ thống';
+        }
+        if (lowerError.includes('invalid email')) {
+            return 'Email không hợp lệ';
+        }
+        if (lowerError.includes('user not found')) {
+            return 'Không tìm thấy người dùng với email này';
+        }
+        if (lowerError.includes('email already sent')) {
+            return 'Email đã được gửi, vui lòng kiểm tra hộp thư';
+        }
+        if (lowerError.includes('too many attempts')) {
+            return 'Bạn đã thử quá nhiều lần, vui lòng thử lại sau';
+        }
+
+        // Trả về message gốc nếu không match
+        return error;
+    };
+
     // Reset state khi component mount
     useEffect(() => {
-        // Reset forgot password state khi vào trang
-        // dispatch({ type: 'auth/resetForgotPasswordState' });
-    }, []);
+        dispatch(resetForgotPasswordState());
+    }, [dispatch]);
 
     useEffect(() => {
         Animated.parallel([
@@ -53,20 +79,25 @@ const ForgotPasswordScreen = () => {
             Toast.show({
                 type: 'success',
                 text1: 'Thành công',
-                text2: forgotPasswordMessage,
+                text2: 'Mã OTP đã được gửi đến email của bạn',
             });
             // Chuyển sang trang nhập OTP thay vì quay về Login
             setTimeout(() => {
                 navigation.navigate('ForgotPasswordOTP', { email });
             }, 1500);
         } else if (forgotPasswordStatus === 'error') {
+            console.log('Forgot Password Error:', forgotPasswordMessage); // Debug log
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
-                text2: forgotPasswordMessage,
+                text2: getErrorMessage(forgotPasswordMessage),
             });
+            // Reset state sau khi hiển thị lỗi
+            setTimeout(() => {
+                dispatch(resetForgotPasswordState());
+            }, 100);
         }
-    }, [forgotPasswordStatus]);
+    }, [forgotPasswordStatus, forgotPasswordMessage, email, navigation, dispatch]);
 
     const handleForgotPassword = () => {
         if (!email.trim()) {
@@ -165,8 +196,6 @@ const ForgotPasswordScreen = () => {
                     </View>
                 </Animated.View>
             </View>
-
-            <Toast />
         </LinearGradient>
     );
 };

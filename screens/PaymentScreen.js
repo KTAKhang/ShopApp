@@ -509,12 +509,10 @@ const PaymentScreen = ({ navigation, route }) => {
                         <View style={styles.addressCard}>
                             <View style={styles.addressHeader}>
                                 <View style={styles.addressTypeContainer}>
-                                    <Icon name="home" size={16} color="#0d364c" />
-                                    <Text style={styles.addressType}>Nhà riêng</Text>
+                                    {/* <Icon name="home" size={16} color="#0d364c" /> */}
+                                    <Text style={styles.addressType}></Text>
                                 </View>
-                                <View style={styles.defaultBadge}>
-                                    <Text style={styles.defaultBadgeText}>Mặc định</Text>
-                                </View>
+
                             </View>
                             {receiverInfo.receiver_name && receiverInfo.receiver_address && receiverInfo.receiver_phone ? (
                                 <>

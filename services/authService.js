@@ -173,3 +173,30 @@ export async function changePasswordApi({ old_password, new_password }) {
         throw new Error(error.response?.data?.message || error.message || 'Lỗi không xác định khi thay đổi mật khẩu');
     }
 }
+
+// Hàm đặt lại mật khẩu với OTP
+export async function resetPasswordApi({ email, otp, newPassword }) {
+    try {
+        const response = await axios.post(
+            'https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/auth/reset-password',
+            { email, otp, newPassword },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        const data = response.data;
+
+        if (data.status !== 'OK') {
+            throw new Error(data.message || 'Reset password failed');
+        }
+
+        return {
+            message: data.message,
+        };
+    } catch (error) {
+        throw new Error(error.response?.data?.message || error.message || 'Reset password failed');
+    }
+}
