@@ -42,6 +42,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
     // Get product and loading state from Redux
     const { product, isLoading: productLoading, error } = useSelector((state) => state.product);
 
+    // Get cart state for badge
+    const { cart } = useSelector((state) => state.cart);
+    const itemCount = cart?.item_count || 0;
+
     // Get reviews for this specific product ONLY
     const reviews = useSelector(state => selectProductReviews(state, productId));
     const reviewsLoading = useSelector(state => selectProductReviewsLoading(state, productId));
@@ -385,7 +389,17 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                     <Text style={styles.headerTitle}>Product Details</Text>
 
-                    <View style={styles.headerButton} />
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={() => navigation.navigate('Cart')}
+                    >
+                        <Icon name="shopping-cart" size={24} color="rgba(255, 255, 255, 0.85)" />
+                        {itemCount > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{itemCount}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 </View>
 
                 {/* Loading Content */}
@@ -425,7 +439,17 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                     <Text style={styles.headerTitle}>Chi tiết sản phẩm</Text>
 
-                    <View style={styles.headerButton} />
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={() => navigation.navigate('Cart')}
+                    >
+                        <Icon name="shopping-cart" size={24} color="rgba(255, 255, 255, 0.85)" />
+                        {itemCount > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{itemCount}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.inactiveContainer}>
@@ -462,7 +486,17 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                 <Text style={styles.headerTitle}>Product Details</Text>
 
-                <View style={styles.headerButton} />
+                <TouchableOpacity
+                    style={styles.headerButton}
+                    onPress={() => navigation.navigate('Cart')}
+                >
+                    <Icon name="shopping-cart" size={24} color="rgba(255, 255, 255, 0.85)" />
+                    {itemCount > 0 && (
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{itemCount}</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -688,6 +722,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderRadius: 20,
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        position: 'relative',
     },
     headerTitle: {
         fontSize: 20,
@@ -1070,6 +1105,23 @@ const styles = StyleSheet.create({
     },
     quantityButtonDisabled: {
         backgroundColor: '#f0f0f0',
+    },
+    badge: {
+        position: 'absolute',
+        top: -5,
+        right: -5,
+        backgroundColor: COLORS.white,
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+    },
+    badgeText: {
+        color: COLORS.primary,
+        fontSize: 12,
+        fontWeight: '700',
     },
 });
 
