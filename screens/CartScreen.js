@@ -20,6 +20,7 @@ import { InlineLoading } from '../components/Loading';
 import { formatCurrency } from '../utils/formatCurrency';
 import { COLORS } from '../constants/colors';
 import BottomNavigation from '../components/BottomNavigation';
+import Toast from 'react-native-toast-message';
 
 const CartScreen = ({ navigation }) => {
     const dispatch = useDispatch();
@@ -110,25 +111,22 @@ const CartScreen = ({ navigation }) => {
         const quantity = parseInt(newQuantity);
 
         if (quantity > 0) {
-            // Set updating state for this specific item
             setIsUpdating(prev => ({ ...prev, [product_id]: true }));
-
             try {
                 await dispatch(updateCartItem({
                     product_id,
                     quantity
                 })).unwrap();
-
-
             } catch (error) {
-                console.error('Update failed:', error);
-                Alert.alert(
-                    'Update Failed',
-                    error || 'Failed to update cart item',
-                    [{ text: 'OK' }]
-                );
+                // Nếu lỗi liên quan kho hàng, show toast
+                Toast.show({
+                    type: 'error',
+                    text1: 'Không thể cập nhật',
+                    text2: error?.toString() || 'Có lỗi xảy ra khi cập nhật số lượng',
+                    position: 'top',
+                    visibilityTime: 2500,
+                });
             } finally {
-                // Clear updating state for this item
                 setIsUpdating(prev => {
                     const newState = { ...prev };
                     delete newState[product_id];
@@ -136,7 +134,6 @@ const CartScreen = ({ navigation }) => {
                 });
             }
         } else {
-            // Show confirmation dialog before removing
             showRemoveConfirmation(product_id);
         }
     };
@@ -247,31 +244,25 @@ const CartScreen = ({ navigation }) => {
                 product_id,
                 quantity: newQuantity
             })).unwrap();
-
-
-
-            // Clear editing state sau khi update thành công
             setEditingQuantity(prev => {
                 const newState = { ...prev };
                 delete newState[product_id];
                 return newState;
             });
         } catch (error) {
-            console.error('Update failed:', error);
-            Alert.alert(
-                'Cập nhật thất bại',
-                error || 'Không thể cập nhật sản phẩm trong giỏ hàng',
-                [{ text: 'OK' }]
-            );
-
-            // Reset về giá trị cũ khi có lỗi
+            Toast.show({
+                type: 'error',
+                text1: 'Không thể cập nhật',
+                text2: error?.toString() || 'Có lỗi xảy ra khi cập nhật số lượng',
+                position: 'top',
+                visibilityTime: 2500,
+            });
             setEditingQuantity(prev => {
                 const newState = { ...prev };
                 delete newState[product_id];
                 return newState;
             });
         } finally {
-            // Clear updating state
             setIsUpdating(prev => {
                 const newState = { ...prev };
                 delete newState[product_id];
@@ -424,8 +415,7 @@ const CartScreen = ({ navigation }) => {
     const selectedCartItems = cartItems.filter(item => selectedItems.includes(item.id));
     const subtotal = selectedCartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const shipping = selectedCartItems.length > 0 ? 0 : 0; // Free shipping
-    const tax = selectedCartItems.length > 0 ? Math.round(subtotal * 0.1) : 0; // Tax 10% of subtotal
-    const total = subtotal + shipping + tax;
+    const total = subtotal + shipping;
 
     const handleCheckout = () => {
         if (selectedItems.length === 0) {
@@ -460,7 +450,6 @@ const CartScreen = ({ navigation }) => {
             orderSummary: {
                 subtotal,
                 shipping,
-                tax,
                 total
             },
             selected_product_ids: selected_product_ids
@@ -494,10 +483,14 @@ const CartScreen = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <View style={styles.imageContainer}>
-                    <Image source={{ uri: item.image }} style={[
-                        styles.itemImage,
-                        isUnavailable && styles.unavailableImage
-                    ]} />
+                    <Image
+                        source={{ uri: item.image }}
+                        style={[
+                            styles.itemImage,
+                            isUnavailable && styles.unavailableImage
+                        ]}
+                        resizeMode="contain"
+                    />
                     {/* Overlay cho hình ảnh khi hết hàng */}
                     {isUnavailable && (
                         <View style={styles.imageOverlay}>
@@ -540,9 +533,9 @@ const CartScreen = ({ navigation }) => {
                     </View>
 
                     <Text style={[styles.itemSpecs, isUnavailable && styles.unavailableText]}>
-                        {item.size ? `Kích thước: ${item.size} | ` : ''}
-                        {item.color ? `Màu sắc: ${item.color}` : ''}
-                        {item.in_stock !== undefined ? ` | Còn lại: ${item.in_stock}` : ''}
+                        {item.size ? `Kích thước: ${item.size}` : ''}
+                        {item.size && item.in_stock !== undefined ? ' | ' : ''}
+                        {item.in_stock !== undefined ? `Số lượng sản phẩm tồn kho: ${item.in_stock}` : ''}
                     </Text>
 
                     <View style={styles.itemFooter}>
@@ -608,7 +601,7 @@ const CartScreen = ({ navigation }) => {
 
                     {itemIsUpdating && (
                         <Text style={styles.updatingText}>
-                            {Object.keys(isUpdating).some(key => key === item.id.toString()) ? 'Đang xóa...' : 'Đang cập nhật...'}
+                            {Object.keys(isUpdating).some(key => key === item.id.toString()) ? 'Đang Cập Nhật...' : 'Đang cập nhật...'}
                         </Text>
                     )}
 
@@ -803,10 +796,6 @@ const CartScreen = ({ navigation }) => {
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Phí vận chuyển</Text>
                                 <Text style={styles.summaryValue}>{formatCurrency(shipping)}</Text>
-                            </View>
-                            <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Thuế (10%)</Text>
-                                <Text style={styles.summaryValue}>{formatCurrency(tax)}</Text>
                             </View>
                             <View style={styles.totalDivider} />
                             <View style={[styles.summaryRow, styles.totalRow]}>

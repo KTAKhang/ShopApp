@@ -12,11 +12,11 @@ export async function getProductReviewsByProductId(product_id) {
         }
 
         // Lấy token từ AsyncStorage
-        const token = await AsyncStorage.getItem('token');
+        // const token = await AsyncStorage.getItem('token');
 
-        if (!token) {
-            throw new Error('Bạn cần phải đăng nhập để xem đánh giá');
-        }
+        // if (!token) {
+        //     throw new Error('Bạn cần phải đăng nhập để xem đánh giá');
+        // }
 
         // Gửi yêu cầu GET để lấy tất cả đánh giá đã được duyệt của sản phẩm
         const response = await axios.get(
@@ -24,7 +24,7 @@ export async function getProductReviewsByProductId(product_id) {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
+                    // Authorization: `Bearer ${token}`,
                 },
             }
         );
@@ -45,7 +45,7 @@ export async function getProductReviewsByProductId(product_id) {
 
 export async function updateReviewApi({ review_id, rating, review_content }) {
     try {
-        const token = await AsyncStorage.getItem('token');
+        // const token = await AsyncStorage.getItem('token');
 
         const response = await axios.put(
             `${BASE_URL}/update/${review_id}`,
@@ -56,7 +56,7 @@ export async function updateReviewApi({ review_id, rating, review_content }) {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
+                    // Authorization: `Bearer ${token}`,
                 },
             }
         );
@@ -104,7 +104,7 @@ export async function getReviewsByOrderIdApi(order_id) {
 
 export async function createReviewApi({ product_id, order_detail_id, rating, review_content }) {
     try {
-        const token = await AsyncStorage.getItem('token');
+        // const token = await AsyncStorage.getItem('token');
 
         const response = await axios.post(
             `${BASE_URL}/create`,
@@ -117,7 +117,7 @@ export async function createReviewApi({ product_id, order_detail_id, rating, rev
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
+                    // Authorization: `Bearer ${token}`,
                 },
             }
         );

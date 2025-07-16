@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkAuthStatus } from '../store/slices/authSlice';
 import ChatBotModal from '../components/ChatBotModal';
+import { navigateAfterLogin } from '../utils/authUtils';
 // Import screens
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -29,6 +30,7 @@ export default function AppNavigator() {
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isInitializing, setIsInitializing] = React.useState(true);
+  const navigationRef = React.useRef();
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -38,6 +40,14 @@ export default function AppNavigator() {
 
     initializeAuth();
   }, [dispatch]);
+
+  // Effect để tự động chuyển về HomePage sau khi đăng nhập thành công
+  useEffect(() => {
+    if (isAuthenticated && navigationRef.current && user) {
+      // Sử dụng utility function để navigate
+      navigateAfterLogin(navigationRef.current, user);
+    }
+  }, [isAuthenticated, user]);
 
   if (isInitializing) {
     return (
@@ -50,34 +60,41 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       {/* ✅ Chỉ hiển thị Chatbot nếu đã đăng nhập và không phải admin */}
-      {isAuthenticated && user.role_name !== 'admin' && <ChatBotModal />}
+      {isAuthenticated && user?.role_name !== 'admin' && <ChatBotModal />}
 
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          user.role_name === 'admin' ? (
-            <Stack.Screen name="Admin" component={AdminScreen} />
-          ) : (
-            <>
-              <Stack.Screen name="HomePage" component={HomeScreen} />
-              <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-              <Stack.Screen name="AllProducts" component={AllProductsScreen} />
-              <Stack.Screen name="Cart" component={CartScreen} />
-              <Stack.Screen name="Profile" component={ProfileScreen} />
-              <Stack.Screen name="Payment" component={PaymentScreen} />
-              <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
-              <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
-              <Stack.Screen name="BuyNow" component={BuyNowScreen} />
-            </>
-          )
-        ) : (
+      <Stack.Navigator 
+        screenOptions={{ headerShown: false }}
+        initialRouteName="HomePage"
+      >
+        {/* Public routes - Guest có thể xem */}
+        <Stack.Screen name="HomePage" component={HomeScreen} />
+        <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+        <Stack.Screen name="AllProducts" component={AllProductsScreen} />
+        
+        {/* Auth routes */}
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="VerifyOtp" component={RegisterConfirmOTPScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="ForgotPasswordOTP" component={ForgotPasswordOTPScreen} />
+        
+        {/* Protected routes - Chỉ user đã đăng nhập mới xem được */}
+        {isAuthenticated && (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-            <Stack.Screen name="VerifyOtp" component={RegisterConfirmOTPScreen} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-            <Stack.Screen name="ForgotPasswordOTP" component={ForgotPasswordOTPScreen} />
+            {user?.role_name === 'admin' ? (
+              <Stack.Screen name="Admin" component={AdminScreen} />
+            ) : (
+              <>
+                <Stack.Screen name="Cart" component={CartScreen} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+                <Stack.Screen name="Payment" component={PaymentScreen} />
+                <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+                <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+                <Stack.Screen name="BuyNow" component={BuyNowScreen} />
+              </>
+            )}
           </>
         )}
       </Stack.Navigator>
