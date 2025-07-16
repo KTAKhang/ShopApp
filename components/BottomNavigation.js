@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,20 +8,30 @@ import {
     Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+
+
 const BottomNavigation = () => {
-    const [activeTab, setActiveTab] = useState('Home');
+    const [activeTab, setActiveTab] = useState('HomePage');
     const navigation = useNavigation();
+
     const { isAuthenticated } = useSelector((state) => state.auth);
     
+
+    const route = useRoute();
+
+
     const tabs = [
         { name: 'HomePage', icon: 'home', label: 'Trang chủ', requiresAuth: false },
         { name: 'Cart', icon: 'shopping-cart', label: 'Giỏ hàng', requiresAuth: true },
         { name: 'OrderHistory', icon: 'local-shipping', label: 'Đơn hàng', requiresAuth: true },
         { name: 'Profile', icon: 'person', label: 'Hồ sơ', requiresAuth: true },
     ];
+
 
     const handleTabPress = (tab) => {
         if (tab.requiresAuth && !isAuthenticated) {
@@ -38,6 +48,23 @@ const BottomNavigation = () => {
         
         setActiveTab(tab.name);
         navigation.navigate(tab.name);
+
+    // Cập nhật activeTab khi route thay đổi
+    useFocusEffect(
+        React.useCallback(() => {
+            const currentRouteName = route.name;
+            // Kiểm tra xem route hiện tại có trong danh sách tabs không
+            const tabExists = tabs.some(tab => tab.name === currentRouteName);
+            if (tabExists) {
+                setActiveTab(currentRouteName);
+            }
+        }, [route.name])
+    );
+
+    const handleTabPress = (tabName) => {
+        setActiveTab(tabName);
+        navigation.navigate(tabName);
+
     };
 
     return (

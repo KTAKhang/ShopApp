@@ -15,7 +15,6 @@ export async function sendMessageToBotApi(message) {
     }
 
     try {
-        console.log('Sending message to Gemini:', message);
 
         const model = genAI.getGenerativeModel({
             model: 'gemini-1.5-flash',
@@ -46,7 +45,6 @@ export async function sendMessageToBotApi(message) {
             throw new Error('Empty response from Gemini');
         }
 
-        console.log('Gemini response:', text);
 
         return {
             text: text,

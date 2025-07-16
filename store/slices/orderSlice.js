@@ -8,9 +8,9 @@ import {
 
 export const fetchOrderByUser = createAsyncThunk(
     'order/fetchOrderByUser',
-    async ({ page = 1, limit = 5, isLoadMore = false } = {}, { rejectWithValue, getState }) => {
+    async ({ page = 1, limit = 5, isLoadMore = false, search = '' } = {}, { rejectWithValue }) => {
         try {
-            const response = await getOrderByUserApi(page, limit);
+            const response = await getOrderByUserApi(page, limit, search);
             return { ...response, isLoadMore, page };
         } catch (error) {
             console.error('fetchOrderByUser error:', error);
@@ -18,6 +18,7 @@ export const fetchOrderByUser = createAsyncThunk(
         }
     }
 );
+
 
 export const createOrder = createAsyncThunk(
     'order/createOrder',
@@ -101,6 +102,9 @@ const orderSlice = createSlice({
             state.totalPages = 1;
             state.hasMore = true;
             state.total = 0;
+
+            state.cancelSuccess = false;
+            state.cancelMessage = null;
 
         },
     },
