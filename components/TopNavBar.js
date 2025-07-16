@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../constants/colors';
@@ -9,7 +9,28 @@ import { useSelector } from 'react-redux';
 const TopNavBar = () => {
     const navigation = useNavigation();
     const { cart } = useSelector((state) => state.cart);
+    const { isAuthenticated } = useSelector((state) => state.auth);
     const itemCount = cart?.item_count || 0;
+
+    const handleCartPress = () => {
+        if (isAuthenticated) {
+            navigation.navigate('Cart');
+        } else {
+            // Hiển thị thông báo yêu cầu đăng nhập
+            Alert.alert(
+                'Yêu cầu đăng nhập',
+                'Bạn cần đăng nhập để xem giỏ hàng. Bạn có muốn đăng nhập ngay không?',
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Đăng nhập', onPress: () => navigation.navigate('Login') }
+                ]
+            );
+        }
+    };
+
+    const handleLoginPress = () => {
+        navigation.navigate('Login');
+    };
 
     return (
         <>
@@ -21,17 +42,30 @@ const TopNavBar = () => {
                 style={styles.container}
             >
                 <Text style={styles.logo}>ShopApp</Text>
-                <TouchableOpacity 
-                    style={styles.cartButton}
-                    onPress={() => navigation.navigate('Cart')}
-                >
-                    <Icon name="shopping-cart" size={24} color={COLORS.white} />
-                    {itemCount > 0 && (
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{itemCount}</Text>
-                        </View>
+                
+                <View style={styles.rightButtons}>
+                    {!isAuthenticated && (
+                        <TouchableOpacity 
+                            style={styles.loginButton}
+                            onPress={handleLoginPress}
+                        >
+                            <Icon name="person" size={20} color={COLORS.white} />
+                            <Text style={styles.loginText}>Đăng nhập</Text>
+                        </TouchableOpacity>
                     )}
+                    
+                    <TouchableOpacity 
+                        style={styles.cartButton}
+                        onPress={handleCartPress}
+                    >
+                        <Icon name="shopping-cart" size={24} color={COLORS.white} />
+                        {isAuthenticated && itemCount > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{itemCount}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
+                </View>
             </LinearGradient>
         </>
     );
@@ -56,6 +90,25 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: COLORS.white,
         letterSpacing: 1,
+    },
+    rightButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    loginButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 4,
+    },
+    loginText: {
+        color: COLORS.white,
+        fontSize: 14,
+        fontWeight: '600',
     },
     cartButton: {
         width: 40,

@@ -8,6 +8,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
+    Dimensions,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -26,6 +27,10 @@ const ChatBotModal = () => {
     const messages = useSelector((state) => state.chatBot.messages);
     const isLoading = useSelector((state) => state.chatBot.isLoading);
     const error = useSelector((state) => state.chatBot.error);
+
+    // Lấy kích thước màn hình để tính toán layout
+    const { height: screenHeight } = Dimensions.get('window');
+    const maxChatHeight = screenHeight * 0.7; // Giới hạn chiều cao chat tối đa 70% màn hình
 
     const sendMessage = async () => {
         if (!input.trim()) return;
@@ -171,13 +176,13 @@ const ChatBotModal = () => {
             {isOpen && (
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+                    keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
                     style={{
                         position: "absolute",
                         bottom: 190,
                         right: 20,
                         width: 340,
-                        maxHeight: 600,
+                        maxHeight: maxChatHeight, // Sử dụng maxHeight tính toán
                         backgroundColor: "white",
                         borderRadius: 12,
                         shadowColor: "#000",
@@ -186,10 +191,9 @@ const ChatBotModal = () => {
                         elevation: 8,
                         zIndex: 700,
                         overflow: "hidden",
-                        flexDirection: "column", // Thêm này
                     }}
                 >
-                    {/* Header */}
+                    {/* Header - Cố định */}
                     <View
                         style={{
                             backgroundColor: "#2563eb",
@@ -197,6 +201,7 @@ const ChatBotModal = () => {
                             flexDirection: "row",
                             justifyContent: "space-between",
                             alignItems: "center",
+                            // Không dùng flex để header không co giãn
                         }}
                     >
                         <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -226,8 +231,14 @@ const ChatBotModal = () => {
                         </View>
                     </View>
 
-                    {/* Chat Content */}
-                    <View style={{ flex: 1, minHeight: 400 }}>
+                    {/* Chat Content - Linh hoạt nhưng có giới hạn */}
+                    <View
+                        style={{
+                            flex: 1,
+                            minHeight: 200, // Chiều cao tối thiểu
+                            maxHeight: maxChatHeight - 200, // Trừ đi header + input + padding
+                        }}
+                    >
                         <FlatList
                             ref={flatListRef}
                             data={messages}
@@ -238,19 +249,25 @@ const ChatBotModal = () => {
                                 flexGrow: 1
                             }}
                             showsVerticalScrollIndicator={false}
+                            // Đảm bảo scroll được khi có nhiều tin nhắn
+                            nestedScrollEnabled={true}
                         />
                     </View>
 
-                    {/* Loading Indicator */}
+                    {/* Loading Indicator - Cố định */}
                     {isLoading && (
-                        <View style={{ paddingHorizontal: 15, paddingBottom: 5 }}>
+                        <View style={{
+                            paddingHorizontal: 15,
+                            paddingBottom: 5,
+                            flexShrink: 0, // Không co lại
+                        }}>
                             <Text style={{ color: "#6b7280", fontStyle: "italic" }}>
                                 💭 Đang suy nghĩ...
                             </Text>
                         </View>
                     )}
 
-                    {/* Error with Retry Button */}
+                    {/* Error with Retry Button - Cố định */}
                     {error && (
                         <View
                             style={{
@@ -258,7 +275,8 @@ const ChatBotModal = () => {
                                 paddingBottom: 5,
                                 flexDirection: "row",
                                 justifyContent: "space-between",
-                                alignItems: "center"
+                                alignItems: "center",
+                                flexShrink: 0, // Không co lại
                             }}
                         >
                             <Text style={{ color: "#dc2626", fontSize: 12, flex: 1 }}>
@@ -279,16 +297,16 @@ const ChatBotModal = () => {
                         </View>
                     )}
 
-                    {/* Input - Bỏ flexShrink để tránh bị co lại */}
+                    {/* Input - Cố định ở dưới cùng */}
                     <View
                         style={{
                             flexDirection: "row",
-                            alignItems: "center",
+                            alignItems: "flex-end", // Thay đổi từ center thành flex-end
                             borderTopWidth: 1,
                             borderColor: "#e5e7eb",
                             padding: 10,
                             backgroundColor: "#f9fafb",
-                            flexShrink: 0, // Thêm này để tránh bị co lại
+                            flexShrink: 0, // Không cho phép co lại
                         }}
                     >
                         <TextInput
@@ -297,11 +315,14 @@ const ChatBotModal = () => {
                                 borderWidth: 1,
                                 borderColor: "#d1d5db",
                                 borderRadius: 8,
-                                padding: 10,
+                                paddingHorizontal: 12, // Tăng padding ngang
+                                paddingVertical: 8, // Giảm padding dọc
                                 marginRight: 8,
                                 backgroundColor: "white",
                                 fontSize: 14,
-                                maxHeight: 100, // Giới hạn chiều cao của TextInput
+                                maxHeight: 80, // Giảm maxHeight
+                                minHeight: 40, // Thêm minHeight
+                                textAlignVertical: 'top', // Căn text lên trên cho Android
                             }}
                             placeholder="Nhập tin nhắn..."
                             value={input}
@@ -310,6 +331,8 @@ const ChatBotModal = () => {
                             editable={!isLoading}
                             multiline
                             maxLength={500}
+                            returnKeyType="send" // Thêm nút Send trên bàn phím
+                            blurOnSubmit={false} // Không ẩn bàn phím khi nhấn send
                         />
                         <TouchableOpacity
                             onPress={sendMessage}
@@ -319,7 +342,9 @@ const ChatBotModal = () => {
                                 padding: 12,
                                 borderRadius: 8,
                                 minWidth: 50,
-                                alignItems: "center"
+                                alignItems: "center",
+                                justifyContent: "center", // Căn giữa icon
+                                height: 40, // Cố định chiều cao button
                             }}
                         >
                             <Text style={{ color: "white", fontWeight: "bold" }}>

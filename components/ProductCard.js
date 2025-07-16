@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../constants/colors';
@@ -47,6 +47,7 @@ const ProductCard = ({ product }) => {
     const dispatch = useDispatch();
     const [showLoadingModal, setShowLoadingModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const { isAuthenticated } = useSelector((state) => state.auth);
 
     // Safety check: Don't render inactive products
     if (!product || product.status === false) {
@@ -70,6 +71,19 @@ const ProductCard = ({ product }) => {
 
     const handleAddToCart = async () => {
         if (showLoadingModal || isOutOfStock) return; // Prevent multiple clicks or out of stock
+
+        // Check if user is authenticated
+        if (!isAuthenticated) {
+            Alert.alert(
+                'Yêu cầu đăng nhập',
+                'Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Bạn có muốn đăng nhập ngay không?',
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Đăng nhập', onPress: () => navigation.navigate('Login') }
+                ]
+            );
+            return;
+        }
 
         setShowLoadingModal(true);
         try {

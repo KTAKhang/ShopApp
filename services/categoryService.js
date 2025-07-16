@@ -4,11 +4,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Hàm lấy danh mục
 export async function getCategories({ page = 1, limit = 100 }) {
     try {
-        const token = await AsyncStorage.getItem('token');  // Lấy token từ AsyncStorage
+        // const token = await AsyncStorage.getItem('token');  // Lấy token từ AsyncStorage
 
-        if (!token) {
-            throw new Error('No token provided');  // Nếu không có token, ném lỗi
-        }
+        // if (!token) {
+        //     throw new Error('No token provided');  // Nếu không có token, ném lỗi
+        // }
 
         // Gửi yêu cầu GET với token trong header
         const response = await axios.get(
@@ -16,7 +16,7 @@ export async function getCategories({ page = 1, limit = 100 }) {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,  // Thêm token vào header
+                    // Authorization: `Bearer ${token}`,  // Thêm token vào header
                 },
             }
         );
@@ -37,8 +37,8 @@ export async function getCategories({ page = 1, limit = 100 }) {
 // Hàm tìm kiếm danh mục theo tên
 export async function searchCategories({ search, page = 1, limit = 10 }) {
     try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('Token not found');
+        // const token = await AsyncStorage.getItem('token');
+        // if (!token) throw new Error('Token not found');
 
         let url = `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/category?page=${page}&limit=${limit}`;
         if (search && search.trim() !== '') {
@@ -48,7 +48,7 @@ export async function searchCategories({ search, page = 1, limit = 10 }) {
         const response = await axios.get(url, {
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
+                // Authorization: `Bearer ${token}`,
             },
         });
 
