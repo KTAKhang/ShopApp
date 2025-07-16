@@ -17,6 +17,7 @@ import Toast from 'react-native-toast-message';
 
 const { height } = Dimensions.get('window');
 
+
 const ForgotPasswordOTPScreen = ({ route, navigation }) => {
     const { email } = route.params;
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -26,6 +27,7 @@ const ForgotPasswordOTPScreen = ({ route, navigation }) => {
     const inputRefs = useRef([]);
     const dispatch = useDispatch();
     const { resetPasswordStatus, resetPasswordMessage, isLoading } = useSelector((state) => state.auth);
+
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(50)).current;
@@ -146,7 +148,9 @@ const ForgotPasswordOTPScreen = ({ route, navigation }) => {
             return;
         }
 
+
         if (otpString.length < 6) {
+
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
@@ -184,7 +188,9 @@ const ForgotPasswordOTPScreen = ({ route, navigation }) => {
             return;
         }
 
+
         if (newPassword !== confirmPassword) {
+
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',

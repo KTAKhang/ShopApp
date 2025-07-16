@@ -1,5 +1,6 @@
 {
   "name": "my-shop-apps",
+  "type": "module",
   "license": "0BSD",
   "version": "1.0.0",
   "main": "index.js",
@@ -8,7 +9,8 @@
     "dev": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "eslint . --ext .js,.jsx"
   },
   "dependencies": {
     "@expo/react-native-action-sheet": "^4.1.1",
@@ -34,8 +36,10 @@
     "react-native-remix-icon": "^4.6.0",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
+
     "react-native-svg": "15.11.2",
     "react-native-toast-message": "^2.3.1",
+
     "react-native-vector-icons": "^10.2.0",
     "react-redux": "^9.2.0",
     "redux": "^5.0.1",
@@ -44,7 +48,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "babel-preset-expo": "~13.0.0"
+    "@eslint/js": "^9.29.0",
+    "babel-preset-expo": "~13.0.0",
+    "eslint": "^9.29.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-native": "^5.0.0"
   },
   "private": true
 }
