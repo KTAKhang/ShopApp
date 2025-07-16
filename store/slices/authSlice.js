@@ -4,7 +4,8 @@ import {
     sendOtpApi,
     confirmOtpApi,
     forgotPasswordApi,
-    changePasswordApi
+    changePasswordApi,
+    resetPasswordApi
 } from '../../services/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -109,6 +110,19 @@ export const changePassword = createAsyncThunk(
     }
 );
 
+// Async thunk for resetting password
+export const resetPassword = createAsyncThunk(
+    'auth/resetPassword',
+    async ({ email, otp, newPassword }, { rejectWithValue }) => {
+        try {
+            const response = await resetPasswordApi({ email, otp, newPassword });
+            return response.message;
+        } catch (error) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 const initialState = {
     user: null,
     token: null,
@@ -121,8 +135,10 @@ const initialState = {
     confirmOtpMessage: null,
     forgotPasswordStatus: null,
     forgotPasswordMessage: null,
-    changePasswordStatus: null, // Trạng thái thay đổi mật khẩu
-    changePasswordMessage: null, // Thông báo thay đổi mật khẩu
+    changePasswordStatus: null,
+    changePasswordMessage: null,
+    resetPasswordStatus: null,
+    resetPasswordMessage: null,
 };
 
 const authSlice = createSlice({
@@ -138,7 +154,6 @@ const authSlice = createSlice({
             state.isAuthenticated = false;
             state.error = null;
         },
-        // ✅ THÊM CÁC ACTIONS MỚI
         resetForgotPasswordState: (state) => {
             state.forgotPasswordStatus = null;
             state.forgotPasswordMessage = null;
@@ -150,6 +165,10 @@ const authSlice = createSlice({
         resetConfirmOtpState: (state) => {
             state.confirmOtpStatus = null;
             state.confirmOtpMessage = null;
+        },
+        resetResetPasswordState: (state) => {
+            state.resetPasswordStatus = null;
+            state.resetPasswordMessage = null;
         },
     },
     extraReducers: (builder) => {
@@ -250,9 +269,25 @@ const authSlice = createSlice({
                 state.isLoading = false;
                 state.changePasswordStatus = 'error';
                 state.changePasswordMessage = action.payload;
+            })
+            // Reset password case
+            .addCase(resetPassword.pending, (state) => {
+                state.isLoading = true;
+                state.resetPasswordStatus = null;
+                state.resetPasswordMessage = null;
+            })
+            .addCase(resetPassword.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.resetPasswordStatus = 'success';
+                state.resetPasswordMessage = action.payload;
+            })
+            .addCase(resetPassword.rejected, (state, action) => {
+                state.isLoading = false;
+                state.resetPasswordStatus = 'error';
+                state.resetPasswordMessage = action.payload;
             });
     },
 });
 
-export const { clearError, resetAuth } = authSlice.actions;
+export const { clearError, resetAuth, resetForgotPasswordState, resetOtpState, resetConfirmOtpState, resetResetPasswordState } = authSlice.actions;
 export default authSlice.reducer;

@@ -10,29 +10,56 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Mail } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { resetPassword, resetResetPasswordState } from '../store/slices/authSlice';
 import Toast from 'react-native-toast-message';
 
 const { height } = Dimensions.get('window');
 
-const ForgotPasswordOTPScreen = () => {
+
+const ForgotPasswordOTPScreen = ({ route, navigation }) => {
+    const { email } = route.params;
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [step, setStep] = useState(1);
-
+    const [showPassword, setShowPassword] = useState(false);
     const inputRefs = useRef([]);
-    const navigation = useNavigation();
-    const route = useRoute();
-    const { email } = route.params || {};
+    const dispatch = useDispatch();
+    const { resetPasswordStatus, resetPasswordMessage, isLoading } = useSelector((state) => state.auth);
+
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(50)).current;
 
-    const dispatch = useDispatch();
-    const { isLoading } = useSelector((state) => state.auth);
+    useEffect(() => {
+        dispatch(resetResetPasswordState());
+        setTimeout(() => {
+            inputRefs.current[0]?.focus();
+        }, 500);
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (resetPasswordStatus === 'success') {
+            Toast.show({
+                type: 'success',
+                text1: 'Thành công',
+                text2: 'Mật khẩu đã được đặt lại thành công',
+            });
+            setTimeout(() => {
+                navigation.navigate('Login');
+            }, 1500);
+        } else if (resetPasswordStatus === 'error') {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: getErrorMessage(resetPasswordMessage),
+            });
+            setTimeout(() => {
+                dispatch(resetResetPasswordState());
+            }, 100);
+        }
+    }, [resetPasswordStatus, resetPasswordMessage, navigation, dispatch]);
 
     useEffect(() => {
         Animated.parallel([
@@ -49,73 +76,121 @@ const ForgotPasswordOTPScreen = () => {
         ]).start();
     }, []);
 
+    const getErrorMessage = (error) => {
+        if (!error) return 'Đặt lại mật khẩu thất bại';
+
+        const lowerError = error.toLowerCase();
+
+        if (lowerError.includes('invalid') || lowerError.includes('incorrect')) {
+            return 'Mã OTP không hợp lệ';
+        }
+        if (lowerError.includes('expired')) {
+            return 'Mã OTP đã hết hạn';
+        }
+        if (lowerError.includes('too many attempts')) {
+            return 'Bạn đã thử quá nhiều lần, vui lòng thử lại sau';
+        }
+        if (lowerError.includes('password must contain at least 8 characters') ||
+            lowerError.includes('8 characters') ||
+            lowerError.includes('uppercase') ||
+            lowerError.includes('number')) {
+            return 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm 1 chữ hoa và 1 chữ số';
+        }
+
+        return error;
+    };
+
+    const validatePassword = (password) => {
+        const errors = [];
+
+        if (password.length < 8) {
+            errors.push('ít nhất 8 ký tự');
+        }
+
+        if (!/[A-Z]/.test(password)) {
+            errors.push('ít nhất 1 ký tự viết hoa');
+        }
+
+        if (!/[0-9]/.test(password)) {
+            errors.push('ít nhất 1 chữ số');
+        }
+
+        return errors;
+    };
+
     const handleOtpChange = (text, index) => {
-        // Chỉ cho phép nhập số
-        if (!/^\d*$/.test(text)) return;
+        if (!/^[0-9]*$/.test(text)) return;
 
         const newOtp = [...otp];
         newOtp[index] = text;
         setOtp(newOtp);
 
-        // Tự động chuyển sang ô tiếp theo khi nhập
         if (text && index < 5) {
             inputRefs.current[index + 1]?.focus();
         }
     };
 
     const handleKeyPress = (e, index) => {
-        // Xử lý phím Backspace
         if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
         }
     };
 
-    const handleVerifyOtp = async () => {
+    const handleResetPassword = () => {
         const otpString = otp.join('');
 
-        if (!otpString.trim() || otpString.length < 6) {
+        if (!otpString.trim()) {
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
-                text2: 'Vui lòng nhập đầy đủ mã OTP (6 số)',
+                text2: 'Vui lòng nhập mã OTP',
             });
             return;
         }
 
-        // TODO: Gọi API xác thực OTP cho forgot password
-        // Tạm thời giả lập thành công
-        try {
-            // Giả lập call API
-            await new Promise(resolve => setTimeout(resolve, 1000));
 
-            Toast.show({
-                type: 'success',
-                text1: 'Thành công',
-                text2: 'Xác thực OTP thành công',
-            });
+        if (otpString.length < 6) {
 
-            // Chuyển sang bước 2: Đặt mật khẩu mới
-            setStep(2);
-        } catch (error) {
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
-                text2: 'Mã OTP không chính xác',
-            });
-        }
-    };
-
-    const handleResetPassword = async () => {
-        if (!newPassword.trim() || !confirmPassword.trim()) {
-            Toast.show({
-                type: 'error',
-                text1: 'Lỗi',
-                text2: 'Vui lòng nhập đầy đủ thông tin',
+                text2: `Mã OTP phải có đủ 6 số (hiện tại: ${otpString.length} số)`,
             });
             return;
         }
+
+        if (!/^[0-9]*$/.test(otpString)) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Mã OTP chỉ được chứa số',
+            });
+            return;
+        }
+
+        if (!newPassword) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Vui lòng nhập mật khẩu mới',
+            });
+            return;
+        }
+
+        // Kiểm tra tính hợp lệ của mật khẩu
+        const passwordErrors = validatePassword(newPassword);
+        if (passwordErrors.length > 0) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: `Mật khẩu phải có ${passwordErrors.join(', ')}`,
+            });
+            return;
+        }
+
 
         if (newPassword !== confirmPassword) {
+
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
@@ -124,131 +199,13 @@ const ForgotPasswordOTPScreen = () => {
             return;
         }
 
-        if (newPassword.length < 6) {
-            Toast.show({
-                type: 'error',
-                text1: 'Lỗi',
-                text2: 'Mật khẩu phải có ít nhất 6 ký tự',
-            });
-            return;
-        }
-
-        // TODO: Gọi API đặt lại mật khẩu
-        try {
-            // Giả lập call API
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            Toast.show({
-                type: 'success',
-                text1: 'Thành công',
-                text2: 'Đặt lại mật khẩu thành công',
-            });
-
-            // Quay về trang đăng nhập
-            setTimeout(() => {
-                navigation.navigate('Login');
-            }, 1500);
-        } catch (error) {
-            Toast.show({
-                type: 'error',
-                text1: 'Lỗi',
-                text2: 'Có lỗi xảy ra, vui lòng thử lại',
-            });
-        }
+        dispatch(resetPassword({ email, otp: otpString, newPassword }));
     };
 
     const clearOtp = () => {
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
     };
-
-    const renderStep1 = () => (
-        <>
-            <Text style={styles.title}>Xác thực OTP</Text>
-            <Text style={styles.subtitle}>
-                Mã OTP đã được gửi đến {email}
-            </Text>
-
-            <View style={styles.otpContainer}>
-                {otp.map((digit, index) => (
-                    <TextInput
-                        key={index}
-                        ref={(ref) => (inputRefs.current[index] = ref)}
-                        style={[
-                            styles.otpInput,
-                            digit ? styles.otpInputFilled : null
-                        ]}
-                        value={digit}
-                        onChangeText={(text) => handleOtpChange(text, index)}
-                        onKeyPress={(e) => handleKeyPress(e, index)}
-                        keyboardType="numeric"
-                        maxLength={1}
-                        textAlign="center"
-                        selectTextOnFocus
-                    />
-                ))}
-            </View>
-
-            <TouchableOpacity style={styles.clearButton} onPress={clearOtp}>
-                <Text style={styles.clearButtonText}>Xóa và nhập lại</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={[styles.submitButton, isLoading && styles.disabledButton]}
-                onPress={handleVerifyOtp}
-                disabled={isLoading}
-            >
-                {isLoading ? (
-                    <ActivityIndicator color="#fff" />
-                ) : (
-                    <Text style={styles.submitButtonText}>Xác nhận OTP</Text>
-                )}
-            </TouchableOpacity>
-        </>
-    );
-
-    const renderStep2 = () => (
-        <>
-            <Text style={styles.title}>Đặt mật khẩu mới</Text>
-            <Text style={styles.subtitle}>
-                Nhập mật khẩu mới cho tài khoản của bạn
-            </Text>
-
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.inputField}
-                    placeholder="Mật khẩu mới"
-                    placeholderTextColor="#aaa"
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    secureTextEntry
-                />
-            </View>
-
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.inputField}
-                    placeholder="Xác nhận mật khẩu mới"
-                    placeholderTextColor="#aaa"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                />
-            </View>
-
-            <TouchableOpacity
-                style={[styles.submitButton, isLoading && styles.disabledButton]}
-                onPress={handleResetPassword}
-                disabled={isLoading}
-            >
-                {isLoading ? (
-                    <ActivityIndicator color="#fff" />
-                ) : (
-                    <Text style={styles.submitButtonText}>Đặt lại mật khẩu</Text>
-                )}
-            </TouchableOpacity>
-        </>
-    );
 
     return (
         <LinearGradient
@@ -264,7 +221,6 @@ const ForgotPasswordOTPScreen = () => {
                 <View style={[styles.circle, styles.circle4]} />
             </View>
 
-            {/* Header với nút quay lại */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
@@ -284,11 +240,94 @@ const ForgotPasswordOTPScreen = () => {
                         },
                     ]}
                 >
-                    {step === 1 ? renderStep1() : renderStep2()}
+                    <Text style={styles.title}>Đặt Lại Mật Khẩu</Text>
+                    <Text style={styles.subtitle}>
+                        Nhập mã OTP đã được gửi đến email của bạn và mật khẩu mới
+                    </Text>
+
+                    <View style={styles.otpContainer}>
+                        {otp.map((digit, index) => (
+                            <TextInput
+                                key={index}
+                                ref={(ref) => (inputRefs.current[index] = ref)}
+                                style={[
+                                    styles.otpInput,
+                                    digit ? styles.otpInputFilled : null
+                                ]}
+                                value={digit}
+                                onChangeText={(text) => handleOtpChange(text, index)}
+                                onKeyPress={(e) => handleKeyPress(e, index)}
+                                keyboardType="numeric"
+                                maxLength={1}
+                                textAlign="center"
+                                selectTextOnFocus
+                            />
+                        ))}
+                    </View>
+
+                    <TouchableOpacity style={styles.clearButton} onPress={clearOtp}>
+                        <Text style={styles.clearButtonText}>Xóa và nhập lại OTP</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={styles.inputField}
+                            placeholder="Mật khẩu mới"
+                            placeholderTextColor="#aaa"
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                            secureTextEntry={!showPassword}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        <TouchableOpacity
+                            style={styles.eyeIcon}
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            {showPassword ? (
+                                <EyeOff color="#13C2C2" size={20} />
+                            ) : (
+                                <Eye color="#13C2C2" size={20} />
+                            )}
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={[styles.inputContainer, styles.confirmPasswordContainer]}>
+                        <TextInput
+                            style={styles.inputField}
+                            placeholder="Xác nhận mật khẩu"
+                            placeholderTextColor="#aaa"
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            secureTextEntry={!showPassword}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        <TouchableOpacity
+                            style={styles.eyeIcon}
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            {showPassword ? (
+                                <EyeOff color="#13C2C2" size={20} />
+                            ) : (
+                                <Eye color="#13C2C2" size={20} />
+                            )}
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.submitButton, isLoading && styles.disabledButton]}
+                        onPress={handleResetPassword}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.submitButtonText}>Đặt Lại Mật Khẩu</Text>
+                        )}
+                    </TouchableOpacity>
                 </Animated.View>
             </View>
-
-            <Toast />
         </LinearGradient>
     );
 };
@@ -405,18 +444,28 @@ const styles = StyleSheet.create({
         textDecorationLine: 'underline',
     },
     inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
         borderColor: '#13C2C2',
         borderWidth: 1,
         borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 5,
         marginBottom: 20,
         backgroundColor: '#fff',
         minHeight: 50,
     },
+    confirmPasswordContainer: {
+        marginBottom: 10,
+    },
     inputField: {
-        paddingHorizontal: 15,
+        flex: 1,
         fontSize: 16,
         color: '#000',
-        paddingVertical: 12,
+        paddingVertical: 8,
+    },
+    eyeIcon: {
+        padding: 5,
     },
     submitButton: {
         backgroundColor: '#13C2C2',

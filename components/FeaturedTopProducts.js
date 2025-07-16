@@ -17,7 +17,7 @@ const FeaturedTopProducts = ({ title }) => {
     useEffect(() => {
         // Fetch top sold products only once when component mounts
         if (!topSoldProducts || topSoldProducts.length === 0) {
-            dispatch(fetchTopSoldProductsAsync({ page: 1, limit: 10 }));
+            dispatch(fetchTopSoldProductsAsync({ page: 1, limit: 6 }));
         }
     }, [dispatch]); // Remove topSoldProducts from dependencies to prevent infinite loop
 
@@ -69,13 +69,6 @@ const FeaturedTopProducts = ({ title }) => {
                     <Text style={styles.title}>{title}</Text>
                     <View style={styles.titleUnderline} />
                 </View>
-                <TouchableOpacity
-                    style={styles.seeAllButton}
-                    onPress={() => navigation.navigate('AllProducts')}
-                >
-                    <Text style={styles.seeAllText}>Xem tất cả</Text>
-                    <Icon name="arrow-forward" size={20} color={COLORS.primary} />
-                </TouchableOpacity>
             </View>
             <ScrollView
                 horizontal
@@ -85,7 +78,7 @@ const FeaturedTopProducts = ({ title }) => {
                 snapToInterval={200}
                 snapToAlignment="center"
             >
-                {topSoldProducts.map((product) => (
+                {topSoldProducts.slice(0, 3).map((product) => (
                     <View key={product._id} style={styles.productWrapper}>
                         <ProductCard product={product} />
                     </View>

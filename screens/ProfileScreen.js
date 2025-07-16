@@ -10,7 +10,6 @@ import {
     Switch,
     StatusBar,
     Alert,
-    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -26,6 +25,7 @@ import { changePassword, fetchUserProfile, resetChangePasswordSuccess, resetUpda
 import { fetchOrderByUser } from '../store/slices/orderSlice';
 import EditProfileModal from '../components/EditProfileModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import { InlineLoading } from '../components/Loading';
 
 const ProfileScreen = ({ navigation }) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
@@ -188,9 +188,11 @@ const ProfileScreen = ({ navigation }) => {
                 contentContainerStyle={styles.scrollContent}
             >
                 {isLoading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#3b82f6" />
-                    </View>
+                    <InlineLoading
+                        text="Đang tải thông tin..."
+                        style={styles.loadingContainer}
+                        color={COLORS.primary}
+                    />
                 ) : profile && profile.user_name ? (
                     <>
                         <ProfileHeader
@@ -293,11 +295,8 @@ const styles = StyleSheet.create({
         paddingBottom: 100,
     },
     loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
         marginTop: 50,
-        backgroundColor: COLORS.background,
+        paddingVertical: 40,
     },
     logoutButton: {
         flexDirection: 'row',

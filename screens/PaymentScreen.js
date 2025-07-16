@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { createOrder, clearOrderState } from '../store/slices/orderSlice'; // Adjust path as needed
 import { OverlayLoading, MinimalLoading } from '../components/Loading';
 import { formatCurrency } from '../utils/formatCurrency';
+import Toast from 'react-native-toast-message';
 
 const PaymentScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
@@ -77,8 +78,7 @@ const PaymentScreen = ({ navigation, route }) => {
     const defaultOrderSummary = {
         subtotal: 500000,
         shipping: 0,
-        tax: 50000,
-        total: 550000,
+        total: 500000,
     };
 
     const summary = orderSummary || defaultOrderSummary;
@@ -264,7 +264,7 @@ const PaymentScreen = ({ navigation, route }) => {
                     style: 'cancel'
                 },
                 {
-                    text: 'Đặt hàng',
+                    text: 'Xác nhận',
                     style: 'default',
                     onPress: () => {
 
@@ -421,7 +421,7 @@ const PaymentScreen = ({ navigation, route }) => {
     return (
         <SafeAreaView style={styles.container}>
             {/* Loading Overlay */}
-            <OverlayLoading text="Đang tạo đơn hàng của bạn..." visible={isLoading} />
+            {/* <OverlayLoading text="Đang tải đơn hàng của bạn..." visible={isLoading} /> */}
 
             {/* Header */}
             <View style={styles.header}>
@@ -452,10 +452,6 @@ const PaymentScreen = ({ navigation, route }) => {
                             <Text style={[styles.summaryValue, summary.shipping === 0 && styles.freeShipping]}>
                                 {summary.shipping === 0 ? 'Miễn phí' : formatCurrency(summary.shipping)}
                             </Text>
-                        </View>
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Phí dịch vụ</Text>
-                            <Text style={styles.summaryValue}>{formatCurrency(summary.tax)}</Text>
                         </View>
                         <View style={styles.totalDivider} />
                         <View style={[styles.summaryRow, styles.totalRow]}>
@@ -513,12 +509,10 @@ const PaymentScreen = ({ navigation, route }) => {
                         <View style={styles.addressCard}>
                             <View style={styles.addressHeader}>
                                 <View style={styles.addressTypeContainer}>
-                                    <Icon name="home" size={16} color="#0d364c" />
-                                    <Text style={styles.addressType}>Nhà riêng</Text>
+                                    {/* <Icon name="home" size={16} color="#0d364c" /> */}
+                                    <Text style={styles.addressType}></Text>
                                 </View>
-                                <View style={styles.defaultBadge}>
-                                    <Text style={styles.defaultBadgeText}>Mặc định</Text>
-                                </View>
+
                             </View>
                             {receiverInfo.receiver_name && receiverInfo.receiver_address && receiverInfo.receiver_phone ? (
                                 <>

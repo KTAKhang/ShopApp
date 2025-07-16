@@ -11,8 +11,8 @@ const FeaturedNewProducts = ({ products, title }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
 
-    // Filter chỉ lấy sản phẩm có status = true (active products)
-    const activeProducts = products ? products.filter(product => product.status === true) : [];
+    // Filter chỉ lấy sản phẩm có status = true (active products) và giới hạn 6 sản phẩm
+    const activeProducts = products ? products.filter(product => product.status === true).slice(0, 6) : [];
 
     useEffect(() => {
         // Fetch reviews for all active products

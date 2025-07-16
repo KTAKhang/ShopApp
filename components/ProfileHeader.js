@@ -15,7 +15,7 @@ const ProfileHeader = ({ profile, onEditPress }) => (
         <Text style={styles.profileEmail}>{profile.email}</Text>
         <TouchableOpacity style={styles.editProfileButton} onPress={onEditPress}>
             <Ionicons name="create-outline" size={16} color="#13C2C2" />
-            <Text style={styles.editProfileText}>Edit Profile</Text>
+            <Text style={styles.editProfileText}>Sửa hồ sơ</Text>
         </TouchableOpacity>
     </View>
 );
