@@ -11,6 +11,7 @@ import {
     Dimensions,
     Modal,
     FlatList,
+    Alert,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -45,6 +46,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
     // Get cart state for badge
     const { cart } = useSelector((state) => state.cart);
     const itemCount = cart?.item_count || 0;
+
+    // Get authentication state
+    const { isAuthenticated } = useSelector((state) => state.auth);
 
     // Get reviews for this specific product ONLY
     const reviews = useSelector(state => selectProductReviews(state, productId));
@@ -301,6 +305,19 @@ const ProductDetailScreen = ({ navigation, route }) => {
     const handleAddToCart = async () => {
         if (showLoadingModal || isOutOfStock) return; // Prevent multiple clicks or out of stock
 
+        // Check if user is authenticated
+        if (!isAuthenticated) {
+            Alert.alert(
+                'Yêu cầu đăng nhập',
+                'Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Bạn có muốn đăng nhập ngay không?',
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Đăng nhập', onPress: () => navigation.navigate('Login') }
+                ]
+            );
+            return;
+        }
+
         // Validate quantity before adding to cart
         if (quantity > product.quantity) {
             Toast.show({
@@ -340,6 +357,21 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 position: 'top',
                 visibilityTime: 2500,
             });
+        }
+    };
+
+    const handleCartPress = () => {
+        if (isAuthenticated) {
+            navigation.navigate('Cart');
+        } else {
+            Alert.alert(
+                'Yêu cầu đăng nhập',
+                'Bạn cần đăng nhập để xem giỏ hàng. Bạn có muốn đăng nhập ngay không?',
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Đăng nhập', onPress: () => navigation.navigate('Login') }
+                ]
+            );
         }
     };
 
@@ -391,7 +423,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                     <TouchableOpacity
                         style={styles.headerButton}
-                        onPress={() => navigation.navigate('Cart')}
+                        onPress={handleCartPress}
                     >
                         <Icon name="shopping-cart" size={24} color="rgba(255, 255, 255, 0.85)" />
                         {itemCount > 0 && (
@@ -441,7 +473,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                     <TouchableOpacity
                         style={styles.headerButton}
-                        onPress={() => navigation.navigate('Cart')}
+                        onPress={handleCartPress}
                     >
                         <Icon name="shopping-cart" size={24} color="rgba(255, 255, 255, 0.85)" />
                         {itemCount > 0 && (
@@ -488,7 +520,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
                 <TouchableOpacity
                     style={styles.headerButton}
-                    onPress={() => navigation.navigate('Cart')}
+                    onPress={handleCartPress}
                 >
                     <Icon name="shopping-cart" size={24} color="rgba(255, 255, 255, 0.85)" />
                     {itemCount > 0 && (

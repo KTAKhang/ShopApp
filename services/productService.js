@@ -4,8 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Hàm lấy danh sách sản phẩm với phân trang và tìm kiếm
 export async function getProducts({ page = 1, limit = 10, search = null, category_name = null }) {
     try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('Token not found');
+        // const token = await AsyncStorage.getItem('token');
+        // if (!token) throw new Error('Token not found');
 
         let url = `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/product?page=${page}&limit=${limit}`;
 
@@ -20,7 +20,7 @@ export async function getProducts({ page = 1, limit = 10, search = null, categor
         const response = await axios.get(url, {
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
+                // Authorization: `Bearer ${token}`,
             },
         });
 
@@ -38,7 +38,7 @@ export async function getProducts({ page = 1, limit = 10, search = null, categor
         const enhancedResponse = await axios.get(enhancedUrl, {
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
+                // Authorization: `Bearer ${token}`,
             },
         });
 
@@ -76,8 +76,8 @@ export async function getProducts({ page = 1, limit = 10, search = null, categor
 // Hàm lấy thông tin sản phẩm theo ID
 export async function getProductById(id) {
     try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('Token not found');
+        // const token = await AsyncStorage.getItem('token');
+        // if (!token) throw new Error('Token not found');
 
 
 
@@ -86,7 +86,7 @@ export async function getProductById(id) {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
+                    // Authorization: `Bearer ${token}`,
                 },
             }
         );
@@ -172,8 +172,8 @@ export async function getProductsByCategory({ category_name, page = 1, limit = 1
 // Hàm lấy danh sách sản phẩm bán chạy nhất
 export async function getTopSoldProducts({ page = 1, limit = 10, search = null }) {
     try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('Token not found');
+        // const token = await AsyncStorage.getItem('token');
+        // if (!token) throw new Error('Token not found');
 
         let url = `https://youtube-fullstack-nodejs-forbeginer.onrender.com/api/product/top-sold?page=${page}&limit=${limit}`;
 
@@ -184,7 +184,7 @@ export async function getTopSoldProducts({ page = 1, limit = 10, search = null }
         const response = await axios.get(url, {
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
+                // Authorization: `Bearer ${token}`,
             },
         });
 

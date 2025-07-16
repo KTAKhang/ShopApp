@@ -5,24 +5,39 @@ import {
     TouchableOpacity,
     StyleSheet,
     SafeAreaView,
+    Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 
 const BottomNavigation = () => {
     const [activeTab, setActiveTab] = useState('Home');
     const navigation = useNavigation();
+    const { isAuthenticated } = useSelector((state) => state.auth);
+    
     const tabs = [
-        { name: 'HomePage', icon: 'home', label: 'Trang chủ' },
-        { name: 'Cart', icon: 'shopping-cart', label: 'Giỏ hàng' },
-        { name: 'OrderHistory', icon: 'local-shipping', label: 'Đơn hàng' },
-        { name: 'Profile', icon: 'person', label: 'Hồ sơ' },
+        { name: 'HomePage', icon: 'home', label: 'Trang chủ', requiresAuth: false },
+        { name: 'Cart', icon: 'shopping-cart', label: 'Giỏ hàng', requiresAuth: true },
+        { name: 'OrderHistory', icon: 'local-shipping', label: 'Đơn hàng', requiresAuth: true },
+        { name: 'Profile', icon: 'person', label: 'Hồ sơ', requiresAuth: true },
     ];
 
-    const handleTabPress = (tabName) => {
-        setActiveTab(tabName);
-        navigation.navigate(tabName)
-
+    const handleTabPress = (tab) => {
+        if (tab.requiresAuth && !isAuthenticated) {
+            Alert.alert(
+                'Yêu cầu đăng nhập',
+                `Bạn cần đăng nhập để truy cập ${tab.label.toLowerCase()}. Bạn có muốn đăng nhập ngay không?`,
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Đăng nhập', onPress: () => navigation.navigate('Login') }
+                ]
+            );
+            return;
+        }
+        
+        setActiveTab(tab.name);
+        navigation.navigate(tab.name);
     };
 
     return (
@@ -31,22 +46,35 @@ const BottomNavigation = () => {
                 {tabs.map((tab) => (
                     <TouchableOpacity
                         key={tab.name}
-                        style={styles.tabItem}
-                        onPress={() => handleTabPress(tab.name)}
+                        style={[
+                            styles.tabItem,
+                            !isAuthenticated && tab.requiresAuth && styles.disabledTab
+                        ]}
+                        onPress={() => handleTabPress(tab)}
                         activeOpacity={0.7}
                     >
                         <View style={styles.iconContainer}>
                             <Icon
                                 name={tab.icon}
                                 size={24}
-                                color={activeTab === tab.name ? '#007AFF' : '#9CA3AF'}
+                                color={
+                                    activeTab === tab.name 
+                                        ? '#007AFF' 
+                                        : (!isAuthenticated && tab.requiresAuth) 
+                                            ? '#D1D5DB' 
+                                            : '#9CA3AF'
+                                }
                             />
                         </View>
                         <Text
                             style={[
                                 styles.tabLabel,
                                 {
-                                    color: activeTab === tab.name ? '#007AFF' : '#9CA3AF',
+                                    color: activeTab === tab.name 
+                                        ? '#007AFF' 
+                                        : (!isAuthenticated && tab.requiresAuth) 
+                                            ? '#D1D5DB' 
+                                            : '#9CA3AF',
                                 },
                             ]}
                         >
@@ -78,6 +106,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 8,
+    },
+    disabledTab: {
+        opacity: 0.6,
     },
     iconContainer: {
         width: 24,

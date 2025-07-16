@@ -11,10 +11,12 @@ import {
     Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff, Home } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../store/slices/authSlice';
 import { useNavigation } from '@react-navigation/native';
+import { handleLoginSuccess } from '../utils/authUtils';
+import Toast from 'react-native-toast-message';
 
 const { height } = Dimensions.get('window');
 
@@ -23,7 +25,7 @@ const LoginScreen = () => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const navigation = useNavigation();
-    const { isLoading, error } = useSelector((state) => state.auth);
+    const { isLoading, error, isAuthenticated, user } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -50,12 +52,31 @@ const LoginScreen = () => {
         }
     }, [error]);
 
+    // Tự động chuyển về HomePage khi đăng nhập thành công
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            Toast.show({
+                type: 'success',
+                text1: 'Thành công',
+                text2: 'Đăng nhập thành công!',
+                visibilityTime: 2000,
+            });
+            
+            // Sử dụng utility function để navigate
+            handleLoginSuccess(navigation, user);
+        }
+    }, [isAuthenticated, user, navigation]);
+
     const handleLogin = () => {
         if (!email.trim() || !password.trim()) {
             Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu');
             return;
         }
         dispatch(loginUser({ email: email.trim(), password }));
+    };
+
+    const handleGoHome = () => {
+        navigation.navigate('HomePage');
     };
 
     return (
@@ -82,6 +103,18 @@ const LoginScreen = () => {
                         },
                     ]}
                 >
+                    {/* Header với nút về trang chủ */}
+                    <View style={styles.headerContainer}>
+                        <TouchableOpacity
+                            style={styles.homeButton}
+                            onPress={handleGoHome}
+                            activeOpacity={0.7}
+                        >
+                            <Home color="#13C2C2" size={20} />
+                            <Text style={styles.homeButtonText}>Về trang chủ</Text>
+                        </TouchableOpacity>
+                    </View>
+
                     <Text style={styles.title}>Đăng Nhập</Text>
 
                     {/* Email Input */}
@@ -202,6 +235,27 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 10,
         elevation: 8,
+    },
+    headerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginBottom: 10,
+    },
+    homeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(19, 194, 194, 0.1)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(19, 194, 194, 0.3)',
+    },
+    homeButtonText: {
+        color: '#13C2C2',
+        fontSize: 14,
+        fontWeight: '600',
+        marginLeft: 6,
     },
     title: {
         fontSize: 28,
