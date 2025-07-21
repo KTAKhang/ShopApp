@@ -1,3 +1,4 @@
+// Import các thư viện React Native và Redux cần thiết
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
@@ -17,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
+// Import các Redux actions để quản lý reviews và orders
 import {
     createReview,
     updateReview,
@@ -30,14 +32,27 @@ import {
 } from '../store/slices/orderSlice';
 import { formatCurrency } from '../utils/formatCurrency';
 
+/**
+ * Component OrderDetailsScreen - Màn hình chi tiết đơn hàng
+ * Chức năng chính:
+ * - Hiển thị thông tin chi tiết đơn hàng (sản phẩm, địa chỉ, tổng tiền)
+ * - Quản lý đánh giá sản phẩm (tạo mới, chỉnh sửa, hiển thị)
+ * - Xử lý hủy đơn hàng và trả hàng
+ * - Hiển thị trạng thái đơn hàng với màu sắc tương ứng
+ */
 const OrderDetailsScreen = ({ navigation }) => {
+    // Lấy dữ liệu từ route parameters
     const route = useRoute();
     const { orderData, orderDataColor, orderDataBg } = route.params;
 
+    // Khởi tạo dispatch để gọi Redux actions
     const dispatch = useDispatch();
+
+    // Lấy dữ liệu review từ Redux store
     const reviewState = useSelector((state) => state.review);
     const { isLoading, error, successMessage, review } = reviewState;
 
+    // Lấy dữ liệu order từ Redux store
     const orderState = useSelector((state) => state.order);
     const {
         isLoading: orderLoading,
@@ -48,9 +63,12 @@ const OrderDetailsScreen = ({ navigation }) => {
         error: orderError
     } = orderState;
 
+    // useRef để tránh hiển thị alert nhiều lần
     const alertShownRef = useRef(false); // Dùng useRef để tránh lặp alert
 
-    // Map order status names to display format
+    /**
+     * Mapping trạng thái đơn hàng từ API sang hiển thị tiếng Việt
+     */
     const statusMapping = {
         'PENDING': 'Chờ xử lý',
         'CONFIRMED': 'Đã xác nhận',
@@ -60,29 +78,38 @@ const OrderDetailsScreen = ({ navigation }) => {
         'RETURNED': 'Đã trả'
     };
 
+    // Khai báo các state local
     const [orderStatus, setOrderStatus] = useState(
         statusMapping[orderData?.order_status?.name] || 'Chờ xử lý'
     );
-    const [isRefetchingReviews, setIsRefetchingReviews] = useState(false);
+    const [isRefetchingReviews, setIsRefetchingReviews] = useState(false); // Loading state khi fetch reviews
 
+    /**
+     * Khởi tạo state ban đầu cho ratings và reviews của từng sản phẩm
+     */
     const initialRatings = {};
     const initialReviews = {};
     const initialSubmittedReviews = {};
     const initialExistingReviews = {};
 
+    // Tạo state ban đầu cho mỗi sản phẩm trong đơn hàng
     orderData?.items?.forEach((item) => {
-        initialRatings[item.product_id] = 0;
-        initialReviews[item.product_id] = '';
-        initialExistingReviews[item.product_id] = null;
-        initialSubmittedReviews[item.product_id] = false;
+        initialRatings[item.product_id] = 0; // Rating mặc định = 0
+        initialReviews[item.product_id] = ''; // Review content rỗng
+        initialExistingReviews[item.product_id] = null; // Chưa có review existing
+        initialSubmittedReviews[item.product_id] = false; // Chưa submit review
     });
 
-    const [ratings, setRatings] = useState(initialRatings);
-    const [reviews, setReviews] = useState(initialReviews);
-    const [submittedReviews, setSubmittedReviews] = useState(initialSubmittedReviews);
-    const [existingReviews, setExistingReviews] = useState(initialExistingReviews);
-    const [editingReviews, setEditingReviews] = useState({});
+    // Khai báo các state để quản lý reviews
+    const [ratings, setRatings] = useState(initialRatings); // Rating của từng sản phẩm
+    const [reviews, setReviews] = useState(initialReviews); // Nội dung review của từng sản phẩm
+    const [submittedReviews, setSubmittedReviews] = useState(initialSubmittedReviews); // Trạng thái đã submit
+    const [existingReviews, setExistingReviews] = useState(initialExistingReviews); // Reviews đã tồn tại
+    const [editingReviews, setEditingReviews] = useState({}); // Trạng thái đang edit review
 
+    /**
+     * Effect hook để fetch reviews khi component mount
+     */
     useEffect(() => {
         const fetchReviews = async () => {
             setIsRefetchingReviews(true);
@@ -95,6 +122,10 @@ const OrderDetailsScreen = ({ navigation }) => {
         fetchReviews();
     }, [dispatch]);
 
+    /**
+     * Effect hook để cập nhật state khi có reviews từ API
+     * Map reviews existing vào các state tương ứng
+     */
     useEffect(() => {
         if (Array.isArray(review)) {
             const newRatings = {};
@@ -102,6 +133,7 @@ const OrderDetailsScreen = ({ navigation }) => {
             const newSubmittedReviews = {};
             const newExistingReviews = {};
 
+            // Duyệt qua từng sản phẩm và map với reviews existing
             orderData?.items?.forEach((item) => {
                 const productId = item.product_id;
                 const existingReview = review.find(r => r.product && r.product._id === productId);
@@ -112,6 +144,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                 newExistingReviews[productId] = existingReview || null;
             });
 
+            // Cập nhật tất cả state cùng lúc
             setRatings(newRatings);
             setReviews(newReviews);
             setSubmittedReviews(newSubmittedReviews);
@@ -119,7 +152,12 @@ const OrderDetailsScreen = ({ navigation }) => {
         }
     }, [review, orderData?.items]);
 
+    /**
+     * Effect hook để xử lý success/error message của review actions
+     * Hiển thị alert và refresh data sau khi thành công
+     */
     useEffect(() => {
+        // Xử lý success message
         if (successMessage && !isLoading && !error && !alertShownRef.current) {
             alertShownRef.current = true;
 
@@ -132,6 +170,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                         dispatch(clearReviewState());
                         alertShownRef.current = false;
 
+                        // Refresh reviews sau khi thành công
                         setIsRefetchingReviews(true);
                         try {
                             await dispatch(getReviewsByOrderId(orderData.order_id));
@@ -143,6 +182,7 @@ const OrderDetailsScreen = ({ navigation }) => {
             );
         }
 
+        // Xử lý error message
         if (error && !isLoading && !alertShownRef.current) {
             alertShownRef.current = true;
 
@@ -159,13 +199,17 @@ const OrderDetailsScreen = ({ navigation }) => {
             );
         }
 
+        // Reset flag khi không có message
         if (!successMessage && !error) {
             alertShownRef.current = false;
         }
     }, [successMessage, error, isLoading, dispatch, orderData.order_id]);
 
-    // Handle order actions success/error
+    /**
+     * Effect hook để xử lý success/error của order actions (cancel, return)
+     */
     useEffect(() => {
+        // Xử lý thành công hủy đơn hàng
         if (cancelSuccess && cancelMessage) {
             Alert.alert(
                 'Thành công',
@@ -181,6 +225,7 @@ const OrderDetailsScreen = ({ navigation }) => {
             );
         }
 
+        // Xử lý thành công trả hàng
         if (returnSuccess && returnMessage) {
             Alert.alert(
                 'Thành công',
@@ -196,6 +241,7 @@ const OrderDetailsScreen = ({ navigation }) => {
             );
         }
 
+        // Xử lý lỗi order actions
         if (orderError) {
             Alert.alert(
                 'Lỗi',
@@ -208,7 +254,10 @@ const OrderDetailsScreen = ({ navigation }) => {
         }
     }, [cancelSuccess, cancelMessage, returnSuccess, returnMessage, orderError, dispatch, navigation]);
 
-    // Handle cancel order
+    /**
+     * Xử lý hủy đơn hàng
+     * Hiển thị confirmation dialog trước khi thực hiện
+     */
     const handleCancelOrder = () => {
         Alert.alert(
             'Hủy đơn hàng',
@@ -229,7 +278,10 @@ const OrderDetailsScreen = ({ navigation }) => {
         );
     };
 
-    // Handle return order
+    /**
+     * Xử lý trả hàng
+     * Hiển thị confirmation dialog trước khi thực hiện
+     */
     const handleReturnOrder = () => {
         Alert.alert(
             'Trả hàng',
@@ -250,13 +302,18 @@ const OrderDetailsScreen = ({ navigation }) => {
         );
     };
 
+    /**
+     * Xử lý click vào ngôi sao để rating
+     * @param {string} productId - ID của sản phẩm
+     * @param {number} starIndex - Index của ngôi sao (0-4)
+     */
     const handleStarPress = (productId, starIndex) => {
         const hasReviewed = submittedReviews[productId];
         const isEditing = editingReviews[productId];
 
-        // Allow rating changes if order is delivered and either:
-        // 1. No review exists yet, or
-        // 2. Review exists but is in edit mode
+        // Chỉ cho phép rating nếu đơn hàng đã giao và:
+        // 1. Chưa có review, hoặc
+        // 2. Có review nhưng đang ở chế độ edit
         if (orderStatus === 'Đã giao' && (!hasReviewed || isEditing)) {
             setRatings(prev => ({
                 ...prev,
@@ -265,6 +322,10 @@ const OrderDetailsScreen = ({ navigation }) => {
         }
     };
 
+    /**
+     * Bật chế độ edit review cho sản phẩm
+     * @param {string} productId - ID của sản phẩm
+     */
     const handleEditReview = (productId) => {
         setEditingReviews(prev => ({
             ...prev,
@@ -272,8 +333,12 @@ const OrderDetailsScreen = ({ navigation }) => {
         }));
     };
 
+    /**
+     * Hủy chế độ edit và reset về giá trị ban đầu
+     * @param {string} productId - ID của sản phẩm
+     */
     const handleCancelEdit = (productId) => {
-        // Reset to original values
+        // Reset về giá trị gốc
         const existingReview = existingReviews[productId];
         if (existingReview) {
             setRatings(prev => ({
@@ -292,6 +357,10 @@ const OrderDetailsScreen = ({ navigation }) => {
         }));
     };
 
+    /**
+     * Submit review (tạo mới hoặc cập nhật)
+     * @param {string} productId - ID của sản phẩm
+     */
     const handleSubmitReview = async (productId) => {
         const rating = ratings[productId];
         const reviewContent = reviews[productId].trim();
@@ -307,7 +376,7 @@ const OrderDetailsScreen = ({ navigation }) => {
             return;
         }
 
-        // Find the item to get order_details_id and existing review info
+        // Tìm item để lấy order_details_id và thông tin review existing
         const item = orderData?.items?.find(item => item.product_id === productId);
         if (!item) {
             Alert.alert('Lỗi', 'Không tìm thấy sản phẩm');
@@ -321,14 +390,14 @@ const OrderDetailsScreen = ({ navigation }) => {
             let result;
 
             if (existingReview && isEditing) {
-                // Update existing review using the _id from the review object
+                // Cập nhật review existing sử dụng _id từ review object
                 result = await dispatch(updateReview({
                     review_id: existingReview._id,
                     rating: rating,
                     review_content: reviewContent,
                 }));
             } else {
-                // Create new review
+                // Tạo review mới
                 if (!item.order_details_id) {
                     Alert.alert('Lỗi', 'Không tìm thấy ID chi tiết đơn hàng');
                     return;
@@ -342,22 +411,27 @@ const OrderDetailsScreen = ({ navigation }) => {
                 }));
             }
 
-            // If successful, refresh the review data from server
+            // Nếu thành công, thoát khỏi chế độ edit ngay lập tức
             if (createReview.fulfilled.match(result) || updateReview.fulfilled.match(result)) {
-                // Exit edit mode immediately
+                // Thoát chế độ edit ngay lập tức
                 setEditingReviews(prev => ({
                     ...prev,
                     [productId]: false,
                 }));
 
-                // Note: Success message will be handled by the useEffect above
-                // No need to manually refresh here since it's handled in the alert callback
+                // Note: Success message sẽ được xử lý bởi useEffect phía trên
+                // Không cần manually refresh ở đây vì được xử lý trong alert callback
             }
         } catch (error) {
             console.error('Submit review error:', error);
         }
     };
 
+    /**
+     * Render các ngôi sao rating cho sản phẩm
+     * @param {string} productId - ID của sản phẩm
+     * @returns {Component} Component chứa 5 ngôi sao
+     */
     const renderStars = (productId) => {
         const currentRating = ratings[productId];
         const hasReviewed = submittedReviews[productId];
@@ -386,13 +460,19 @@ const OrderDetailsScreen = ({ navigation }) => {
         );
     };
 
+    /**
+     * Render section đánh giá cho sản phẩm
+     * Chỉ hiển thị khi đơn hàng đã giao
+     * @param {string} productId - ID của sản phẩm
+     * @returns {Component} Section đánh giá hoặc null
+     */
     const renderRatingSection = (productId) => {
         if (orderStatus !== 'Đã giao') return null;
 
         const hasReviewed = submittedReviews[productId];
         const isEditing = editingReviews[productId];
 
-        // Show loading state when refetching reviews
+        // Hiển thị loading state khi đang refetch reviews
         if (isRefetchingReviews) {
             return (
                 <View style={styles.ratingSection}>
@@ -406,15 +486,17 @@ const OrderDetailsScreen = ({ navigation }) => {
 
         return (
             <View style={styles.ratingSection}>
+                {/* Tiêu đề section */}
                 <Text style={styles.ratingTitle}>
                     {hasReviewed && !isEditing ? 'Đánh giá của bạn' :
                         hasReviewed && isEditing ? 'Chỉnh sửa đánh giá' :
                             'Đánh giá sản phẩm này'}
                 </Text>
+                {/* Container các ngôi sao */}
                 {renderStars(productId)}
 
                 {hasReviewed && !isEditing ? (
-                    // Display existing review with edit option
+                    // Hiển thị review existing với option edit
                     <View style={styles.reviewedContainer}>
                         <View style={styles.existingReviewContent}>
                             <Text style={styles.existingReviewText}>
@@ -422,10 +504,12 @@ const OrderDetailsScreen = ({ navigation }) => {
                             </Text>
                         </View>
                         <View style={styles.reviewActions}>
+                            {/* Indicator đã đánh giá */}
                             <View style={styles.submittedIndicator}>
                                 <Icon name="check-circle" size={16} color="#22C55E" />
                                 <Text style={styles.submittedText}>Đã đánh giá</Text>
                             </View>
+                            {/* Nút edit */}
                             <TouchableOpacity
                                 style={styles.editButton}
                                 onPress={() => handleEditReview(productId)}
@@ -439,8 +523,9 @@ const OrderDetailsScreen = ({ navigation }) => {
                         </View>
                     </View>
                 ) : (
-                    // Show form for new review or editing existing review
+                    // Hiển thị form cho review mới hoặc edit review existing
                     <>
+                        {/* TextInput cho nội dung review */}
                         <TextInput
                             style={[
                                 styles.reviewInput,
@@ -458,7 +543,9 @@ const OrderDetailsScreen = ({ navigation }) => {
                             }}
                             editable={!isRefetchingReviews}
                         />
+                        {/* Container các nút action */}
                         <View style={styles.reviewButtonsContainer}>
+                            {/* Nút hủy (chỉ hiển thị khi đang edit) */}
                             {isEditing && (
                                 <TouchableOpacity
                                     style={[styles.cancelButton]}
@@ -468,6 +555,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                                     <Text style={styles.cancelButtonText}>Hủy</Text>
                                 </TouchableOpacity>
                             )}
+                            {/* Nút submit */}
                             <TouchableOpacity
                                 style={[
                                     styles.submitReviewButton,
@@ -498,9 +586,11 @@ const OrderDetailsScreen = ({ navigation }) => {
         );
     };
 
-
-
-    // Format ngày
+    /**
+     * Format ngày tháng theo định dạng tiếng Việt
+     * @param {string} dateString - Chuỗi ngày từ API
+     * @returns {string} Ngày đã format
+     */
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('vi-VN', {
@@ -510,11 +600,15 @@ const OrderDetailsScreen = ({ navigation }) => {
         });
     };
 
-    // Tính tổng tiền items
+    /**
+     * Tính tổng tiền của các items trong đơn hàng
+     * @returns {number} Tổng tiền items
+     */
     const calculateSubtotal = () => {
         return orderData?.items?.reduce((total, item) => total + item.subtotal, 0) || 0;
     };
 
+    // Render main UI
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar
@@ -523,7 +617,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                 translucent
             />
 
-            {/* Header */}
+            {/* Header với gradient background */}
             <LinearGradient
                 colors={COLORS.gradient.primary}
                 start={{ x: 0, y: 0 }}
@@ -532,18 +626,21 @@ const OrderDetailsScreen = ({ navigation }) => {
             >
                 <SafeAreaView>
                     <View style={styles.header}>
+                        {/* Nút back */}
                         <TouchableOpacity
                             style={styles.backButton}
                             onPress={() => navigation.goBack()}
                         >
                             <Icon name="arrow-back" size={24} color="#ffffff" />
                         </TouchableOpacity>
+                        {/* Tiêu đề */}
                         <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
                         <View style={styles.headerSpacer} />
                     </View>
                 </SafeAreaView>
             </LinearGradient>
-            {/* Global Loading Overlay */}
+
+            {/* Global Loading Overlay khi đang refetch reviews */}
             {isRefetchingReviews && (
                 <View style={styles.globalLoadingOverlay}>
                     <View style={styles.globalLoadingContainer}>
@@ -553,9 +650,11 @@ const OrderDetailsScreen = ({ navigation }) => {
                 </View>
             )}
 
+            {/* Nội dung chính - ScrollView */}
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Order Info */}
+                {/* Thông tin đơn hàng */}
                 <View style={styles.orderInfo}>
+                    {/* Header đơn hàng - ID và trạng thái */}
                     <View style={styles.orderHeader}>
                         <View>
                             <Text style={styles.orderNumber}>{`#ORD-${orderData?.order_id?.slice(-4).toUpperCase()}`}</Text>
@@ -576,7 +675,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                         </View>
                     </View>
 
-                    {/* Delivery Address */}
+                    {/* Địa chỉ giao hàng */}
                     <View style={styles.addressContainer}>
                         <Text style={styles.addressTitle}>Địa chỉ giao hàng</Text>
                         <Text style={styles.customerName}>{orderData?.receiver_name}</Text>
@@ -586,10 +685,11 @@ const OrderDetailsScreen = ({ navigation }) => {
                         </Text>
                     </View>
 
-                    {/* Products */}
+                    {/* Danh sách sản phẩm */}
                     <View style={styles.productsContainer}>
                         {orderData?.items?.map((item, index) => (
                             <View key={item.product_id} style={styles.productCard}>
+                                {/* Thông tin sản phẩm */}
                                 <View style={styles.productInfo}>
                                     <Image
                                         source={{ uri: item.image }}
@@ -608,12 +708,13 @@ const OrderDetailsScreen = ({ navigation }) => {
                                         ]}>Tạm tính: {formatCurrency(item.subtotal)}</Text>
                                     </View>
                                 </View>
+                                {/* Section đánh giá sản phẩm */}
                                 {renderRatingSection(item.product_id)}
                             </View>
                         ))}
                     </View>
 
-                    {/* Order Summary */}
+                    {/* Tóm tắt đơn hàng - Tính tiền */}
                     <View style={styles.summaryContainer}>
                         <View style={styles.summaryRow}>
                             <Text style={styles.summaryLabel}>Tạm tính</Text>
@@ -633,9 +734,10 @@ const OrderDetailsScreen = ({ navigation }) => {
                 </View>
             </ScrollView>
 
-            {/* Action Buttons */}
+            {/* Action Buttons - Hiển thị conditional dựa trên trạng thái */}
             {(orderStatus === 'Chờ xử lý' || orderStatus === 'Đã giao') && (
                 <View style={styles.actionContainer}>
+                    {/* Nút hủy đơn hàng (chỉ hiển thị khi chờ xử lý) */}
                     {orderStatus === 'Chờ xử lý' && (
                         <TouchableOpacity
                             style={[
@@ -657,6 +759,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                         </TouchableOpacity>
                     )}
 
+                    {/* Nút trả hàng (chỉ hiển thị khi đã giao) */}
                     {orderStatus === 'Đã giao' && (
                         <TouchableOpacity
                             style={[
@@ -683,12 +786,14 @@ const OrderDetailsScreen = ({ navigation }) => {
     );
 };
 
-
+// Định nghĩa styles cho component
 const styles = StyleSheet.create({
+    // Container chính
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
     },
+    // Header với gradient
     headerGradient: {
         paddingTop: StatusBar.currentHeight + 10,
         paddingBottom: 20,
@@ -700,6 +805,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 8,
     },
+    // Header content
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -707,6 +813,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 12,
     },
+    // Nút back
     backButton: {
         width: 44,
         height: 44,
@@ -717,6 +824,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.3)',
     },
+    // Tiêu đề header
     headerTitle: {
         flex: 1,
         textAlign: 'center',
@@ -724,31 +832,38 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: '#FFFFFF',
     },
+    // Spacer cho layout cân bằng
     headerSpacer: {
         width: 40,
     },
+    // Nội dung chính
     content: {
         flex: 1,
     },
+    // Container thông tin đơn hàng
     orderInfo: {
         padding: 16,
     },
+    // Header đơn hàng (ID + status)
     orderHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
         marginBottom: 16,
     },
+    // Số đơn hàng
     orderNumber: {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#000',
     },
+    // Ngày đặt hàng
     orderDate: {
         fontSize: 14,
         color: '#6B7280',
         marginTop: 2,
     },
+    // Badge trạng thái
     statusBadge: {
         paddingHorizontal: 12,
         paddingVertical: 4,
@@ -758,6 +873,7 @@ const styles = StyleSheet.create({
     deliveredBadge: {
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
     },
+    // Text trạng thái
     statusText: {
         fontSize: 14,
         fontWeight: '500',
@@ -766,31 +882,37 @@ const styles = StyleSheet.create({
     deliveredText: {
         color: '#22C55E',
     },
+    // Container địa chỉ
     addressContainer: {
         backgroundColor: '#F9FAFB',
         borderRadius: 8,
         padding: 16,
         marginBottom: 24,
     },
+    // Tiêu đề địa chỉ
     addressTitle: {
         fontSize: 16,
         fontWeight: '500',
         color: '#000',
         marginBottom: 8,
     },
+    // Tên khách hàng
     customerName: {
         fontSize: 16,
         color: '#4B5563',
         marginBottom: 4,
     },
+    // Địa chỉ
     address: {
         fontSize: 14,
         color: '#4B5563',
         lineHeight: 20,
     },
+    // Container danh sách sản phẩm
     productsContainer: {
         marginBottom: 24,
     },
+    // Card sản phẩm
     productCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 8,
@@ -799,71 +921,88 @@ const styles = StyleSheet.create({
         padding: 16,
         marginBottom: 16,
     },
+    // Thông tin sản phẩm
     productInfo: {
         flexDirection: 'row',
     },
+    // Hình ảnh sản phẩm
     productImage: {
         width: 80,
         height: 80,
         borderRadius: 8,
         marginRight: 16,
     },
+    // Chi tiết sản phẩm
     productDetails: {
         flex: 1,
     },
+    // Tên sản phẩm
     productName: {
         fontSize: 16,
         fontWeight: '500',
         color: '#000',
         marginBottom: 4,
     },
+    // Variant sản phẩm
     productVariant: {
         fontSize: 14,
         color: '#6B7280',
         marginBottom: 8,
     },
+    // Row giá và số lượng
     priceRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 4,
     },
+    // Giá sản phẩm
     price: {
         fontSize: 16,
         fontWeight: '500',
         color: '#000',
     },
+    // Số lượng
     quantity: {
         fontSize: 14,
         color: '#6B7280',
     },
+    // Tạm tính
     subtotal: {
         fontSize: 14,
         fontWeight: '500',
         color: '#22C55E',
     },
+
+    // STYLES CHO RATING SECTION
+    // Section đánh giá
     ratingSection: {
         marginTop: 16,
         paddingTop: 16,
         borderTopWidth: 1,
         borderTopColor: '#E5E7EB',
     },
+    // Tiêu đề rating
     ratingTitle: {
         fontSize: 14,
         fontWeight: '500',
         color: '#000',
         marginBottom: 8,
     },
+    // Container các ngôi sao
     starsContainer: {
         flexDirection: 'row',
         marginBottom: 12,
     },
+    // Style ngôi sao
     star: {
         marginRight: 4,
     },
+    // Ngôi sao disabled
     disabledStar: {
         opacity: 0.5,
     },
+    // Input đánh giá
     reviewInput: {
         borderWidth: 1,
         borderColor: '#D1D5DB',
@@ -874,10 +1013,12 @@ const styles = StyleSheet.create({
         minHeight: 80,
         marginBottom: 12,
     },
+    // Container các nút review
     reviewButtonsContainer: {
         flexDirection: 'row',
         gap: 8,
     },
+    // Nút hủy
     cancelButton: {
         flex: 1,
         backgroundColor: '#F3F4F6',
@@ -890,6 +1031,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
     },
+    // Nút submit review
     submitReviewButton: {
         flex: 2,
         backgroundColor: '#1CD4D4',
@@ -901,19 +1043,23 @@ const styles = StyleSheet.create({
     submitButtonSmall: {
         marginBottom: 0,
     },
+    // Nút disabled
     disabledButton: {
         opacity: 0.7,
     },
+    // Text nút submit
     submitReviewText: {
         color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '500',
     },
+    // Content loading button
     loadingButtonContent: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
     },
+    // Container review đã submit
     reviewedContainer: {
         backgroundColor: '#F0FDF4',
         borderRadius: 8,
@@ -921,30 +1067,36 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#BBF7D0',
     },
+    // Nội dung review existing
     existingReviewContent: {
         marginBottom: 12,
     },
+    // Text review existing
     existingReviewText: {
         fontSize: 14,
         color: '#374151',
         fontStyle: 'italic',
         lineHeight: 20,
     },
+    // Actions của review
     reviewActions: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
+    // Indicator đã submit
     submittedIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
     },
+    // Text đã submit
     submittedText: {
         color: '#22C55E',
         fontSize: 12,
         fontWeight: '500',
         marginLeft: 4,
     },
+    // Nút edit
     editButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -956,6 +1108,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         marginLeft: 4,
     },
+    // Container loading
     loadingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -967,6 +1120,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6B7280',
     },
+    // Global loading overlay
     globalLoadingOverlay: {
         position: 'absolute',
         top: 0,
@@ -998,40 +1152,52 @@ const styles = StyleSheet.create({
         color: '#374151',
         fontWeight: '500',
     },
+
+    // STYLES CHO ORDER SUMMARY
+    // Container tóm tắt
     summaryContainer: {
         backgroundColor: '#F9FAFB',
         borderRadius: 8,
         padding: 16,
     },
+    // Row trong summary
     summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 12,
     },
+    // Label summary
     summaryLabel: {
         fontSize: 16,
         color: '#4B5563',
     },
+    // Value summary
     summaryValue: {
         fontSize: 16,
         color: '#000',
     },
+    // Row total
     totalRow: {
         paddingTop: 12,
         borderTopWidth: 1,
         borderTopColor: '#E5E7EB',
         marginBottom: 0,
     },
+    // Label total
     totalLabel: {
         fontSize: 16,
         fontWeight: '500',
         color: '#000',
     },
+    // Value total
     totalValue: {
         fontSize: 16,
         fontWeight: '500',
         color: '#000',
     },
+
+    // STYLES CHO ACTION BUTTONS
+    // Container action buttons
     actionContainer: {
         backgroundColor: '#FFFFFF',
         borderTopWidth: 1,
@@ -1046,6 +1212,7 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5,
     },
+    // Action button chung
     actionButton: {
         paddingVertical: 12,
         paddingHorizontal: 24,
@@ -1054,17 +1221,21 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         minHeight: 48,
     },
+    // Nút hủy đơn hàng
     cancelButton: {
         backgroundColor: '#EF4444',
     },
+    // Nút trả hàng
     returnButton: {
         backgroundColor: '#F59E0B',
     },
+    // Text action button
     actionButtonText: {
         fontSize: 16,
         fontWeight: '600',
         color: '#FFFFFF',
     },
+    // Button disabled
     disabledButton: {
         opacity: 0.6,
     },

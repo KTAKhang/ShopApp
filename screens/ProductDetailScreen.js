@@ -1,3 +1,4 @@
+// Import các thư viện React Native và Redux cần thiết
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+// Import các Redux actions để quản lý product và reviews
 import { fetchProductByIdAsync } from '../store/slices/productSlice';
 import {
     fetchProductReviewsByProductId,
@@ -22,45 +24,62 @@ import {
     selectProductReviewsLoading
 } from '../store/slices/reviewSlice';
 import { addToCart } from '../store/slices/cartSlice';
+// Import các component loading tùy chỉnh
 import { InlineLoading, OverlayLoading } from '../components/Loading';
 import { COLORS } from '../constants/colors';
 import { formatCurrency } from '../utils/formatCurrency';
 import Toast from 'react-native-toast-message';
 
+// Lấy kích thước màn hình thiết bị
 const { width } = Dimensions.get('window');
 
+/**
+ * Component ProductDetailScreen - Màn hình chi tiết sản phẩm
+ * Chức năng chính:
+ * - Hiển thị thông tin chi tiết sản phẩm (hình ảnh, tên, giá, mô tả)
+ * - Quản lý số lượng và thêm vào giỏ hàng
+ * - Hiển thị và quản lý đánh giá sản phẩm
+ * - Xử lý trạng thái hết hàng và sản phẩm không hoạt động
+ * - Kiểm tra authentication cho các tính năng
+ */
 const ProductDetailScreen = ({ navigation, route }) => {
+    // Khởi tạo dispatch để gọi Redux actions
     const dispatch = useDispatch();
-    const [quantity, setQuantity] = useState(1);
-    const [isFavorite, setIsFavorite] = useState(false);
-    const [showAllReviews, setShowAllReviews] = useState(false);
-    const [showLoadingModal, setShowLoadingModal] = useState(false);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    
+    // Khai báo các state local
+    const [quantity, setQuantity] = useState(1); // Số lượng sản phẩm muốn mua
+    const [isFavorite, setIsFavorite] = useState(false); // Trạng thái yêu thích (chưa sử dụng)
+    const [showAllReviews, setShowAllReviews] = useState(false); // Hiển thị modal tất cả đánh giá
+    const [showLoadingModal, setShowLoadingModal] = useState(false); // Modal loading khi thêm vào giỏ hàng
+    const [showSuccessModal, setShowSuccessModal] = useState(false); // Modal thành công
 
-    // Get product ID from route params
+    // Lấy productId từ route parameters
     const productId = route?.params?.productId;
 
-    // Get product and loading state from Redux
+    // Lấy dữ liệu từ Redux store
     const { product, isLoading: productLoading, error } = useSelector((state) => state.product);
 
-    // Get cart state for badge
+    // Lấy thông tin giỏ hàng để hiển thị badge số lượng
     const { cart } = useSelector((state) => state.cart);
     const itemCount = cart?.item_count || 0;
 
-    // Get authentication state
+    // Lấy trạng thái đăng nhập
     const { isAuthenticated } = useSelector((state) => state.auth);
 
-    // Get reviews for this specific product ONLY
+    // Lấy reviews chỉ cho sản phẩm hiện tại
     const reviews = useSelector(state => selectProductReviews(state, productId));
     const reviewsLoading = useSelector(state => selectProductReviewsLoading(state, productId));
 
-    // Check if product is out of stock
+    // Kiểm tra sản phẩm có hết hàng không
     const isOutOfStock = product && product.quantity <= 0;
 
-    // Fetch data chỉ khi cần thiết (không clear data cũ)
+    /**
+     * Effect hook để fetch dữ liệu khi component mount
+     * Fetch thông tin sản phẩm và reviews
+     */
     useEffect(() => {
         if (productId && productId !== 'undefined') {
-            // Fetch product details
+            // Fetch thông tin chi tiết sản phẩm
             dispatch(fetchProductByIdAsync(productId));
 
             // Chỉ fetch reviews nếu chưa có data cho sản phẩm này
@@ -71,7 +90,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
     }, [dispatch, productId]); // Bỏ reviews khỏi dependency để tránh infinite loop
 
-    // Auto-adjust quantity if it exceeds available stock when product data updates
+    /**
+     * Effect hook để tự động điều chỉnh quantity khi sản phẩm hết hàng
+     * Nếu quantity hiện tại vượt quá số lượng có sẵn, tự động giảm xuống
+     */
     useEffect(() => {
         if (product && product.quantity > 0 && quantity > product.quantity) {
             setQuantity(product.quantity);
@@ -85,30 +107,41 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
     }, [product?.quantity, quantity]);
 
+    // Tổng hợp trạng thái loading
     const isLoading = productLoading || reviewsLoading;
 
-    // Calculate average rating from reviews của sản phẩm hiện tại
+    /**
+     * Tính toán rating trung bình từ tất cả reviews của sản phẩm hiện tại
+     */
     const averageRating = reviews && reviews.length > 0
         ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
         : 0;
 
+    /**
+     * Render các ngôi sao đánh giá
+     * @param {number} rating - Điểm đánh giá (0-5)
+     * @returns {Array} Mảng các component Icon ngôi sao
+     */
     const renderStars = (rating) => {
         const stars = [];
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 !== 0;
+        const fullStars = Math.floor(rating); // Số sao đầy
+        const hasHalfStar = rating % 1 !== 0; // Có sao nửa không
 
+        // Render sao đầy
         for (let i = 0; i < fullStars; i++) {
             stars.push(
                 <Icon key={i} name="star" size={16} color="#FFD700" />
             );
         }
 
+        // Render sao nửa nếu có
         if (hasHalfStar) {
             stars.push(
                 <Icon key="half" name="star-half" size={16} color="#FFD700" />
             );
         }
 
+        // Render sao rỗng cho phần còn lại
         const emptyStars = 5 - Math.ceil(rating);
         for (let i = 0; i < emptyStars; i++) {
             stars.push(
@@ -119,7 +152,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
         return stars;
     };
 
-    // Render Avatar component
+    /**
+     * Render avatar của user trong reviews
+     * Hiển thị ảnh avatar hoặc fallback với chữ cái đầu
+     * @param {Object} user - Thông tin user
+     * @returns {Component} Avatar component
+     */
     const renderUserAvatar = (user) => {
         const avatarUrl = user?.avatar;
         const userName = user?.name || user?.user_name || user?.username || 'Anonymous';
@@ -145,11 +183,16 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
     };
 
-    // Render individual review item
+    /**
+     * Render từng item review trong FlatList
+     * @param {Object} param - Object chứa item và index
+     * @returns {Component} Review item component
+     */
     const renderReviewItem = ({ item: review, index }) => {
         return (
             <View key={review._id || index} style={styles.reviewItem}>
                 <View style={styles.reviewHeader}>
+                    {/* Thông tin người đánh giá */}
                     <View style={styles.reviewerInfo}>
                         {renderUserAvatar(review.user)}
                         <View style={styles.reviewerDetails}>
@@ -166,16 +209,21 @@ const ProductDetailScreen = ({ navigation, route }) => {
                             </Text>
                         </View>
                     </View>
+                    {/* Số sao đánh giá */}
                     <View style={styles.starsContainer}>
                         {renderStars(review.rating)}
                     </View>
                 </View>
+                {/* Nội dung đánh giá */}
                 <Text style={styles.reviewText}>{review.content}</Text>
             </View>
         );
     };
 
-    // Render preview reviews (first 2 reviews)
+    /**
+     * Render preview reviews (2 đánh giá đầu tiên)
+     * Hiển thị tối đa 2 reviews và nút "Xem tất cả" nếu có nhiều hơn
+     */
     const renderPreviewReviews = () => {
         if (!reviews || reviews.length === 0) {
             return (
@@ -187,6 +235,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
         return (
             <>
+                {/* Hiển thị 2 reviews đầu tiên */}
                 {previewReviews.map((review, index) => (
                     <View key={review._id || index} style={styles.reviewItem}>
                         <View style={styles.reviewHeader}>
@@ -214,6 +263,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     </View>
                 ))}
 
+                {/* Nút "Xem tất cả" nếu có nhiều hơn 2 reviews */}
                 {reviews && reviews.length > 2 && (
                     <TouchableOpacity
                         style={styles.showAllButton}
@@ -229,7 +279,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
         );
     };
 
-    // Reviews Modal Component
+    /**
+     * Component Modal hiển thị tất cả reviews
+     * Modal fullscreen với header và FlatList các reviews
+     */
     const ReviewsModal = () => {
         return (
             <Modal
@@ -239,8 +292,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 onRequestClose={() => setShowAllReviews(false)}
             >
                 <SafeAreaView style={styles.modalContainer}>
-                    {/* Modal Header */}
+                    {/* Header của modal */}
                     <View style={styles.modalHeader}>
+                        {/* Nút đóng modal */}
                         <TouchableOpacity
                             onPress={() => setShowAllReviews(false)}
                             style={styles.modalCloseButton}
@@ -248,10 +302,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
                             <Icon name="close" size={24} color={COLORS.text} />
                         </TouchableOpacity>
 
+                        {/* Tiêu đề modal */}
                         <Text style={styles.modalTitle}>
                             Tất cả đánh giá ({reviews ? reviews.length : 0})
                         </Text>
 
+                        {/* Nút refresh */}
                         <TouchableOpacity
                             style={styles.modalRefreshButton}
                             onPress={handleRefresh}
@@ -260,7 +316,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Reviews List */}
+                    {/* Danh sách tất cả reviews */}
                     <FlatList
                         data={reviews}
                         renderItem={renderReviewItem}
@@ -283,10 +339,15 @@ const ProductDetailScreen = ({ navigation, route }) => {
         );
     };
 
+    /**
+     * Xử lý thay đổi số lượng sản phẩm
+     * @param {string} type - Loại thay đổi ('increase' hoặc 'decrease')
+     */
     const handleQuantityChange = (type) => {
         if (type === 'increase') {
+            // Kiểm tra không vượt quá số lượng trong kho
             if (quantity >= product.quantity) {
-                // Show toast notification when trying to exceed stock
+                // Hiển thị thông báo khi vượt quá số lượng kho
                 Toast.show({
                     type: 'error',
                     text1: 'Vượt quá số lượng kho',
@@ -302,10 +363,14 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
     };
 
+    /**
+     * Xử lý thêm sản phẩm vào giỏ hàng
+     * Kiểm tra authentication và validate số lượng trước khi thêm
+     */
     const handleAddToCart = async () => {
-        if (showLoadingModal || isOutOfStock) return; // Prevent multiple clicks or out of stock
+        if (showLoadingModal || isOutOfStock) return; // Ngăn click nhiều lần hoặc khi hết hàng
 
-        // Check if user is authenticated
+        // Kiểm tra user đã đăng nhập chưa
         if (!isAuthenticated) {
             Alert.alert(
                 'Yêu cầu đăng nhập',
@@ -318,7 +383,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
             return;
         }
 
-        // Validate quantity before adding to cart
+        // Validate số lượng trước khi thêm vào giỏ hàng
         if (quantity > product.quantity) {
             Toast.show({
                 type: 'error',
@@ -330,18 +395,20 @@ const ProductDetailScreen = ({ navigation, route }) => {
             return;
         }
 
+        // Hiển thị loading modal
         setShowLoadingModal(true);
         try {
+            // Gọi Redux action để thêm vào giỏ hàng
             await dispatch(addToCart({
                 product_id: productId,
                 quantity: quantity
             })).unwrap();
 
-            // Hide loading and show success
+            // Ẩn loading và hiển thị success modal
             setShowLoadingModal(false);
             setShowSuccessModal(true);
 
-            // Auto hide success modal after 2 seconds
+            // Tự động ẩn success modal sau 2 giây
             setTimeout(() => {
                 setShowSuccessModal(false);
             }, 2000);
@@ -349,7 +416,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
         } catch (error) {
             setShowLoadingModal(false);
 
-            // Show error toast
+            // Hiển thị thông báo lỗi
             Toast.show({
                 type: 'error',
                 text1: 'Không thể thêm vào giỏ hàng',
@@ -360,6 +427,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
     };
 
+    /**
+     * Xử lý click vào icon giỏ hàng
+     * Kiểm tra authentication trước khi navigate
+     */
     const handleCartPress = () => {
         if (isAuthenticated) {
             navigation.navigate('Cart');
@@ -375,7 +446,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
     };
 
-    // Refresh function để fetch lại data khi cần
+    /**
+     * Function refresh để fetch lại data khi cần
+     * Sử dụng useCallback để tối ưu performance
+     */
     const handleRefresh = useCallback(() => {
         if (productId) {
             dispatch(fetchProductByIdAsync(productId));
@@ -391,6 +465,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
         }
     }, [dispatch, productId]);
 
+    // Render error state
     if (error) {
         return (
             <View style={styles.errorContainer}>
@@ -405,12 +480,13 @@ const ProductDetailScreen = ({ navigation, route }) => {
         );
     }
 
+    // Render loading state
     if (isLoading) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
 
-                {/* Header */}
+                {/* Header khi loading */}
                 <View style={styles.header}>
                     <TouchableOpacity
                         style={styles.headerButton}
@@ -434,12 +510,13 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Loading Content */}
+                {/* Nội dung loading */}
                 <InlineLoading text="Đang tải sản phẩm..." style={styles.loadingContainer} />
             </SafeAreaView>
         );
     }
 
+    // Render state khi không tìm thấy sản phẩm
     if (!product) {
         return (
             <View style={styles.errorContainer}>
@@ -454,7 +531,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
         );
     }
 
-    // Check if product is inactive (status = false)
+    // Render state khi sản phẩm bị ẩn (status = false)
     if (product.status === false) {
         return (
             <SafeAreaView style={styles.container}>
@@ -484,6 +561,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     </TouchableOpacity>
                 </View>
 
+                {/* Thông báo sản phẩm không khả dụng */}
                 <View style={styles.inactiveContainer}>
                     <View style={styles.inactiveWrapper}>
                         <Icon name="block" size={80} color="#ff6b6b" />
@@ -503,11 +581,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
         );
     }
 
+    // Render main content - Nội dung chính khi có sản phẩm hợp lệ
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor={COLORS.secondary} />
 
-            {/* Header */}
+            {/* Header với nút back, title và cart */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.headerButton}
@@ -523,6 +602,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     onPress={handleCartPress}
                 >
                     <Icon name="shopping-cart" size={24} color="rgba(255, 255, 255, 0.85)" />
+                    {/* Badge hiển thị số lượng item trong cart */}
                     {itemCount > 0 && (
                         <View style={styles.badge}>
                             <Text style={styles.badgeText}>{itemCount}</Text>
@@ -531,8 +611,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
             </View>
 
+            {/* Nội dung chính - ScrollView chứa tất cả thông tin sản phẩm */}
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Product Image */}
+                {/* Container hình ảnh sản phẩm */}
                 <View style={styles.imageContainer}>
                     <Image
                         source={{ uri: product.image }}
@@ -541,11 +622,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
                     />
                 </View>
 
-                {/* Product Info */}
+                {/* Thông tin sản phẩm */}
                 <View style={styles.productInfo}>
+                    {/* Tên sản phẩm */}
                     <Text style={styles.productName}>{product.name}</Text>
 
-                    {/* Rating */}
+                    {/* Container đánh giá và số sao */}
                     <View style={styles.ratingContainer}>
                         <View style={styles.starsContainer}>
                             {renderStars(averageRating)}
@@ -554,10 +636,11 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         <Text style={styles.reviewCount}>• {reviews ? reviews.length : 0} Đánh giá</Text>
                     </View>
 
-                    {/* Price and Quantity */}
+                    {/* Container giá và quantity selector */}
                     <View style={styles.priceQuantityContainer}>
                         <Text style={styles.price}>{formatCurrency(product.price)}</Text>
                         <View style={styles.quantityContainer}>
+                            {/* Nút giảm quantity */}
                             <TouchableOpacity
                                 style={[
                                     styles.quantityButton,
@@ -569,8 +652,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
                                 <Icon name="remove" size={20} color={quantity <= 1 ? "#ccc" : "#666"} />
                             </TouchableOpacity>
 
+                            {/* Hiển thị số lượng hiện tại */}
                             <Text style={styles.quantityText}>{quantity}</Text>
 
+                            {/* Nút tăng quantity */}
                             <TouchableOpacity
                                 style={[
                                     styles.quantityButton,
@@ -588,27 +673,31 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         </View>
                     </View>
 
-                    {/* Description */}
+                    {/* Section mô tả sản phẩm */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Mô tả</Text>
                         <Text style={styles.description}>{product.detail_desc}</Text>
                     </View>
 
-                    {/* Type and Rating */}
+                    {/* Section thông tin sản phẩm */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Thông tin sản phẩm</Text>
+                        {/* Danh mục sản phẩm */}
                         <View style={styles.featureItem}>
                             <Icon name="label" size={16} color="#4caf50" />
                             <Text style={styles.featureText}>Danh mục: {product.category_id?.name || 'Chung'}</Text>
                         </View>
+                        {/* Loại sản phẩm */}
                         <View style={styles.featureItem}>
                             <Icon name="category" size={16} color="#4caf50" />
                             <Text style={styles.featureText}>Loại: {product.target}</Text>
                         </View>
+                        {/* Đánh giá trung bình */}
                         <View style={styles.featureItem}>
                             <Icon name="star" size={16} color="#4caf50" />
                             <Text style={styles.featureText}>Đánh giá: {averageRating.toFixed(1)}/5</Text>
                         </View>
+                        {/* Trạng thái kho hàng */}
                         <View style={styles.featureItem}>
                             <Icon
                                 name={isOutOfStock ? "remove-shopping-cart" : "inventory"}
@@ -624,12 +713,13 @@ const ProductDetailScreen = ({ navigation, route }) => {
                         </View>
                     </View>
 
-                    {/* Reviews Section - CHỈ hiển thị preview */}
+                    {/* Section reviews - CHỈ hiển thị preview */}
                     <View style={styles.section}>
                         <View style={styles.reviewsHeader}>
                             <Text style={styles.sectionTitle}>
                                 Đánh giá ({reviews ? reviews.length : 0})
                             </Text>
+                            {/* Nút refresh reviews */}
                             <TouchableOpacity
                                 style={styles.refreshButton}
                                 onPress={handleRefresh}
@@ -639,7 +729,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Preview Reviews */}
+                        {/* Container hiển thị preview reviews */}
                         <View style={styles.reviewsPreviewContainer}>
                             {renderPreviewReviews()}
                         </View>
@@ -647,13 +737,13 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 </View>
             </ScrollView>
 
-            {/* Reviews Modal */}
+            {/* Modal hiển thị tất cả reviews */}
             <ReviewsModal />
 
-            {/* Loading Modal */}
+            {/* Modal loading khi thêm vào giỏ hàng */}
             <OverlayLoading text="Đang thêm vào giỏ hàng..." visible={showLoadingModal} />
 
-            {/* Success Modal */}
+            {/* Modal thành công */}
             <Modal
                 transparent={true}
                 animationType="fade"
@@ -667,7 +757,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 </View>
             </Modal>
 
-            {/* Bottom Action Bar */}
+            {/* Bottom Action Bar - Nút thêm vào giỏ hàng */}
             <View style={styles.actionBar}>
                 <TouchableOpacity
                     style={[
@@ -691,17 +781,20 @@ const ProductDetailScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Toast Message */}
+            {/* Toast Message để hiển thị thông báo */}
             <Toast />
         </SafeAreaView>
     );
 };
 
+// Định nghĩa styles cho component
 const styles = StyleSheet.create({
+    // Container chính
     container: {
         flex: 1,
         backgroundColor: COLORS.background,
     },
+    // Container loading
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -713,6 +806,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
     },
+    // Container lỗi
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -726,6 +820,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         textAlign: 'center',
     },
+    // Nút thử lại
     retryButton: {
         backgroundColor: '#007bff',
         paddingHorizontal: 20,
@@ -737,6 +832,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    // Header của màn hình
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -747,6 +843,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primary,
         elevation: 5,
     },
+    // Nút trong header
     headerButton: {
         width: 40,
         height: 40,
@@ -756,65 +853,79 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         position: 'relative',
     },
+    // Tiêu đề header
     headerTitle: {
         fontSize: 20,
         fontWeight: '600',
         color: COLORS.white,
     },
+    // Nội dung chính
     content: {
         flex: 1,
     },
+    // Container hình ảnh sản phẩm
     imageContainer: {
         position: 'relative',
         height: 300,
         backgroundColor: '#f8f9fa',
     },
+    // Hình ảnh sản phẩm
     productImage: {
         width: '100%',
         height: '100%',
     },
+    // Container thông tin sản phẩm
     productInfo: {
         padding: 16,
     },
+    // Tên sản phẩm
     productName: {
         fontSize: 20,
         fontWeight: '600',
         color: '#333',
         marginBottom: 8,
     },
+    // Container đánh giá
     ratingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 16,
     },
+    // Container các ngôi sao
     starsContainer: {
         flexDirection: 'row',
     },
+    // Text hiển thị rating
     ratingText: {
         fontSize: 14,
         color: '#666',
         marginLeft: 8,
     },
+    // Text số lượng reviews
     reviewCount: {
         fontSize: 14,
         color: '#666',
         marginLeft: 4,
     },
+    // Container giá và quantity
     priceQuantityContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 24,
     },
+    // Text giá sản phẩm
     price: {
         fontSize: 24,
         fontWeight: 'bold',
         color: '#007bff',
     },
+    // Container quantity selector
     quantityContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
+    // Nút thay đổi quantity
     quantityButton: {
         width: 32,
         height: 32,
@@ -823,6 +934,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    // Text hiển thị quantity
     quantityText: {
         fontSize: 16,
         fontWeight: '500',
@@ -830,36 +942,43 @@ const styles = StyleSheet.create({
         minWidth: 24,
         textAlign: 'center',
     },
+    // Section container
     section: {
         marginBottom: 24,
     },
+    // Tiêu đề section
     sectionTitle: {
         fontSize: 18,
         fontWeight: '600',
         color: '#333',
         marginBottom: 12,
     },
+    // Mô tả sản phẩm
     description: {
         fontSize: 14,
         color: '#666',
         lineHeight: 20,
     },
+    // Item trong feature list
     featureItem: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 8,
     },
+    // Text trong feature item
     featureText: {
         fontSize: 14,
         color: '#666',
         marginLeft: 8,
     },
+    // Header của reviews section
     reviewsHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 12,
     },
+    // Nút refresh
     refreshButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -874,32 +993,38 @@ const styles = StyleSheet.create({
         marginLeft: 4,
         fontWeight: '500',
     },
+    // Container preview reviews
     reviewsPreviewContainer: {
         paddingBottom: 100,  // Tăng giá trị này nếu cần khoảng cách nhiều hơn
     },
+    // Item review
     reviewItem: {
         marginBottom: 16,
         padding: 12,
         backgroundColor: '#f8f9fa',
         borderRadius: 8,
     },
+    // Header của review item
     reviewHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
         marginBottom: 8,
     },
+    // Thông tin người review
     reviewerInfo: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
     },
+    // Avatar user
     userAvatar: {
         width: 40,
         height: 40,
         borderRadius: 20,
         marginRight: 12,
     },
+    // Avatar fallback
     avatarFallback: {
         width: 40,
         height: 40,
@@ -914,25 +1039,30 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    // Chi tiết người review
     reviewerDetails: {
         flex: 1,
     },
+    // Tên người review
     reviewerName: {
         fontSize: 14,
         fontWeight: '600',
         color: '#333',
     },
+    // Nội dung review
     reviewText: {
         fontSize: 14,
         color: '#666',
         lineHeight: 20,
         marginTop: 8,
     },
+    // Ngày review
     reviewDate: {
         fontSize: 12,
         color: '#999',
         marginTop: 2,
     },
+    // Text khi không có reviews
     noReviewsText: {
         fontSize: 14,
         color: '#999',
@@ -940,6 +1070,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         padding: 20,
     },
+    // Nút "Xem tất cả"
     showAllButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -958,11 +1089,14 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
         marginRight: 8,
     },
-    // Modal Styles
+    
+    // STYLES CHO MODAL REVIEWS
+    // Container modal
     modalContainer: {
         flex: 1,
         backgroundColor: '#fff',
     },
+    // Header modal
     modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -973,6 +1107,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#e0e0e0',
         backgroundColor: '#fff',
     },
+    // Nút đóng modal
     modalCloseButton: {
         width: 40,
         height: 40,
@@ -980,6 +1115,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderRadius: 20,
     },
+    // Tiêu đề modal
     modalTitle: {
         fontSize: 18,
         fontWeight: '600',
@@ -987,6 +1123,7 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
     },
+    // Nút refresh trong modal
     modalRefreshButton: {
         width: 40,
         height: 40,
@@ -994,14 +1131,17 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderRadius: 20,
     },
+    // Nội dung modal (đổi tên để tránh duplicate)
     modalContent: {
         padding: 16,
     },
+    // Separator giữa các reviews
     reviewSeparator: {
         height: 1,
         backgroundColor: '#e0e0e0',
         marginVertical: 8,
     },
+    // Container khi không có reviews
     emptyReviewsContainer: {
         flex: 1,
         alignItems: 'center',
@@ -1020,6 +1160,7 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: 'center',
     },
+    // Action bar ở bottom
     actionBar: {
         position: 'absolute',
         bottom: 0,
@@ -1031,6 +1172,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: COLORS.border.light,
     },
+    // Nút thêm vào giỏ hàng
     addToCartButtonFull: {
         flex: 1,
         flexDirection: 'row',
@@ -1051,13 +1193,15 @@ const styles = StyleSheet.create({
         color: COLORS.white,
         marginLeft: 8,
     },
+    // Overlay cho modal
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    modalContent: {
+    // Content modal success (đổi tên để tránh duplicate)
+    modalSuccessContent: {
         backgroundColor: COLORS.white,
         padding: 30,
         borderRadius: 20,
@@ -1069,6 +1213,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 5,
     },
+    // Text trong modal
     modalText: {
         fontSize: 16,
         fontWeight: '600',
@@ -1076,6 +1221,7 @@ const styles = StyleSheet.create({
         marginTop: 15,
         textAlign: 'center',
     },
+    // Container khi sản phẩm inactive
     inactiveContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -1083,6 +1229,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
         padding: 20,
     },
+    // Wrapper cho inactive state
     inactiveWrapper: {
         backgroundColor: COLORS.white,
         padding: 40,
@@ -1095,6 +1242,7 @@ const styles = StyleSheet.create({
         elevation: 5,
         maxWidth: 300,
     },
+    // Tiêu đề inactive
     inactiveTitle: {
         fontSize: 20,
         fontWeight: '700',
@@ -1103,6 +1251,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         textAlign: 'center',
     },
+    // Text inactive
     inactiveText: {
         fontSize: 16,
         color: '#666',
@@ -1110,6 +1259,7 @@ const styles = StyleSheet.create({
         lineHeight: 22,
         marginBottom: 30,
     },
+    // Nút quay lại
     goBackButton: {
         backgroundColor: COLORS.primary,
         paddingHorizontal: 24,
@@ -1126,9 +1276,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    // Text khi hết hàng
     outOfStockText: {
         color: '#ff4757',
     },
+    // Nút disabled
     addToCartButtonDisabled: {
         backgroundColor: '#ccc',
     },
@@ -1138,6 +1290,7 @@ const styles = StyleSheet.create({
     quantityButtonDisabled: {
         backgroundColor: '#f0f0f0',
     },
+    // Badge trên cart icon
     badge: {
         position: 'absolute',
         top: -5,
