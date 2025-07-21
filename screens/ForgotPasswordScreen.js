@@ -81,10 +81,8 @@ const ForgotPasswordScreen = () => {
                 text1: 'Thành công',
                 text2: 'Mã OTP đã được gửi đến email của bạn',
             });
-            // Chuyển sang trang nhập OTP thay vì quay về Login
-            setTimeout(() => {
-                navigation.navigate('ForgotPasswordOTP', { email });
-            }, 1500);
+            // Chuyển sang trang nhập OTP thay vì quay về Login 
+            navigation.navigate('ForgotPasswordOTP', { email });
         } else if (forgotPasswordStatus === 'error') {
             console.log('Forgot Password Error:', forgotPasswordMessage); // Debug log
             Toast.show({

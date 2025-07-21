@@ -12,6 +12,8 @@ import {
     Alert,
     ActivityIndicator,
 } from 'react-native';
+import { COLORS } from '../constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -515,20 +517,32 @@ const OrderDetailsScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+            <StatusBar
+                barStyle="light-content"
+                backgroundColor={COLORS.secondary}
+                translucent
+            />
 
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => navigation.goBack()}
-                >
-                    <Icon name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
-                <View style={styles.headerSpacer} />
-            </View>
-
+            <LinearGradient
+                colors={COLORS.gradient.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.headerGradient}
+            >
+                <SafeAreaView>
+                    <View style={styles.header}>
+                        <TouchableOpacity
+                            style={styles.backButton}
+                            onPress={() => navigation.goBack()}
+                        >
+                            <Icon name="arrow-back" size={24} color="#ffffff" />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
+                        <View style={styles.headerSpacer} />
+                    </View>
+                </SafeAreaView>
+            </LinearGradient>
             {/* Global Loading Overlay */}
             {isRefetchingReviews && (
                 <View style={styles.globalLoadingOverlay}>
@@ -675,27 +689,40 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FFFFFF',
     },
+    headerGradient: {
+        paddingTop: StatusBar.currentHeight + 10,
+        paddingBottom: 20,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        elevation: 5,
+        shadowColor: COLORS.shadow.dark,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: 56,
-        paddingHorizontal: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
-        backgroundColor: '#FFFFFF',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
+        width: 44,
+        height: 44,
         alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 22,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     headerTitle: {
         flex: 1,
         textAlign: 'center',
         fontSize: 18,
         fontWeight: '500',
-        color: '#000',
+        color: '#FFFFFF',
     },
     headerSpacer: {
         width: 40,

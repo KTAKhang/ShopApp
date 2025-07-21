@@ -692,6 +692,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 2,
         elevation: 2,
+        marginTop: 20,
     },
     headerButton: {
         width: 32,
