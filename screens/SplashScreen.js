@@ -48,8 +48,8 @@ export default function SplashScreen() {
             {/* Background gradient effect */}
             <View style={styles.backgroundCircle1} />
             <View style={styles.backgroundCircle2} />
-            
-            <Animated.View 
+
+            <Animated.View
                 style={[
                     styles.contentContainer,
                     {
@@ -66,11 +66,11 @@ export default function SplashScreen() {
                 </View>
 
                 {/* App Title */}
-                <Text style={styles.title}>OCOP APP</Text>
-                <Text style={styles.subtitle}>One Commune One Product</Text>
+                <Text style={styles.title}>TSOS</Text>
+                <Text style={styles.subtitle}>Toys Shopping Online System (TSOS)</Text>
 
                 {/* Custom Loading Indicator */}
-                <Animated.View 
+                <Animated.View
                     style={[
                         styles.customLoader,
                         { transform: [{ rotate: rotateInterpolate }] }

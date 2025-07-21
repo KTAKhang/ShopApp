@@ -101,7 +101,7 @@ const SvgIcon = (props) => (
             fontWeight: 'bold',
             marginTop: 10,
         }}>
-            OCOP
+            GundamShop
         </Text>
 
         <Text style={{
@@ -109,7 +109,7 @@ const SvgIcon = (props) => (
             fontSize: 12,
             marginTop: 2,
         }}>
-            MỘT XÃ MỘT SẢN PHẨM
+            Ngôi Nhà Đồ Chơi
         </Text>
     </View>
 );
