@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -8,22 +8,14 @@ import {
     Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
-import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
-
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-
 
 const BottomNavigation = () => {
     const [activeTab, setActiveTab] = useState('HomePage');
     const navigation = useNavigation();
-
-    const { isAuthenticated } = useSelector((state) => state.auth);
-    
-
     const route = useRoute();
-
+    const { isAuthenticated } = useSelector((state) => state.auth);
 
     const tabs = [
         { name: 'HomePage', icon: 'home', label: 'Trang chủ', requiresAuth: false },
@@ -31,7 +23,6 @@ const BottomNavigation = () => {
         { name: 'OrderHistory', icon: 'local-shipping', label: 'Đơn hàng', requiresAuth: true },
         { name: 'Profile', icon: 'person', label: 'Hồ sơ', requiresAuth: true },
     ];
-
 
     const handleTabPress = (tab) => {
         if (tab.requiresAuth && !isAuthenticated) {
@@ -45,27 +36,20 @@ const BottomNavigation = () => {
             );
             return;
         }
-        
+
         setActiveTab(tab.name);
         navigation.navigate(tab.name);
+    };
 
-    // Cập nhật activeTab khi route thay đổi
     useFocusEffect(
         React.useCallback(() => {
             const currentRouteName = route.name;
-            // Kiểm tra xem route hiện tại có trong danh sách tabs không
             const tabExists = tabs.some(tab => tab.name === currentRouteName);
             if (tabExists) {
                 setActiveTab(currentRouteName);
             }
         }, [route.name])
     );
-
-    const handleTabPress = (tabName) => {
-        setActiveTab(tabName);
-        navigation.navigate(tabName);
-
-    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -85,10 +69,10 @@ const BottomNavigation = () => {
                                 name={tab.icon}
                                 size={24}
                                 color={
-                                    activeTab === tab.name 
-                                        ? '#007AFF' 
-                                        : (!isAuthenticated && tab.requiresAuth) 
-                                            ? '#D1D5DB' 
+                                    activeTab === tab.name
+                                        ? '#007AFF'
+                                        : (!isAuthenticated && tab.requiresAuth)
+                                            ? '#D1D5DB'
                                             : '#9CA3AF'
                                 }
                             />
@@ -97,10 +81,10 @@ const BottomNavigation = () => {
                             style={[
                                 styles.tabLabel,
                                 {
-                                    color: activeTab === tab.name 
-                                        ? '#007AFF' 
-                                        : (!isAuthenticated && tab.requiresAuth) 
-                                            ? '#D1D5DB' 
+                                    color: activeTab === tab.name
+                                        ? '#007AFF'
+                                        : (!isAuthenticated && tab.requiresAuth)
+                                            ? '#D1D5DB'
                                             : '#9CA3AF',
                                 },
                             ]}
