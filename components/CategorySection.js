@@ -24,9 +24,6 @@ const CategorySection = ({ categories }) => {
     }
 
     const handleCategoryPress = (category) => {
-
-
-
         navigation.navigate('AllProducts', {
             categoryId: category._id,
             categoryName: category.name
@@ -137,6 +134,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
         fontSize: 16,
     },
+
 });
 
 export default CategorySection;

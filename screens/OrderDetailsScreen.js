@@ -760,7 +760,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                     )}
 
                     {/* Nút trả hàng (chỉ hiển thị khi đã giao) */}
-                    {orderStatus === 'Đã giao' && (
+                    {/* {orderStatus === 'Đã giao' && (
                         <TouchableOpacity
                             style={[
                                 styles.actionButton,
@@ -779,7 +779,7 @@ const OrderDetailsScreen = ({ navigation }) => {
                                 <Text style={styles.actionButtonText}>Trả hàng</Text>
                             )}
                         </TouchableOpacity>
-                    )}
+                    )} */}
                 </View>
             )}
         </SafeAreaView>

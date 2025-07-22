@@ -45,7 +45,7 @@ export async function getProductReviewsByProductId(product_id) {
 
 export async function updateReviewApi({ review_id, rating, review_content }) {
     try {
-        // const token = await AsyncStorage.getItem('token');
+        const token = await AsyncStorage.getItem('token');
 
         const response = await axios.put(
             `${BASE_URL}/update/${review_id}`,
@@ -56,7 +56,7 @@ export async function updateReviewApi({ review_id, rating, review_content }) {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    // Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             }
         );
@@ -104,7 +104,7 @@ export async function getReviewsByOrderIdApi(order_id) {
 
 export async function createReviewApi({ product_id, order_detail_id, rating, review_content }) {
     try {
-        // const token = await AsyncStorage.getItem('token');
+        const token = await AsyncStorage.getItem('token');
 
         const response = await axios.post(
             `${BASE_URL}/create`,
@@ -117,7 +117,7 @@ export async function createReviewApi({ product_id, order_detail_id, rating, rev
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    // Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             }
         );

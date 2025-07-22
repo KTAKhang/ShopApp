@@ -104,6 +104,7 @@ const styles = StyleSheet.create({
         marginTop: 40,
         paddingVertical: 60,
     },
+
 });
 
 export default HomeScreen;

@@ -8,7 +8,7 @@ export const fetchCategoriesAsync = createAsyncThunk(
             const response = await getCategories({ page, limit });
             return response.data.categories;
         } catch (error) {
-            console.error('API error:', error);
+            // console.error('API error:', error);
             return rejectWithValue(error.message);
         }
     }
